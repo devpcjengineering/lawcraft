@@ -295,3 +295,9 @@
   .pv-body h2 { margin-top: 32px; }
 }
 @media (max-width: 400px) { .pk-opts { gap: 8px; } .pk-opt { padding: 12px; } }
+
+/* ตารางในบทความ: ให้แต่ละคอลัมน์กว้างพออ่านได้ แล้วเลื่อนแนวนอนในกล่องของตัวเอง (แทนการบีบเป็นคอลัมน์แคบสูง ๆ) */
+@media (max-width: 760px) {
+  .ar-table th, .ar-table td { min-width: 8.5em; padding: 10px 12px; }
+  .ar-table.pv-table td:first-child { min-width: 7em; }
+}

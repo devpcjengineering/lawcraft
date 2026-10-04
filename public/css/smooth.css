@@ -34,3 +34,13 @@ dialog::backdrop { animation: vt-in .26s ease both; }
   @view-transition { navigation: none; }
   a, button, summary, select, input, textarea, label { transition: none; }
 }
+
+/* ส่วนที่ morph เพิ่มเข้ามาใหม่ (js/morph.js) ค่อย ๆ ปรากฏ */
+[data-mi] { animation: mi-in .32s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes mi-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { [data-mi] { animation: none; } }
+
+/* เปลี่ยนหน้าในหลังบ้าน (หน้าแรก ↔ พื้นที่ทำงาน ↔ สมุดรายชื่อ ↔ ล็อกอิน): จางเข้า ไม่ใช้ transform เพราะจะทำให้ sticky/fixed ในหน้าเพี้ยน */
+#app > .home, #app > .work, #app > .bookpage, #app > .login, #app > .boot { animation: page-fade .36s ease both; }
+@keyframes page-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #app > .home, #app > .work, #app > .bookpage, #app > .login, #app > .boot { animation: none; } }

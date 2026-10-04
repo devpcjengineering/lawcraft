@@ -1,5 +1,6 @@
 import config from './config.js';
 import { loadLawData, loadGeo, loadJurisdiction } from '/js/public-data.js';
+import { morphInto } from '/js/morph.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -46,14 +47,19 @@ const heroScales = $('#heroScales');
 if (heroScales && !reduceMotion.matches) {
   let queued = false;
   const MAX_AMP = 6; // องศา
+  let lastP = -1;
   const update = () => {
     queued = false;
     const p = Math.min(1, Math.max(0, window.scrollY / (window.innerHeight * 0.7)));
+    if (p === lastP) return; // เลื่อนพ้นหัวหน้าแล้ว (p=1) ไม่ต้องเขียนสไตล์ซ้ำทุกเฟรม — ประหยัดแบตบนมือถือ
+    lastP = p;
     heroScales.style.setProperty('--p', p.toFixed(3));
     heroScales.style.setProperty('--amp-live', `${(MAX_AMP * (1 - p) * (1 - p)).toFixed(2)}deg`);
   };
   addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
   update();
+  // พ้นจอแล้วหยุดแอนิเมชันโยกของตราชั่ง (ประหยัด CPU/แบตบนมือถือ) — ดู .scales-wrap.off ใน site.css
+  if ('IntersectionObserver' in window) new IntersectionObserver((es) => heroScales.classList.toggle('off', !es[0].isIntersecting)).observe(heroScales);
 }
 // ตราชั่งเล็กในหัวข้อเขตอำนาจศาล (โคลนจากตัวหลัก เล่นแอนิเมชันเมื่อเลื่อนมาถึง)
 {
@@ -152,11 +158,11 @@ function renderResults() {
     box.innerHTML = '<div class="empty"><p>กำลังจัดทำฐานข้อมูลมาตรากฎหมาย — กลับมาดูอีกครั้งเร็ว ๆ นี้</p></div>';
     $('#resCount').textContent = ''; $('#moreBtn').hidden = true; return;
   }
-  box.innerHTML = list.slice(0, shown).map((e, i) => `<button class="card${i >= animFrom ? ' pop' : ''}" style="--i:${Math.min(Math.max(i - animFrom, 0), 10)}" data-key="${esc(e.key)}">
+  morphInto(box, list.slice(0, shown).map((e, i) => `<button class="card${i >= animFrom ? ' pop' : ''}" style="--i:${Math.min(Math.max(i - animFrom, 0), 10)}" data-key="${esc(e.key)}">
       <span class="law"><span class="tag ${e.kind === 'civil' ? 'civil' : e.kind === 'criminal' ? 'crim' : ''}">${e.kind === 'civil' ? 'แพ่ง' : e.kind === 'criminal' ? 'อาญา' : ['pvor', 'pvpe'].includes(e.lawId) ? 'วิธีพิจารณา' : 'บททั่วไป'}</span>${esc(lawShort(e.lawId))}</span>
       <span class="sec-no"><small>มาตรา</small>${esc(e.section)}</span>
       <h3>${esc(e.title)}</h3>${e.body ? `<p>${esc(e.body)}</p>` : ''}</button>`).join('')
-    || `<div class="empty"><p>ไม่พบรายการที่ตรงกับ${query.trim() ? ` “${esc(query.trim())}”` : 'ตัวกรองนี้'}<br><span class="fine">ลองใช้คำค้นอื่น เลขมาตรา หรือชื่อข้อหา</span></p><button class="btn-pill ghost" data-act="clear">ล้างการค้นหา</button></div>`;
+    || `<div class="empty"><p>ไม่พบรายการที่ตรงกับ${query.trim() ? ` “${esc(query.trim())}”` : 'ตัวกรองนี้'}<br><span class="fine">ลองใช้คำค้นอื่น เลขมาตรา หรือชื่อข้อหา</span></p><button class="btn-pill ghost" data-act="clear">ล้างการค้นหา</button></div>`, { mark: false });
   $('#resCount').textContent = list.length ? (list.length > shown ? `แสดง ${fmt(shown)} จาก ${fmt(list.length)} รายการ` : `${fmt(list.length)} รายการ`) : '';
   $('#moreBtn').hidden = list.length <= shown;
 }

@@ -5,6 +5,7 @@ import { field, select, addressFields, group, provinceList, idField } from './ui
 import { personFields } from './tabs.js';
 import { newCase, newParty, uid, partyName } from '/shared/model.js';
 import { confirmBox } from './modal.js';
+import { morphInto } from './morph.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const KIND_TXT = { party: 'บุคคลธรรมดา', juristic: 'นิติบุคคล', counsel: 'ทนายความ' };
@@ -81,7 +82,7 @@ export function showBook(root, selectId) {
   sel = null; q = ''; filter = 'all'; stateTxt = ''; stateTone = '';
   app.innerHTML = `
   <header class="topbar"><div class="brand" data-act="goHome"><svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span><span class="brand-sub">สมุดรายชื่อ</span></div><span class="grow"></span>
-    <button class="btn ghost" data-act="goHome">← คดีทั้งหมด</button></header>
+    <button class="btn ghost" data-act="goHome" aria-label="คดีทั้งหมด"><span class="tb-i" aria-hidden="true">←</span><span class="tb-t"> คดีทั้งหมด</span></button></header>
   <main class="bookpage">
     <aside class="bk-side" aria-label="รายชื่อ">
       <div class="bk-add">
@@ -110,8 +111,8 @@ function renderList() {
     .filter((x) => !n || `${x.label} ${x.data?.idCard || ''} ${x.data?.address?.province || ''} ${x.data?.license || ''}`.toLowerCase().includes(n))
     .sort((a, b) => a.label.localeCompare(b.label, 'th'));
   const draft = sel?.isNew ? `<button class="bk-row on" type="button"><b>${esc(readBackLabel() || 'รายการใหม่')}</b><small>ยังไม่ได้บันทึก — กรอกชื่อ</small></button>` : '';
-  box.innerHTML = draft + (rows.map((x) => `<button type="button" class="bk-row ${sel?.rec.id === x.id ? 'on' : ''}" data-act="bookPick" data-id="${esc(x.id)}"><b>${esc(x.label)}</b><small>${metaOf(x)}</small></button>`).join('')
-    || (draft ? '' : `<div class="empty">${S.people.length ? 'ไม่พบรายการ' : 'ยังไม่มีรายการ — กด “+ บุคคล” เพื่อเพิ่มรายแรก'}</div>`));
+  morphInto(box, draft + (rows.map((x) => `<button type="button" class="bk-row ${sel?.rec.id === x.id ? 'on' : ''}" data-act="bookPick" data-id="${esc(x.id)}"><b>${esc(x.label)}</b><small>${metaOf(x)}</small></button>`).join('')
+    || (draft ? '' : `<div class="empty">${S.people.length ? 'ไม่พบรายการ' : 'ยังไม่มีรายการ — กด “+ บุคคล” เพื่อเพิ่มรายแรก'}</div>`)), { mark: false });
 }
 const readBackLabel = () => { try { return readBack().label; } catch { return ''; } };
 

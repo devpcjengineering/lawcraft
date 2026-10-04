@@ -10,6 +10,7 @@ import { ageFromBirth, validCitizenId, maskCitizenId } from '/shared/thai.js';
 import { selectBackend } from './api.js';
 import { showBook, leaveBook } from './book.js';
 import { openViewer } from './viewer.js';
+import { morphInto } from './morph.js';
 import { startConn, connHtml } from './conn.js';
 import { firstBlocked, isLocked, wizardNav, refreshWizard, STEPS } from './wizard.js';
 import { showInbox } from './inbox.js';
@@ -31,6 +32,7 @@ function setSaveState(st, tone = '') {
   saveState = st;
   const el = $('#save-state');
   if (el) { el.textContent = st; el.dataset.tone = tone; }
+  document.documentElement.dataset.save = tone; // มือถือ: แสดงสถานะบันทึกเป็นเส้นสีใต้แถบบน (ดู app.css)
 }
 async function doSave() {
   if (!S.c) return;
@@ -136,10 +138,10 @@ async function showHome() {
   let list = [];
   try { list = authUi.filterCases(await backend.listCases()); } catch (e) { if (e.status === 401) return showLogin(); }
   app.innerHTML = `
-  <header class="topbar"><div class="brand" data-act="goHome"><svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span><span class="brand-sub">หลังบ้าน · ระบบร่างคำฟ้อง</span></div><span class="grow"></span>
+  <header class="topbar"><div class="brand" data-act="goHome"><svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span><span class="brand-sub">ระบบร่างคำฟ้อง</span></div><span class="grow"></span>
     <span class="save-state" title="ที่เก็บข้อมูล">${esc(backend.label || '')}</span>
     ${authUi.userBar()}
-    <a class="btn ghost" href="/">← เว็บไซต์</a></header>
+    <a class="btn ghost" href="/" aria-label="กลับไปเว็บไซต์"><span class="tb-i" aria-hidden="true">←</span><span class="tb-t"> เว็บไซต์</span></a></header>
   <main class="home">
     <h1>My 
 Indictment</h1>
@@ -261,8 +263,8 @@ function showWorkspace() {
     <span class="case-name">${esc(S.c.title || caseTitle(S.c))}</span><span class="grow"></span>
     <button class="ready-chip" id="ready-chip" data-act="showReadiness" type="button"></button>
     <span class="save-state" id="save-state" data-tone="">${esc(saveState)}</span>
-    <button class="btn ghost" data-act="togglePreview">👁 ตัวอย่างเอกสาร</button>
-    <button class="btn ghost" data-act="goHome">คดีทั้งหมด</button>${authUi.userBar()}</header>
+    <button class="btn ghost" data-act="togglePreview" aria-label="ตัวอย่างเอกสาร"><span class="tb-i" aria-hidden="true">👁</span><span class="tb-t"> ตัวอย่างเอกสาร</span></button>
+    <button class="btn ghost" data-act="goHome" aria-label="คดีทั้งหมด"><span class="tb-i" aria-hidden="true">☰</span><span class="tb-t">คดีทั้งหมด</span></button>${authUi.userBar()}</header>
   <div class="work" id="work"><nav class="steps" id="steps" aria-label="เมนูเอกสารและขั้นตอน"></nav><main class="main" id="main"></main>
     <aside class="preview" id="preview"><div class="pv-bar" id="pv-bar"></div><div class="pv-scroll" id="pv-scroll"><div class="pv-inner" id="pv-inner"></div></div></aside></div>`;
   renderShell();
@@ -277,7 +279,7 @@ function renderSteps() {
   if (!el || !S.c) return;
   const errors = validateCase(S.c, S.idx).filter((i) => i.level === 'error').length;
   const crim = S.c.type === 'criminal';
-  el.innerHTML = NAV.filter(authUi.navGroupVisible).map((g) => {
+  const stepsHtml = NAV.filter(authUi.navGroupVisible).map((g) => {
     const items = g.items.filter((t) => authUi.navItemVisible(t) && (!t.only || t.only === S.c.type || (t.only === 'criminal' && crim)));
     return `<div class="nav-group"><div class="nav-head">${esc(g.group)}${g.hint ? `<small>${esc(g.hint)}</small>` : ''}</div>${items.map((t) => {
       const st = t.status ? t.status() : null;
@@ -290,8 +292,12 @@ function renderSteps() {
         ${lock ? '<span class="lock" aria-hidden="true">🔒</span>' : (st ? `<span class="dot ${st}" title="${STATUS_TXT[st]}" role="img" aria-label="${STATUS_TXT[st]}"></span>` : '')}</button>`;
     }).join('')}</div>`;
   }).join('');
+  morphInto(el, stepsHtml, { mark: false });
   updateReady();
   refreshWizard(S.tab, S.c);
+  // มือถือ: เมนูขั้นตอนเป็นแถบเลื่อนแนวนอน → เลื่อนให้ปุ่มที่เปิดอยู่มาอยู่กลางแถบ
+  const on = el.querySelector('.nav-item.on');
+  if (on && el.scrollWidth > el.clientWidth) el.scrollLeft = Math.max(0, on.offsetLeft - (el.clientWidth - on.offsetWidth) / 2);
 }
 function updateReady() {
   const chip = $('#ready-chip');
@@ -299,7 +305,9 @@ function updateReady() {
   const iss = validateCase(S.c, S.idx);
   const e = iss.filter((i) => i.level === 'error').length, w = iss.filter((i) => i.level === 'warn').length;
   chip.className = 'ready-chip ' + (e ? 'err' : w ? 'warn' : 'ok');
-  chip.innerHTML = '<i></i>' + (e ? `ต้องแก้ ${e} จุด` : w ? `ควรตรวจ ${w} ข้อ` : 'พร้อมยื่น');
+  const chipTxt = e ? `ต้องแก้ ${e} จุด` : w ? `ควรตรวจ ${w} ข้อ` : 'พร้อมยื่น';
+  chip.innerHTML = '<i></i><span class="rc-t">' + chipTxt + '</span>';
+  chip.dataset.n = e || w || ''; chip.setAttribute('aria-label', chipTxt); // มือถือ: แสดงเฉพาะจุดสีกับตัวเลข
   chip.title = 'คลิกเพื่อดูรายการตรวจสอบก่อนยื่น';
 }
 actions.showReadiness = async () => {
@@ -320,7 +328,9 @@ function renderStepsSoon() { clearTimeout(stepsTimer); stepsTimer = setTimeout(r
 function renderMain(enter = false) {
   const tab = TABS.find((t) => t.key === S.tab) || TABS[0];
   const scrollY = window.scrollY;
-  $('#main').innerHTML = provinceList() + tab.render() + wizardNav(tab.key, S.c);
+  const mainHtml = provinceList() + tab.render() + wizardNav(tab.key, S.c);
+  if (enter || renderMain.last !== tab.key) $('#main').innerHTML = mainHtml; else morphInto($('#main'), mainHtml);
+  renderMain.last = tab.key;
   if (tab.key === 'export') renderDocList();
   window.scrollTo(0, scrollY);
   if (enter) playEnter($('#main'));
@@ -416,7 +426,7 @@ function renderPreview() {
   const oldZoom = parseFloat(inner.style.zoom) || 1;
   inner.style.zoom = 1;
   inner.style.margin = '0';
-  inner.innerHTML = docHtml(doc, S.data.layout);
+  if (same) morphInto(inner, docHtml(doc, S.data.layout), { mark: false }); else inner.innerHTML = docHtml(doc, S.data.layout);
   inner.classList.toggle('pv-guides', !!S.ui.guides);
   const natH = Math.max(1123, inner.offsetHeight);
   // แผงตัวอย่างถูกซ่อนอยู่ (จอแคบ) → ยังไม่คำนวณขนาดพอดี รอตอนเปิดแผง
@@ -429,7 +439,7 @@ function renderPreview() {
   inner.style.margin = '0 12px';
   sc.classList.toggle('fit', !manual || zoom <= fit + 0.001);
   const pct = Math.round(zoom * 100);
-  const barHtml = `<div class="pv-nav">
+  const barHtml = `<div class="pv-nav"><button type="button" class="pv-close" data-act="togglePreview" aria-label="ปิดตัวอย่างเอกสาร">✕</button>
     <button type="button" class="pv-arrow" data-act="pvPrev" aria-label="เอกสารก่อนหน้า" ${docs.length < 2 ? 'disabled' : ''}>‹</button>
     <label class="pv-select"><select data-onchange="pvSelect" aria-label="เลือกเอกสารที่แสดงในตัวอย่าง">${docs.map((d) => `<option value="${esc(d.id)}" ${d.id === S.ui.pvDoc ? 'selected' : ''}>${esc(d.title)}</option>`).join('')}</select></label>
     <button type="button" class="pv-arrow" data-act="pvNext" aria-label="เอกสารถัดไป" ${docs.length < 2 ? 'disabled' : ''}>›</button>
@@ -451,7 +461,8 @@ actions.pvZoom = (el) => {
   const d = el.dataset.d;
   if (d === 'fit') S.ui.pvZoom = 'fit';
   else {
-    const next = Math.round((cur + (d === '1' ? 0.1 : -0.1)) * 100) / 100;
+    const st = matchMedia('(max-width: 760px)').matches ? 0.2 : 0.1; // มือถือ: ขยับทีละมากขึ้น (จากพอดีจอ ~46% ไปอ่านจริงได้ในไม่กี่แตะ)
+    const next = Math.round((cur + (d === '1' ? st : -st)) * 100) / 100;
     S.ui.pvZoom = Math.min(2.5, Math.max(0.25, next));
     if (Math.abs(S.ui.pvZoom - fit) < 0.03) S.ui.pvZoom = 'fit';
   }

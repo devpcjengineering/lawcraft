@@ -29,3 +29,20 @@
     if (go(id(u.hash))) e.preventDefault();
   });
 })();
+
+// เบราว์เซอร์ที่ยังไม่รองรับ View Transitions ข้ามหน้า (เช่น Firefox/Safari เก่า): จางออกก่อนเปลี่ยนหน้า — หน้าใหม่จางเข้าเองจาก body opacity
+(function () {
+  if (/^\/admin(\/|$)/.test(location.pathname) || 'onpageswap' in window) return;
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button || a.target || a.hasAttribute('download') || a.hasAttribute('data-slug') || a.hasAttribute('data-list')) return;
+    var u; try { u = new URL(a.href, location.href); } catch (err) { return; }
+    if (u.origin !== location.origin || u.pathname + u.search === location.pathname + location.search) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    e.preventDefault();
+    document.body.style.transition = 'opacity .18s ease';
+    document.body.style.opacity = '0';
+    setTimeout(function () { location.href = a.href; }, 170);
+  });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) document.body.style.opacity = ''; });
+})();

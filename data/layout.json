@@ -5,15 +5,18 @@
     "between.before": 0,
     "between.after": 3.5,
     "court.dx": 13,
-    "caseNo.dy": 6,
+    "caseNo.dy": 9.5,
     "emblem.dy": -7
   },
   "forms": {
     "witness": {
-      "caseNo.dy": -0.5
+      "caseNo.dy": 0.1
     },
     "summons": {
-      "caseNo.dy": 0.5
+      "caseNo.dy": 0.1
+    },
+    "answer": {
+      "caseNo.dy": 0.1
     }
   }
 }

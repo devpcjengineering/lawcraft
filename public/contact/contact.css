@@ -137,3 +137,9 @@
   .ct-urgent a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; }
   .ct-done-actions .btn-pill { width: 100%; }
 }
+
+/* ไฮไลต์เล็กน้อยที่เหลือ: ลิงก์ในกล่องแจ้งข้อผิดพลาดของฟอร์ม และขอบจอที่มีรอยบากเมื่อหมุนจอ */
+@media (max-width: 760px) {
+  .ct-alert li { margin-bottom: 2px; }
+  .ct-alert a { display: inline-block; padding: 10px 0; }
+}

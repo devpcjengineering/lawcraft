@@ -82,3 +82,25 @@ dialog.modal .modal-card { animation: nt-pop .26s cubic-bezier(.2,.9,.3,1.2); }
 .g-btn:hover { background: #f8f9fa; box-shadow: 0 1px 3px rgba(60,64,67,.25); }
 .or { display: flex; align-items: center; gap: 10px; color: #8a8a93; font-size: 13px; margin: 2px 0; }
 .or::before, .or::after { content: ''; flex: 1; height: 1px; background: #e2e2e7; }
+
+/* ==========================================================================
+   มือถือ (portrait) — toast / แบนเนอร์ / แถบตัวอย่าง: โผล่ใต้แถบบน ไม่ทับปุ่มล่าง (ปุ่มย้อนกลับ/ถัดไป)
+   ========================================================================== */
+@media (max-width: 760px) {
+  .nt-stack { top: calc(var(--tb-h, 56px) + 8px); bottom: auto; right: max(10px, env(safe-area-inset-right)); left: max(10px, env(safe-area-inset-left)); width: auto; flex-direction: column; z-index: 90; }
+  .nt { transform: translateY(-14px) scale(.97); grid-template-columns: 28px minmax(0, 1fr) 40px; padding: 12px 6px 14px 14px; border-radius: 16px; }
+  .nt.in { transform: none; }
+  .nt.out { transform: translateY(-14px); }
+  .nt-body b { font-size: 16px; }
+  .nt-body p { font-size: 15px; line-height: 1.5; }
+  .nt-act { min-height: 44px; padding: 0 16px; font-size: 14.5px; }
+  .nt-x { width: 40px; height: 40px; font-size: 15px; margin-top: -6px; }
+  /* แบนเนอร์ค้าง: ไม่ติดจอบนมือถือ (กันซ้อนกับแถบเมนูขั้นตอนที่ติดอยู่) */
+  .nt-banners { position: static; }
+  .nt-banner { flex-wrap: wrap; gap: 8px 10px; padding: 10px max(14px, env(safe-area-inset-left)) 10px max(14px, env(safe-area-inset-right)); font-size: 15px; }
+  .nt-bmsg { flex: 1 1 14em; }
+  .nt-bact { min-height: 44px; padding: 0 18px; font-size: 14.5px; }
+  #toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 32px); }
+  .modal-list li { font-size: 15px; min-height: 44px; }
+  .modal-list li .go { min-height: 44px; padding: 0 6px; font-size: 14.5px; }
+}

@@ -2,6 +2,9 @@
 import { S, esc, getPath } from './store.js';
 import { THAI_MONTHS, PREFIXES, validCitizenId } from '/shared/thai.js';
 
+/** มือถือ: เลือกแป้นพิมพ์ให้ตรงชนิดข้อมูลจากชื่อเส้นทาง (โทรศัพท์/โทรสาร = แป้นตัวเลข, อีเมล = แป้นอีเมล) */
+const kbHint = (p) => (/\.(phone|fax)$/.test(p) ? 'tel' : /\.email$/.test(p) ? 'email' : '');
+
 /** ช่องกรอก: field('ชื่อ', 'parties.0.first', {cls:'s4'}) — ครอบด้วย <label> จึงผูกกับช่องกรอกโดยอัตโนมัติ */
 export function field(label, path, o = {}) {
   const v = o.value !== undefined ? o.value : getPath(S.c, path);
@@ -12,7 +15,7 @@ export function field(label, path, o = {}) {
     o.list ? `list="${esc(o.list)}"` : '',
     o.ph ? `placeholder="${esc(o.ph)}"` : '',
     o.max ? `maxlength="${o.max}"` : '',
-    o.inputmode ? `inputmode="${o.inputmode}"` : '',
+    (o.inputmode || kbHint(path)) ? `inputmode="${o.inputmode || kbHint(path)}"` : '',
     o.required ? 'aria-required="true"' : '',
     o.attrs || '',
   ].join(' ');

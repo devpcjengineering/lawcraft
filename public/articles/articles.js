@@ -1,5 +1,6 @@
 // หน้าบทความ: รายการ (/articles/) และหน้าอ่าน (/articles/?a=<slug>)
 import config from '/site/config.js';
+import { morphInto } from '/js/morph.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -66,20 +67,22 @@ async function showList() {
   const drawChips = () => {
     chipBox.innerHTML = ['', ...cats].map((c) => `<button type="button" class="chip" aria-pressed="${c === cat}" data-c="${esc(c)}">${c ? esc(c) : 'ทั้งหมด'}</button>`).join('');
   };
-  const draw = () => {
+  const draw = (replay = false) => {
     const n = q.trim().toLowerCase();
     const rows = list.filter((a) => (!cat || a.category === cat) && (!n || [a.title, a.subtitle, a.summary, ...(a.tags || [])].join(' ').toLowerCase().includes(n)));
     $('#arcount').textContent = rows.length ? `${rows.length} บทความ` : 'ไม่พบบทความที่ตรงกับคำค้น';
-    $('#argrid').innerHTML = rows.map((a, i) => `<a class="ar-card" href="/articles/?a=${esc(a.slug)}" data-slug="${esc(a.slug)}" style="--i:${Math.min(i, 8)}">
+    const gridHtml = rows.map((a, i) => `<a class="ar-card" href="/articles/?a=${esc(a.slug)}" data-slug="${esc(a.slug)}" style="--i:${Math.min(i, 8)}">
       <span class="ar-cat">${esc(a.category)}</span>
       <h2>${esc(a.title)}</h2>
       <p>${esc(a.subtitle)}</p>
       ${refsHtml(a)}
       <span class="ar-meta">อ่าน ${esc(a.readMinutes)} นาที · ปรับปรุง ${esc(thDate(a.updated))}</span>
     </a>`).join('');
+    // เปลี่ยนหมวด = เล่นแอนิเมชันเข้าทีละใบ; พิมพ์ค้นหา = แก้เฉพาะส่วนต่าง (ไม่กะพริบทุกตัวอักษร)
+    if (replay) $('#argrid').innerHTML = gridHtml; else morphInto($('#argrid'), gridHtml, { mark: false });
   };
-  drawChips(); draw();
-  chipBox.addEventListener('click', (e) => { const b = e.target.closest('[data-c]'); if (!b) return; cat = b.dataset.c; drawChips(); draw(); });
+  drawChips(); draw(true);
+  chipBox.addEventListener('click', (e) => { const b = e.target.closest('[data-c]'); if (!b) return; cat = b.dataset.c; drawChips(); draw(true); });
   $('#arq').addEventListener('input', (e) => { q = e.target.value; draw(); });
   prefetchOnHover($('#argrid'));
 }

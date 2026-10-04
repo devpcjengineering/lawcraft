@@ -2,6 +2,7 @@
 import { plaintiffs, defendants, partyName, partyLabel } from '/shared/model.js';
 import { validCitizenId } from '/shared/thai.js';
 import { esc } from './store.js';
+import { morphInto } from './morph.js';
 
 /** ลำดับหน้าหลัก — optional = ข้ามได้ ไม่บังคับ */
 export const STEPS = [
@@ -100,5 +101,5 @@ export function refreshWizard(key, c) {
   const list = applicable(c);
   const at = list.findIndex((s) => s.key === key);
   if (at < 0) return;
-  el.innerHTML = wizardInner(list[at - 1], list[at + 1], stepMissing(key, c));
+  morphInto(el, wizardInner(list[at - 1], list[at + 1], stepMissing(key, c)));
 }

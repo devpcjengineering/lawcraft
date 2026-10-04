@@ -43,8 +43,9 @@ button { -webkit-tap-highlight-color: transparent; }
 
 /* type */
 .eyebrow { font-size: 17px; font-weight: 600; color: var(--ink-2); margin: 0 0 10px; letter-spacing: -.005em; }
-h1, h2, h3 { margin: 0; letter-spacing: -.02em; line-height: 1.24; text-wrap: balance; }
-h1 { font-size: clamp(40px, 7.4vw, 84px); font-weight: 700; line-height: 1.2; }
+/* ภาษาไทยมีสระ/วรรณยุกต์สูงต่ำ — ระยะบรรทัดของหัวข้อใหญ่ต้องไม่ต่ำกว่า ~1.32 ไม่งั้นบรรทัดบนกับล่างทับกัน */
+h1, h2, h3 { margin: 0; letter-spacing: -.02em; line-height: 1.32; text-wrap: balance; }
+h1 { font-size: clamp(40px, 7.4vw, 84px); font-weight: 700; line-height: 1.34; }
 h2 { font-size: clamp(32px, 5.2vw, 56px); font-weight: 700; }
 .lead { font-size: clamp(18px, 2.2vw, 24px); line-height: 1.55; color: var(--ink-2); font-weight: 400; max-width: 34em; margin: 18px auto 0; text-wrap: pretty; }
 .grad { background: linear-gradient(92deg, var(--g1) 0%, var(--g2) 55%, var(--g3) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: .08em; }
@@ -472,3 +473,25 @@ a, button, select, input, textarea, label, summary { touch-action: manipulation;
   .card h3, .card p { grid-column: 1 / -1; }
   .sf-logo { min-height: 44px; }
 }
+/* จอสัมผัสที่กว้างกว่า 760px (โทรศัพท์หมุนข้าง / แท็บเล็ต): ขยายพื้นที่กดเป็น 44px และช่องกรอก 16px */
+@media (pointer: coarse) and (max-width: 1023px) and (min-width: 761px) {
+  .chip, .kindseg button, .pillsel select, .btn-pill.sm, .seg span { min-height: 44px; }
+  .pillsel select, .sel select { font-size: 16px; }
+  .seg span { display: grid; place-items: center; }
+  .nav-cta { padding: 8px 16px; }
+  .sf-col a, .sf-links a { display: inline-flex; align-items: center; min-height: 44px; }
+}
+@media (max-width: 760px) {
+  .hero { padding-left: max(var(--gut), env(safe-area-inset-left)); padding-right: max(var(--gut), env(safe-area-inset-right)); }
+}
+/* หน้าจอกลาง 761–940px (โทรศัพท์หมุนข้าง / แท็บเล็ตแนวตั้ง): เมนูลิงก์ต้องไม่ตัดบรรทัดกลางคำ */
+.nav-links a { white-space: nowrap; }
+@media (min-width: 761px) and (max-width: 940px) {
+  .nav-in { gap: 14px; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+  .nav-links { gap: 14px; }
+  .logo-text .lt-th { font-size: 13.5px; }
+  .logo { gap: 7px; }
+}
+
+/* ตราชั่งหัวหน้า: พ้นจอแล้วหยุดโยก (site.js สลับคลาส .off) */
+.scales-wrap.off .scales.play .beam, .scales-wrap.off .scales.play .pan, .scales-wrap.off .scales.play .dish { animation-play-state: paused; }
