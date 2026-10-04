@@ -1,12 +1,12 @@
 // หลังบ้าน: ระบบร่างคำฟ้อง — เมนูซ้ายเลือกเอกสาร ฟอร์มกลาง ตัวอย่างเอกสารขวา, บันทึกอัตโนมัติ, ออกเอกสาร
 import { S, esc, actions, hooks, setPath } from './store.js';
 import { NAV, TABS } from './tabs.js';
-import { provinceList, refreshGeo } from './ui.js';
+import { provinceList, refreshGeo, idStateHtml } from './ui.js';
 import { newCase, indexLaw, caseTitle, validateCase, newParty, uid, applyServiceAuto } from '/shared/model.js';
 import { buildDocuments } from '/shared/docs.js';
 import { resolveLayout, layoutCssVars } from '/shared/layout.js';
 import { docsHtml, docHtml } from './render-html.js';
-import { ageFromBirth, validCitizenId } from '/shared/thai.js';
+import { ageFromBirth, validCitizenId, maskCitizenId } from '/shared/thai.js';
 import { selectBackend } from './api.js';
 import { showBook, leaveBook } from './book.js';
 import { openViewer } from './viewer.js';
@@ -500,10 +500,16 @@ function handleBind(el) {
   if (el.type === 'checkbox') v = el.checked;
   else if (el.type === 'radio') { if (!el.checked) return false; v = el.value; }
   else v = el.value;
+  if (el.dataset.idcheck) {
+    // เลขประจำตัวประชาชน: จัดรูปแบบ x-xxxx-xxxxx-xx-x ระหว่างพิมพ์ (เฉพาะเมื่อเคอร์เซอร์อยู่ท้ายช่อง ไม่รบกวนการแก้กลางเลข)
+    const masked = maskCitizenId(v);
+    if (masked !== v && (el.selectionStart ?? v.length) >= v.length) { el.value = masked; el.setSelectionRange?.(masked.length, masked.length); }
+    v = masked;
+  }
   setPath(S.c, path, v);
   if (el.dataset.idcheck) {
     const chk = el.closest('.f')?.querySelector('.idchk');
-    if (chk) chk.innerHTML = !v ? '' : validCitizenId(v) ? '<span class="idok ok">✓ เลขถูกต้อง</span>' : '<span class="idok bad">⚠ เลขไม่ผ่านการตรวจหลักสุดท้าย</span>';
+    if (chk) chk.innerHTML = idStateHtml(v);
   }
   return true;
 }

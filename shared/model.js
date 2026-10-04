@@ -1,5 +1,5 @@
 // โมเดลข้อมูลคดี + ตัวช่วยที่ใช้ร่วมกันทั้งหน้าเว็บและเซิร์ฟเวอร์
-import { todayParts, fullName, courtShort, sectionsJoin } from './thai.js';
+import { todayParts, fullName, courtShort, sectionsJoin, validCitizenId } from './thai.js';
 
 export function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -239,6 +239,10 @@ export function validateCase(c, idx) {
     const unverified = c.charges.map((ch) => chargeItem(idx, ch)).filter((it) => it && it.verified === false);
     if (unverified.length) add('info', `ข้อมูลมาตราที่ยังไม่ผ่านการตรวจกับแหล่งทางการ: ${unverified.map((i) => i.name).join(', ')} — ตรวจสอบก่อนยื่น`, 'charges');
   }
+  for (const p of c.parties) {
+    if (p.kind !== 'juristic' && String(p.idCard || '').trim() && !validCitizenId(p.idCard)) add('error', `เลขประจำตัวประชาชนของ${partyLabel(c, p)} (${partyName(p) || 'ยังไม่ระบุชื่อ'}) ไม่ถูกต้อง`, 'parties');
+  }
+  if (c.counsel?.enabled && String(c.counsel.idCard || '').trim() && !validCitizenId(c.counsel.idCard)) add('error', 'เลขประจำตัวประชาชนของทนายความไม่ถูกต้อง', 'counsel');
   if (c.docs.attorney && !c.counsel.enabled) add('warn', 'เลือกออกใบแต่งทนายความ แต่ยังไม่ได้กรอกข้อมูลทนายความ', 'counsel');
   return out;
 }

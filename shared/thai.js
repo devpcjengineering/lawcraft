@@ -51,6 +51,15 @@ export function formatCitizenId(id) {
   return `${s[0]}-${s.slice(1, 5)}-${s.slice(5, 10)}-${s.slice(10, 12)}-${s[12]}`;
 }
 
+/** จัดรูปแบบระหว่างพิมพ์ x-xxxx-xxxxx-xx-x (รับเลขไทยได้ ตัดทิ้งเกิน 13 หลัก) */
+export function maskCitizenId(id) {
+  const s = toArabicDigits(id).replace(/\D/g, '').slice(0, 13);
+  const cut = [1, 4, 5, 2, 1];
+  const out = []; let i = 0;
+  for (const n of cut) { if (i >= s.length) break; out.push(s.slice(i, i + n)); i += n; }
+  return out.join('-');
+}
+
 export function validCitizenId(id) {
   const s = toArabicDigits(id).replace(/\D/g, '');
   if (s.length !== 13) return false;

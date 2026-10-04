@@ -1,6 +1,6 @@
 // แท็บต่าง ๆ ของฟอร์มกรอกข้อมูลคดี
 import { S, esc, actions, hooks } from './store.js';
-import { field, select, check, seg, dateFields, addressFields, badge, pageHead, group, disclose, more } from './ui.js';
+import { idField, field, select, check, seg, dateFields, addressFields, badge, pageHead, group, disclose, more } from './ui.js';
 import {
   newParty, uid, plaintiffs, defendants, partyLabel, partyName, collectVars, validateCase, chargeItem, chargeSectionsText, chargeNamesText, serviceAdvice, ensureBasePrayer, tailFacts, resolveRuns,
 } from '/shared/model.js';
@@ -71,12 +71,11 @@ export function personFields(base, p) {
       ${field('ชื่อ-สกุลผู้แทน', base + '.repName', { cls: 's6' })}
       ${field('ตำแหน่ง', base + '.repPosition', { cls: 's6', ph: 'กรรมการผู้มีอำนาจกระทำการแทน' })}`);
   }
-  const idState = p.idCard ? (validCitizenId(p.idCard) ? '<span class="idok ok">✓ เลขถูกต้อง</span>' : '<span class="idok bad">⚠ เลขไม่ผ่านการตรวจหลักสุดท้าย</span>') : '';
   return group('ข้อมูลส่วนตัว', `
       ${field('คำนำหน้า', base + '.prefix', { cls: 's3', list: 'dl-prefix' })}
       ${field('ชื่อ', base + '.first', { cls: 's4', required: true })}
       ${field('นามสกุล', base + '.last', { cls: 's5' })}
-      ${field('เลขประจำตัวประชาชน', base + '.idCard', { cls: 's6', max: 17, inputmode: 'numeric', hint: `<span class="idchk">${idState}</span>`, attrs: 'data-idcheck="1"' })}
+      ${idField('เลขประจำตัวประชาชน', base + '.idCard', { cls: 's6' })}
       ${field('อาชีพ', base + '.occupation', { cls: 's6' })}`);
 }
 
@@ -265,7 +264,7 @@ function tabCounsel() {
         ${field('ชื่อ', 'counsel.first', { cls: 's4', required: true })}
         ${field('นามสกุล', 'counsel.last', { cls: 's5' })}
         ${field('ใบอนุญาตทนายความเลขที่', 'counsel.license', { cls: 's6' })}
-        ${field('เลขประจำตัวประชาชน', 'counsel.idCard', { cls: 's6', max: 17 })}`)}
+        ${idField('เลขประจำตัวประชาชน', 'counsel.idCard', { cls: 's6' })}`)}
       <section class="grp">${addressFields('counsel.address', { title: 'ที่อยู่สำนักงาน' })}</section>
       ${group('ติดต่อ', `
         ${field('โทรศัพท์', 'counsel.phone', { cls: 's6' })}
@@ -278,7 +277,7 @@ function tabCounsel() {
       ${field('คำนำหน้า', 'proxy.holder.prefix', { cls: 's3', list: 'dl-prefix' })}
       ${field('ชื่อ', 'proxy.holder.first', { cls: 's4' })}
       ${field('นามสกุล', 'proxy.holder.last', { cls: 's5' })}
-      ${field('เลขประจำตัวประชาชน', 'proxy.holder.idCard', { cls: 's6', max: 17 })}
+      ${idField('เลขประจำตัวประชาชน', 'proxy.holder.idCard', { cls: 's6' })}
       ${field('โทรศัพท์', 'proxy.holder.phone', { cls: 's6' })}`)}
     <section class="grp">${addressFields('proxy.holder.address', { title: 'ที่อยู่' })}</section>
     ${group('กิจการที่มอบฉันทะ', field('กิจการที่มอบฉันทะ', 'proxy.purpose', { cls: 's12', type: 'textarea', rows: 2, ph: 'เช่น ไปยื่นคำฟ้อง รับหมายและเอกสารต่าง ๆ ของศาลแทนข้าพเจ้า' }))}`,

@@ -46,9 +46,13 @@ export function stepMissing(key, c) {
       if (!filled(p.kind === 'juristic' ? p.name : p.first)) m.push(`ชื่อ${tag}`);
       const a = p.address || {};
       if (!filled(a.province) || !filled(a.district)) m.push(`ที่อยู่ของ${tag} (จังหวัด อำเภอ/เขต — ใช้กำหนดการส่งหมาย)`);
+      if (p.kind !== 'juristic' && filled(p.idCard) && !validCitizenId(p.idCard)) m.push(`เลขประจำตัวประชาชนของ${tag} ไม่ถูกต้อง (หรือเว้นว่างถ้าไม่ทราบ)`);
     });
   }
-  if (key === 'counsel' && c.counsel?.enabled && !filled(c.counsel.first)) m.push('ชื่อทนายความ (หรือปิดตัวเลือก “มีทนายความ”)');
+  if (key === 'counsel' && c.counsel?.enabled) {
+    if (!filled(c.counsel.first)) m.push('ชื่อทนายความ (หรือปิดตัวเลือก “มีทนายความ”)');
+    if (filled(c.counsel.idCard) && !validCitizenId(c.counsel.idCard)) m.push('เลขประจำตัวประชาชนของทนายความไม่ถูกต้อง');
+  }
   if (key === 'complaint') {
     if (crim && !(c.charges || []).length) m.push('ข้อหา/ฐานความผิดอย่างน้อย 1 ข้อ');
     if (!crim && !filled(c.civilCause) && !(c.charges || []).length) m.push('มูลคดีแพ่ง');

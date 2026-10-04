@@ -1,7 +1,7 @@
 // สมุดรายชื่อ: เพิ่ม/แก้ไข/ลบ บุคคลและทนายความได้โดยตรง ไม่ต้องเปิดคดีหรือเพิ่มเป็นโจทก์/จำเลยก่อน
 // วิธีทำ: ใช้ “คดีจำลอง” เป็นที่เก็บข้อมูลชั่วคราวของรายการที่กำลังแก้ ให้ตัวช่วยฟอร์มเดิม (field/addressFields) ใช้ได้เหมือนหน้าคู่ความ
 import { S, esc, actions, hooks } from './store.js';
-import { field, select, addressFields, group, provinceList } from './ui.js';
+import { field, select, addressFields, group, provinceList, idField } from './ui.js';
 import { personFields } from './tabs.js';
 import { newCase, newParty, uid, partyName } from '/shared/model.js';
 import { confirmBox } from './modal.js';
@@ -132,7 +132,7 @@ function renderEditor() {
         ${field('ชื่อ', 'counsel.first', { cls: 's4', required: true })}
         ${field('นามสกุล', 'counsel.last', { cls: 's5' })}
         ${field('ใบอนุญาตทนายความเลขที่', 'counsel.license', { cls: 's6' })}
-        ${field('เลขประจำตัวประชาชน', 'counsel.idCard', { cls: 's6', max: 17 })}`)}
+        ${idField('เลขประจำตัวประชาชน', 'counsel.idCard', { cls: 's6' })}`)}
       <section class="grp">${addressFields('counsel.address', { title: 'ที่อยู่สำนักงาน' })}</section>
       ${group('ติดต่อ', `${field('โทรศัพท์', 'counsel.phone', { cls: 's6' })}${field('อีเมล', 'counsel.email', { cls: 's6' })}`)}
       ${group('อำนาจที่มอบ', field('อำนาจที่มอบให้ทนายความเพิ่มเติม (ช่อง * ในใบแต่งทนายความ)', 'counsel.powers', { cls: 's12', type: 'textarea', rows: 2, hint: 'ตาม ป.วิ.พ. มาตรา 62 ต้องระบุชัดแจ้ง — ไม่ระบุหากไม่ให้อำนาจ' }))}`;

@@ -1,6 +1,6 @@
 // ตัวช่วยสร้างฟอร์ม
 import { S, esc, getPath } from './store.js';
-import { THAI_MONTHS, PREFIXES } from '/shared/thai.js';
+import { THAI_MONTHS, PREFIXES, validCitizenId } from '/shared/thai.js';
 
 /** ช่องกรอก: field('ชื่อ', 'parties.0.first', {cls:'s4'}) — ครอบด้วย <label> จึงผูกกับช่องกรอกโดยอัตโนมัติ */
 export function field(label, path, o = {}) {
@@ -21,6 +21,19 @@ export function field(label, path, o = {}) {
     ? `<textarea rows="${o.rows || 3}" ${attrs}>${esc(v)}</textarea>`
     : `<input type="${type}" value="${esc(v)}" ${attrs} autocomplete="off">`;
   return `<label class="f ${o.cls || ''}"><span>${esc(label)}${o.required ? ' <em aria-hidden="true">*</em>' : ''}</span>${control}${o.hint ? `<small class="hint">${o.hint}</small>` : ''}</label>`;
+}
+
+/** ตัวบอกสถานะเลขประจำตัวประชาชน: ครบ/ถูก/ผิด */
+export function idStateHtml(v) {
+  const d = String(v || '').replace(/\D/g, '');
+  if (!d.length) return '';
+  if (d.length < 13) return `<span class="idok warn">กรอกแล้ว ${d.length}/13 หลัก</span>`;
+  return validCitizenId(v) ? '<span class="idok ok">✓ เลขถูกต้อง</span>' : '<span class="idok bad">⚠ เลขไม่ถูกต้อง (ไม่ผ่านการตรวจหลักสุดท้าย) กรุณาตรวจอีกครั้ง</span>';
+}
+/** ช่องเลขประจำตัวประชาชน 13 หลัก: จัดรูปแบบอัตโนมัติ + ตรวจเลขถูกต้องทันที */
+export function idField(label, path, o = {}) {
+  const v = getPath(S.c, path);
+  return field(label, path, { cls: o.cls || 's6', max: 17, inputmode: 'numeric', ph: 'x-xxxx-xxxxx-xx-x', hint: `<span class="idchk">${idStateHtml(v)}</span>`, attrs: 'data-idcheck="1"', required: o.required });
 }
 
 export function select(label, path, options, o = {}) {
