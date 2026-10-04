@@ -882,3 +882,14 @@ a, button, select, input, textarea, label, summary { touch-action: manipulation;
   .pv-arrow { width: 44px; height: 44px; }
   select[style*="min-height"] { min-height: 44px !important; font-size: 16px !important; }
 }
+.pv-pages { flex: none; font-size: 12.5px; color: #fff; background: #1d1d1f; border-radius: 99px; padding: 2px 9px; white-space: nowrap; }
+
+/* ---------- หน้าจัดการเว็บไซต์ (แอดมิน) ---------- */
+.sitepage { max-width: 860px; margin: 0 auto; padding: 28px 24px 72px; display: grid; gap: 16px; }
+.sp-head { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.sp-head h1 { margin: 0 0 4px; font-size: 26px; color: var(--navy); }
+.sp-head .save-state { color: var(--muted); opacity: 1; }
+.sp-head .save-state[data-tone=ok] { color: #1a7f3c; } .sp-head .save-state[data-tone=err] { color: #c62828; }
+.sp-contacts { display: grid; gap: 14px; margin-top: 8px; }
+.sp-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1.3fr) auto; gap: 10px; align-items: end; }
+@media (max-width: 760px) { .sitepage { padding: 16px 16px 56px; } .sp-row { grid-template-columns: 1fr 1fr; } .sp-row .btn { grid-column: 1 / -1; justify-self: start; } }

@@ -128,6 +128,18 @@ function numbered(runsList, prefix = 'ข้อ', gap = true) {
   return runsList.map((runs, i) => p([bold(`${prefix} ${i + 1}.`), t(' '), ...runs], { indent: 1.5, justify: true, gap }));
 }
 
+/** บรรทัดที่เป็นข้อย่อย: ๓.๑  ๓.๑.๒  (๑)  (ก)  ก.  — ขึ้นต้นบรรทัดด้วยตัวเลขข้อย่อยแล้วเว้นวรรค */
+const SUB_RE = /^\s*(?:[0-9๐-๙]+(?:\.[0-9๐-๙]+)+\.?|\([0-9๐-๙ก-ฮ]+\)|[ก-ฮ]\.)(?=\s)/;
+/** ย่อหน้าบรรทัดแรกของข้อย่อย (ซม.): ระดับ ๓.๑ ลึกกว่า “ข้อ” (1.5 ซม.) ประมาณ 1.75 ซม., ระดับ ๓.๑.๑ ลึกอีกขั้น */
+const subIndent = (line) => ((/^\s*[0-9๐-๙]+(?:\.[0-9๐-๙]+){2,}/.test(line)) ? 4.75 : 3.25);
+const bodyLineBlock = (ln, c, idx) => p(resolveRuns(ln.trim(), c, idx), { indent: SUB_RE.test(ln) ? subIndent(ln) : 0, justify: true });
+/** “ข้อ N.” + ข้อความหลายบรรทัด: บรรทัดแรกต่อท้ายเลขข้อ บรรทัดถัดไปเป็นย่อหน้าแยก (ข้อย่อยย่อหน้าเข้า) */
+function itemParas(no, raw, c, idx) {
+  const lines = multiline(String(raw || '').replace(/^ข้อ\s*[0-9๐-๙]+[.)]?\s*/, ''));
+  const first = lines.shift() || '';
+  return [p([bold(`ข้อ ${no}.`), t(' '), ...resolveRuns(first, c, idx)], { indent: 1.5, justify: true }), ...lines.map((ln) => bodyLineBlock(ln, c, idx))];
+}
+
 function multiline(text) {
   return String(text || '').split(/\n+/).map((s) => s.trim()).filter(Boolean);
 }
@@ -211,7 +223,7 @@ function complaintDoc(c, idx) {
       const lines = multiline(f.text);
       const first = lines.shift() || '';
       blocks.push(p([bold(`ข้อ ${i + 1}.`), t(' '), ...resolveRuns(first, c, idx)], { indent: 1.5, justify: true }));
-      lines.forEach((ln) => blocks.push(p(resolveRuns(ln, c, idx), { indent: 0, justify: true })));
+      lines.forEach((ln) => blocks.push(bodyLineBlock(ln, c, idx)));
     });
   } else {
     blocks.push(p([bold('ข้อ 1.'), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 12 });
@@ -266,10 +278,7 @@ function motionDoc(c, idx, m, n) {
     p([t(ft('motion.intro'))], { indent: 0 }),
   ];
   if (items.length) {
-    items.forEach((it, i) => {
-      const body = it.replace(/^ข้อ\s*[0-9๐-๙]+[.)]?\s*/, '');
-      blocks.push(p([bold(`ข้อ ${i + 1}.`), t(' '), ...resolveRuns(body.replace(/\n/g, ' '), c, idx)], { indent: 1.5, justify: true }));
-    });
+    items.forEach((it, i) => blocks.push(...itemParas(i + 1, it, c, idx)));
   } else blocks.push(p([bold('ข้อ 1.'), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 6 });
   blocks.push(
     p([t(ft('motion.closing.1'))], { indent: 1.5, gap: true }),
@@ -351,9 +360,9 @@ function proxyDoc(c, idx) {
   };
 }
 
-/** “วันที่ … เวลา … นาฬิกา” — ไม่ระบุวันนัด ให้เว้นเป็น วันที่ ........ เดือน .................. พุทธศักราช ............ */
+/** “วันที่ … เวลา … นาฬิกา” — ไม่ระบุวันนัด ให้เว้นเป็น วันที่ ........ เดือน ................ พ.ศ. .................. */
 function whenRuns(hd, time, tw = 10) {
-  return [hd ? t(' วันที่ ') : t(' วันที่ ........ เดือน .................. พุทธศักราช ............'), ...(hd ? [val(hd)] : []), t(' เวลา '), time ? val(time) : dots(tw), t(' นาฬิกา')];
+  return [hd ? t(' วันที่ ') : t(' วันที่ ........ เดือน ................ พ.ศ. ..................'), ...(hd ? [val(hd)] : []), t(' เวลา '), time ? val(time) : dots(tw), t(' นาฬิกา')];
 }
 
 /** หมายนัดไต่สวนมูลฟ้อง — จำเลยหลายคนออกแยกเป็นฉบับต่อคน (target = จำเลยที่รับหมาย) */
@@ -383,7 +392,7 @@ function summonsDoc(c, idx, data = {}, target = null) {
       { t: 'rule' },
       p([t('ผู้รับหมาย '), ...(d0 ? fields([...addrPairs(d0.address), ['โทรศัพท์', d0.phone]], ' ', true) : [dots(40)])], { indent: 0 }),
       { t: 'center', text: 'ใบรับหมายนัดไต่สวนมูลฟ้อง', u: true, b: false },
-      p([t('วันที่ ........ เดือน .................. พุทธศักราช ............ ข้าพเจ้า '), val(dName), t(' ได้รับหมายนัดไต่สวนมูลฟ้องของศาล'), val(courtShort(c.court)), t(' ในคดีระหว่าง '), val(pName), t(' โจทก์ '), val(allD), t(' จำเลย ซึ่งนัดไต่สวนมูลฟ้อง'), ...whenRuns(hd, h.time, 8), t(' ไว้แล้ว')], { indent: 1.5, justify: true }),
+      p([t('วันที่ ........ เดือน ................ พ.ศ. .................. ข้าพเจ้า '), val(dName), t(' ได้รับหมายนัดไต่สวนมูลฟ้องของศาล'), val(courtShort(c.court)), t(' ในคดีระหว่าง '), val(pName), t(' โจทก์ '), val(allD), t(' จำเลย ซึ่งนัดไต่สวนมูลฟ้อง'), ...whenRuns(hd, h.time, 8), t(' ไว้แล้ว')], { indent: 1.5, justify: true }),
       sigBlock([{ label: 'ผู้รับหมาย', name: '' }, { label: 'ผู้ส่งหมาย', name: '' }], true),
       p([{ text: 'หมายเหตุ', u: true }, t(' ' + ft('summons.note'))], { indent: 0, small: true, justify: true }),
     ],
@@ -404,7 +413,7 @@ function answerDoc(c, idx) {
     p([t(ft('answer.intro'))], { indent: 0 }),
   ];
   if (items.length) {
-    items.forEach((it, i) => blocks.push(p([bold(`ข้อ ${i + 1}.`), t(' '), ...resolveRuns(it.replace(/^ข้อ\s*[0-9๐-๙]+[.)]?\s*/, '').replace(/\n/g, ' '), c, idx)], { indent: 1.5, justify: true })));
+    items.forEach((it, i) => blocks.push(...itemParas(i + 1, it, c, idx)));
   } else blocks.push(p([bold('ข้อ 1.'), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 6 });
   blocks.push(
     p([t(ft('motion.closing.2'))], { align: 'right' }),
@@ -429,7 +438,7 @@ function settlementDoc(c, idx) {
     p([t('ข้าพเจ้า '), val(names(pl)), t(` ${pl.length > 1 ? 'โจทก์ทั้งหมด' : 'โจทก์'} กับ `), val(names(df)), t(` ${df.length > 1 ? 'จำเลยทั้งหมด' : 'จำเลย'}`)], { indent: 1.5, justify: true }),
     p([t('ขอทำสัญญาประนีประนอมยอมความต่อหน้าศาล มีข้อความตามที่จะกล่าวต่อไปนี้')], { indent: 0 }),
   ];
-  if (clauses.length) clauses.forEach((cl, i) => blocks.push(p([bold(`ข้อ ${i + 1}.`), t(' '), ...resolveRuns(cl.replace(/\n/g, ' '), c, idx)], { indent: 1.5, justify: true })));
+  if (clauses.length) clauses.forEach((cl, i) => blocks.push(...itemParas(i + 1, cl, c, idx)));
   else blocks.push(p([bold('ข้อ 1.'), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 8 });
   blocks.push(
     p([t(ft('settlement.closing'))], { indent: 1.5, justify: true, gap: true }),
@@ -475,7 +484,7 @@ export function serviceMotionText(c, data) {
   const out = [];
   const hd = c.hearing?.date ? isoToThaiLong(c.hearing.date) : '';
   const crim = c.type !== 'civil';
-  const dayTxt = hd || '........ เดือน ................ พ.ศ. ........';  // ไม่ระบุวันนัด → เว้นว่างให้เขียนเติมเอง
+  const dayTxt = hd || '........ เดือน ................ พ.ศ. ..................';  // ไม่ระบุวันนัด → เว้นว่างให้เขียนเติมเอง
   out.push(`โจทก์ได้ยื่นฟ้อง${groupName(c, 'defendant') || dfWord} เป็นจำเลยต่อศาลนี้${crim ? `ในความผิดฐาน${names || '...'}${secs ? ' ตาม' + secs : ''}` : (names ? ` เรื่อง${names}` : '')} และศาลนัด${crim ? 'ไต่สวนมูลฟ้อง' : 'พิจารณา'}ในวันที่ ${dayTxt}`);
   if (mode.includes('cross')) {
     const dom = df.length > 1

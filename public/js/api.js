@@ -24,6 +24,8 @@ export const localBackend = {
   deletePerson: (id) => http(`/api/people/${id}`, { method: 'DELETE' }),
   savePerson: (rec) => http(`/api/people/${rec.id}`, jsonOpt('PUT', rec)),
   saveLayout: (obj) => http('/api/layout', jsonOpt('PUT', obj)),
+  loadSite: () => http('/api/site'),
+  saveSite: (obj) => http('/api/site', jsonOpt('PUT', obj)),
   saveFormText: (obj) => http('/api/formtext', jsonOpt('PUT', obj)),
   // กล่องข้อความปรึกษาจากหน้าเว็บ
   listInquiries: () => http('/api/inquiries'),

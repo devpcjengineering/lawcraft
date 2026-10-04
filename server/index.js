@@ -128,6 +128,11 @@ app.get('/api/articles/:slug', (req, res) => {
   return a ? res.json(a) : res.status(404).json({ error: 'ไม่พบบทความ' });
 });
 
+// ข้อมูลเว็บไซต์ที่แอดมินแก้ได้ (ช่องทางติดต่อ ฯลฯ) — โหมดไฟล์ในเครื่อง: อ่านสาธารณะ เขียนต้องเป็นแอดมิน
+const SITE_FILE = path.join(DATA_DIR, 'site.json');
+app.get('/api/site', (req, res) => { try { res.json(JSON.parse(fs.readFileSync(SITE_FILE, 'utf8'))); } catch { res.json({}); } });
+app.put('/api/site', adminAuth, (req, res) => { fs.writeFileSync(SITE_FILE, JSON.stringify(req.body && typeof req.body === 'object' ? req.body : {}, null, 2), 'utf8'); res.json({ ok: true }); });
+
 // ไฟล์ข้อมูลบทความที่หน้าเว็บอ่าน (ตรงกับ dist/articles-data/ ของเว็บสถิต)
 app.get('/articles-data/:file', (req, res) => {
   const pack = packArticles();

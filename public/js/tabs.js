@@ -381,7 +381,8 @@ function tabCharges() {
 export function fillFromItem(it) {
   const c = S.c;
   if (!c.facts.some((f) => f.src === it.id)) for (const t of it.factTemplate || []) c.facts.push({ id: uid(), text: t, src: it.id });
-  if (!c.prayers.some((f) => f.src === it.id)) for (const t of it.prayerTemplate || []) c.prayers.push({ id: uid(), text: t, src: it.id });
+  // คดีอาญา: คำขอท้ายฟ้องมีถ้อยคำ “ขอให้ลงโทษจำเลยตาม…มาตรา…” ให้อัตโนมัติอยู่แล้ว จึงไม่เติมซ้ำเป็นรายการ — คดีแพ่งยังเติมคำขอตามมูลหนี้
+  if (c.type === 'civil' && !c.prayers.some((f) => f.src === it.id)) for (const t of it.prayerTemplate || []) c.prayers.push({ id: uid(), text: t, src: it.id });
   ensureBasePrayer(c);
 }
 actions.addCharge = () => {

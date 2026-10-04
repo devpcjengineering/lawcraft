@@ -68,16 +68,17 @@ async function persist() {
   renderList();
 }
 
-hooks.bookChanged = () => {
+const bookChanged = () => {
   setState('กำลังบันทึก…', 'busy');
   clearTimeout(timer);
   timer = setTimeout(() => { timer = 0; persist(); }, 500);
 };
-hooks.bookRender = () => { const y = window.scrollY; renderEditor(); window.scrollTo(0, y); };
+const bookRender = () => { const y = window.scrollY; renderEditor(); window.scrollTo(0, y); };
 
 // ---------- หน้าจอ ----------
 export function showBook(root, selectId) {
   app = root;
+  hooks.bookChanged = bookChanged; hooks.bookRender = bookRender;
   S.bookMode = true;
   S.c = null;
   sel = null; q = ''; filter = 'all'; stateTxt = ''; stateTone = '';

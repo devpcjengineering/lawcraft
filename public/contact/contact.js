@@ -2,7 +2,7 @@
 // - เว็บสถิต + Supabase (public/js/config.js ตั้ง url/anonKey): POST {url}/rest/v1/inquiries (anon = insert อย่างเดียวตาม RLS)
 // - เซิร์ฟเวอร์ Node ในเครื่อง (ไม่ได้ตั้ง Supabase): POST /api/inquiry (honeypot + จำกัด 5 ครั้ง/ชั่วโมง/IP ที่ฝั่งเซิร์ฟเวอร์)
 // ไม่มีการเก็บหรือเปิดเผยคีย์ service_role ในหน้านี้ (ใช้เฉพาะคีย์ anon สาธารณะ)
-import siteConfig from '/site/config.js';
+import { cachedSite, loadSite, defaultSite } from '/site/live-config.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -16,13 +16,15 @@ const f = {
 const MAX_MSG = 3000;
 const TOPIC_LABEL = Object.fromEntries([...f.topic.options].filter((o) => o.value).map((o) => [o.value, o.textContent.trim()]));
 
-// ช่องทางติดต่อโดยตรง: แสดงเฉพาะที่ตั้งค่าไว้ใน config.js (ไม่สมมติเบอร์/ไลน์/อีเมล)
+// ช่องทางติดต่อโดยตรง: แสดงเฉพาะที่แอดมินตั้งไว้ในหลังบ้าน (ไม่สมมติเบอร์/ไลน์/อีเมล)
 {
-  const list = (siteConfig.contacts || []).filter((c) => c && c.value);
-  if (list.length) {
+  const show = (cfg) => {
+    const list = (cfg.contacts || []).filter((c) => c && c.value);
     $('#ctDirectList').innerHTML = list.map((c) => `<li>${c.href ? `<a href="${esc(c.href)}"><span>${esc(c.label)}</span> ${esc(c.value)}</a>` : `<span>${esc(c.label)}</span> ${esc(c.value)}`}</li>`).join('');
-    $('#ctDirect').hidden = false;
-  }
+    $('#ctDirect').hidden = !list.length;
+  };
+  show(cachedSite() || defaultSite());
+  loadSite().then(show);
 }
 
 // เลือกประเภทเรื่องล่วงหน้าจากหน้าแรก (/contact/?topic=defamation)

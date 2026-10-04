@@ -33,7 +33,7 @@
 .page .top.kinds .top-title { text-align: center; }
 .page .strike { text-decoration: line-through; text-decoration-thickness: 1.5px; }
 .page .top-c { text-align: center; }
-.page .top-c img { width: var(--em-w, 24mm); height: auto; display: var(--em-show, block); margin: 0 auto; transform: translate(var(--em-x, 0mm), var(--em-y, 0mm)); }
+.page .top-c img { width: var(--em-w, 24mm); height: auto; aspect-ratio: 720 / 747; display: var(--em-show, block); margin: 0 auto; transform: translate(var(--em-x, 0mm), var(--em-y, 0mm)); }
 .page .top-r { text-align: left; font-size: var(--fs, 16pt); transform: translate(var(--cn-x, 0mm), var(--cn-y, 0mm)); }
 .page .court-use { text-align: right; text-decoration: underline; margin-bottom: 2mm; }
 .page .subtitle { text-align: center; font-weight: 700; margin: -2mm 0 2mm; }
@@ -88,3 +88,11 @@
 
 .page .sig.compact { margin-top: 3mm; margin-bottom: 1mm; }
 .page .sig.compact .sig-row { margin-bottom: 1mm; }
+
+/* ---------- แผ่น A4 ที่แบ่งหน้าแล้ว (js/paginate.js) ---------- */
+.page.sheet { padding: 0; height: 297mm; min-height: 0; overflow: hidden; position: relative; }
+.page.sheet .flow-clip { position: absolute; top: var(--pt, 18mm); left: 0; width: 210mm; box-sizing: border-box; padding: 0 var(--pr, 18mm) 0 var(--pl, 25mm); overflow: hidden; }
+@media print {
+  .page.sheet { padding: 0 !important; height: 297mm; min-height: 0; break-after: page; break-inside: avoid; }
+  .page.sheet:last-child { break-after: auto; }
+}

@@ -1,9 +1,11 @@
 // ท้ายเว็บ (footer) ร่วมของทุกหน้าสาธารณะ — วางแค่ <footer id="siteFooter" class="foot"> แล้วโหลดโมดูลนี้
 // ข้อมูลสำนักงาน/ช่องทางติดต่อดึงจาก /site/config.js (ช่องทางติดต่อที่ไม่ได้ตั้งค่าจะไม่แสดง — ห้ามสมมติเบอร์/ไลน์/อีเมล)
-import config from '/site/config.js';
+import { cachedSite, loadSite, defaultSite } from '/site/live-config.js';
+import { morphInto } from '/js/morph.js';
+
+let config = cachedSite() || defaultSite();
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const name = config.legalName || config.name;
 
 const QUICK = [
   ['/#library', 'ประมวลกฎหมาย'],
@@ -24,6 +26,8 @@ const TOPICS = [
 ];
 const MARK = '<svg class="sf-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg>';
 
+const nameOf = () => config.legalName || config.name;
+
 function firmBlock() {
   const o = config.office;
   const contacts = (config.contacts || []).filter((c) => c && c.value);
@@ -31,16 +35,18 @@ function firmBlock() {
   const list = contacts.length
     ? `<ul class="sf-contacts">${contacts.map((c) => `<li>${c.href ? `<a href="${esc(c.href)}"><span>${esc(c.label)}</span> ${esc(c.value)}</a>` : `<span>${esc(c.label)}</span> ${esc(c.value)}`}</li>`).join('')}</ul>`
     : '';
-  return `${addr}${list}`;
+  const hours = config.hours ? `<p class="sf-hours"><b>เวลาทำการ</b><br>${esc(config.hours).replace(/\n/g, '<br>')}</p>` : '';
+  return `${addr}${list}${hours}`;
 }
 
 function structuredData() {
   const o = config.office;
-  if (!o || document.querySelector('script[data-sf-ld]')) return;
+  if (!o) return;
+  document.querySelector('script[data-sf-ld]')?.remove();
   const ld = document.createElement('script');
   ld.type = 'application/ld+json'; ld.dataset.sfLd = '1';
   const data = {
-    '@context': 'https://schema.org', '@type': 'LegalService', name, alternateName: config.name,
+    '@context': 'https://schema.org', '@type': 'LegalService', name: nameOf(), alternateName: config.name,
     legalName: o.entity, identifier: o.regNo,
     address: { '@type': 'PostalAddress', streetAddress: o.street, addressLocality: o.district, addressRegion: o.province, addressCountry: 'TH' },
   };
@@ -50,15 +56,13 @@ function structuredData() {
   document.head.appendChild(ld);
 }
 
-export function mountFooter() {
-  const el = document.getElementById('siteFooter');
-  if (!el) return;
-  el.classList.add('foot', 'sf');
-  el.innerHTML = `<div class="wrap">
+function footerHtml() {
+  const name = nameOf();
+  return `<div class="wrap">
     <div class="sf-grid">
       <section class="sf-brand" aria-label="เกี่ยวกับสำนักงาน">
         <a class="sf-logo" href="/" aria-label="${esc(name)}">${MARK}<span class="logo-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span></a>
-        <p class="sf-desc">ฐานความรู้กฎหมายไทย เครื่องมือค้นหามาตรา ตรวจเขตอำนาจศาล และบริการร่างคำฟ้องตามแบบพิมพ์ศาลยุติธรรม สำหรับผู้เสียหายและผู้ที่ต้องการเข้าใจทางเลือกของตนเอง พร้อมรับฟ้องคดี ทั้งคดีอาญาที่ราษฎรเป็นโจทก์ คดีแพ่ง และคดีออนไลน์ ตั้งแต่ปรึกษาเบื้องต้น ตรวจเขตอำนาจศาล ไปจนถึงจัดเตรียมคำฟ้องและเอกสารยื่นศาล</p>
+        <p class="sf-desc">${esc(config.footerDesc || DEFAULT_DESC)}</p>
         <a class="btn-pill primary sm sf-cta" href="/contact/">ติดต่อปรึกษากฎหมาย</a>
       </section>
       <nav class="sf-col" aria-label="ลิงก์ด่วน">
@@ -80,7 +84,30 @@ export function mountFooter() {
       <p class="sf-links"><a href="/privacy/">นโยบายความเป็นส่วนตัว</a><a href="/admin/" class="sf-admin">เข้าสู่ระบบร่างคำฟ้อง</a></p>
     </div>
   </div>`;
+}
+
+const DEFAULT_DESC = 'ฐานความรู้กฎหมายไทย เครื่องมือค้นหามาตรา ตรวจเขตอำนาจศาล และบริการร่างคำฟ้องตามแบบพิมพ์ศาลยุติธรรม สำหรับผู้เสียหายและผู้ที่ต้องการเข้าใจทางเลือกของตนเอง พร้อมรับฟ้องคดี ทั้งคดีอาญาที่ราษฎรเป็นโจทก์ คดีแพ่ง และคดีออนไลน์ ตั้งแต่ปรึกษาเบื้องต้น ตรวจเขตอำนาจศาล ไปจนถึงจัดเตรียมคำฟ้องและเอกสารยื่นศาล';
+
+/** ประกาศบนหัวเว็บ (ตั้งจากหลังบ้าน: เช่น วันหยุด/แจ้งข่าว) ปิดได้และจำไว้ในแท็บนี้ */
+function announce() {
+  const a = config.announcement;
+  let bar = document.getElementById('siteAnnounce');
+  const closed = (() => { try { return sessionStorage.getItem('lawcraft:announce') === (a?.text || ''); } catch { return false; } })();
+  if (!a?.text || closed) { bar?.remove(); return; }
+  if (!bar) { bar = document.createElement('div'); bar.id = 'siteAnnounce'; bar.className = 'announce'; bar.setAttribute('role', 'region'); bar.setAttribute('aria-label', 'ประกาศ'); document.body.prepend(bar); }
+  bar.innerHTML = `<p>${esc(a.text)}${a.link ? ` <a href="${esc(a.link)}">${esc(a.linkText || 'รายละเอียด')}</a>` : ''}</p><button type="button" aria-label="ปิดประกาศ">✕</button>`;
+  bar.querySelector('button').onclick = () => { try { sessionStorage.setItem('lawcraft:announce', a.text); } catch { /* ข้าม */ } bar.remove(); };
+}
+
+export function mountFooter() {
+  const el = document.getElementById('siteFooter');
+  if (!el) return;
+  el.classList.add('foot', 'sf');
+  if (el.querySelector('.sf-grid')) morphInto(el, footerHtml(), { mark: false }); else el.innerHTML = footerHtml();
   structuredData();
+  announce();
 }
 
 mountFooter();
+// โหลดค่าล่าสุดจากฐานข้อมูล แล้วอัปเดตเฉพาะส่วนที่เปลี่ยน (ไม่กะพริบ)
+loadSite().then((fresh) => { config = fresh; mountFooter(); });

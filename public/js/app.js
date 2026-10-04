@@ -9,8 +9,10 @@ import { docsHtml, docHtml } from './render-html.js';
 import { ageFromBirth, validCitizenId, maskCitizenId } from '/shared/thai.js';
 import { selectBackend } from './api.js';
 import { showBook, leaveBook } from './book.js';
+import { showSiteAdmin, leaveSiteAdmin } from './site-admin.js';
 import { openViewer } from './viewer.js';
 import { morphInto } from './morph.js';
+import { paginateHtml, countSheets, documentFontsReady } from './paginate.js';
 import { startConn, connHtml } from './conn.js';
 import { firstBlocked, isLocked, wizardNav, refreshWizard, STEPS } from './wizard.js';
 import { showInbox } from './inbox.js';
@@ -139,7 +141,6 @@ async function showHome() {
   try { list = authUi.filterCases(await backend.listCases()); } catch (e) { if (e.status === 401) return showLogin(); }
   app.innerHTML = `
   <header class="topbar"><div class="brand" data-act="goHome"><svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span><span class="brand-sub">ระบบร่างคำฟ้อง</span></div><span class="grow"></span>
-    <span class="save-state" title="ที่เก็บข้อมูล">${esc(backend.label || '')}</span>
     ${authUi.userBar()}
     <a class="btn ghost" href="/" aria-label="กลับไปเว็บไซต์"><span class="tb-i" aria-hidden="true">←</span><span class="tb-t"> เว็บไซต์</span></a></header>
   <main class="home">
@@ -150,6 +151,7 @@ Indictment</h1>
       <button class="card newcase" data-act="newCase" data-type="criminal"><h3>＋ คดีอาญา</h3><span class="hint">ราษฎรเป็นโจทก์ฟ้องเอง (ป.วิ.อ. มาตรา 28(2)) — คำฟ้อง คำขอท้ายฟ้อง คำร้องส่งหมาย บัญชีพยาน หมายนัดไต่สวนมูลฟ้อง</span></button>
       <button class="card newcase" data-act="newCase" data-type="civil"><h3>＋ คดีแพ่ง</h3><span class="hint">คำฟ้องแพ่ง คำขอท้ายฟ้อง ทุนทรัพย์และค่าขึ้นศาล มูลหนี้ตาม ป.พ.พ.</span></button>
       <button class="card newcase" data-act="openBook"><h3>☰ สมุดรายชื่อ</h3><span class="hint">เพิ่ม/แก้ไขบุคคล นิติบุคคล และทนายความไว้ล่วงหน้า แล้วกดเลือกเป็นโจทก์ จำเลย หรือทนายในคดีใดก็ได้</span></button>
+      <button class="card newcase" data-act="openSite"><h3>🌐 จัดการเว็บไซต์</h3><span class="hint">แก้ช่องทางติดต่อ เวลาทำการ ประกาศบนหัวเว็บ ข้อมูลสำนักงาน และข้อความท้ายเว็บ — เฉพาะผู้ดูแลระบบ</span></button>
       <button class="card newcase" data-act="openInbox"><h3>✉ กล่องข้อความปรึกษา <span class="ib-badge" data-inbox-badge hidden></span></h3><span class="hint">ข้อความที่ผู้เยี่ยมชมส่งจากหน้า “ติดต่อปรึกษากฎหมาย” ของเว็บไซต์ — ตรวจสอบ ติดต่อกลับ และทำเครื่องหมายว่าจัดการแล้ว</span></button>
       <label class="card newcase" style="cursor:pointer"><h3>⬆ นำเข้าข้อมูลคดี (.json)</h3><span class="hint">ไฟล์ที่ส่งออกจากระบบนี้</span><input type="file" id="importFile" accept=".json,application/json" hidden></label>
     </div>
@@ -201,8 +203,9 @@ function openCase(c, tab = 'case') {
   showWorkspace();
 }
 
-actions.goHome = async () => { if (S.bookMode) await leaveBook(); showHome(); };
+actions.goHome = async () => { if (S.bookMode) { await leaveSiteAdmin(); await leaveBook(); } showHome(); };
 actions.openBook = () => showBook(app);
+actions.openSite = () => { if (authUi.isAdmin()) showSiteAdmin(app); };
 actions.openInbox = () => { if (authUi.isAdmin()) showInbox(app); };
 actions.signOut = () => authUi.signOut();
 actions.googleLogin = async () => {
@@ -424,11 +427,11 @@ function renderPreview() {
   const same = inner.dataset.doc === doc.id;
   const keepTop = sc.scrollTop, keepLeft = sc.scrollLeft;
   const oldZoom = parseFloat(inner.style.zoom) || 1;
-  inner.style.zoom = 1;
-  inner.style.margin = '0';
-  if (same) morphInto(inner, docHtml(doc, S.data.layout), { mark: false }); else inner.innerHTML = docHtml(doc, S.data.layout);
+  const sheetsHtml = paginateHtml(docHtml(doc, S.data.layout));
+  const sheets = countSheets(sheetsHtml);
+  if (same) morphInto(inner, sheetsHtml, { mark: false }); else inner.innerHTML = sheetsHtml;
   inner.classList.toggle('pv-guides', !!S.ui.guides);
-  const natH = Math.max(1123, inner.offsetHeight);
+  const natH = 1123; // สูง A4 หนึ่งแผ่น (297 มม.)
   // แผงตัวอย่างถูกซ่อนอยู่ (จอแคบ) → ยังไม่คำนวณขนาดพอดี รอตอนเปิดแผง
   if (!sc.clientWidth || !sc.clientHeight) { inner.dataset.doc = doc.id; inner.style.zoom = 0.5; return; }
   const availW = sc.clientWidth - 24, availH = sc.clientHeight - 24;
@@ -437,13 +440,14 @@ function renderPreview() {
   const zoom = manual ? S.ui.pvZoom : fit;
   inner.style.zoom = zoom;
   inner.style.margin = '0 12px';
-  sc.classList.toggle('fit', !manual || zoom <= fit + 0.001);
+  sc.classList.toggle('fit', sheets === 1 && (!manual || zoom <= fit + 0.001));
   const pct = Math.round(zoom * 100);
   const barHtml = `<div class="pv-nav"><button type="button" class="pv-close" data-act="togglePreview" aria-label="ปิดตัวอย่างเอกสาร">✕</button>
     <button type="button" class="pv-arrow" data-act="pvPrev" aria-label="เอกสารก่อนหน้า" ${docs.length < 2 ? 'disabled' : ''}>‹</button>
     <label class="pv-select"><select data-onchange="pvSelect" aria-label="เลือกเอกสารที่แสดงในตัวอย่าง">${docs.map((d) => `<option value="${esc(d.id)}" ${d.id === S.ui.pvDoc ? 'selected' : ''}>${esc(d.title)}</option>`).join('')}</select></label>
     <button type="button" class="pv-arrow" data-act="pvNext" aria-label="เอกสารถัดไป" ${docs.length < 2 ? 'disabled' : ''}>›</button>
     <span class="pv-count" aria-hidden="true">${idx + 1}/${docs.length}</span>
+    ${sheets > 1 ? `<span class="pv-pages" title="เอกสารฉบับนี้ยาว ${sheets} แผ่น A4 เลื่อนดูได้">${sheets} แผ่น</span>` : ''}
     <span class="pv-zoom" role="group" aria-label="ขยายหรือย่อตัวอย่าง"><button type="button" class="pv-arrow" data-act="pvZoom" data-d="-1" aria-label="ย่อ">−</button>
       <button type="button" class="pv-pct" data-act="pvZoom" data-d="fit" title="พอดีหน้าจอ" aria-label="ขนาดพอดีหน้าจอ">${manual ? pct + '%' : 'พอดี'}</button>
       <button type="button" class="pv-arrow" data-act="pvZoom" data-d="1" aria-label="ขยาย">+</button></span></div>`;
@@ -451,7 +455,7 @@ function renderPreview() {
   if (bar.dataset.sig !== barHtml) { bar.innerHTML = barHtml; bar.dataset.sig = barHtml; }
   inner.dataset.doc = doc.id;
   inner.dataset.fit = String(fit);
-  if (same && manual) { sc.scrollTop = keepTop * (zoom / oldZoom); sc.scrollLeft = keepLeft; }
+  if (same) { sc.scrollTop = keepTop * (zoom / oldZoom); sc.scrollLeft = keepLeft; } // กดปุ่ม/พิมพ์อะไรก็ตาม ตัวอย่างต้องอยู่ที่เดิม
   else { sc.scrollTop = 0; sc.scrollLeft = 0; }
   if (!same) { inner.classList.remove('pv-swap'); void inner.offsetWidth; inner.classList.add('pv-swap'); }
 }
@@ -474,6 +478,7 @@ const pvStep = (d) => { const docs = previewDocs(); if (!docs.length) return; co
 actions.pvPrev = () => pvStep(-1);
 actions.pvNext = () => pvStep(1);
 window.addEventListener('resize', () => schedulePreview());
+documentFontsReady().then(() => { if (S.c && S.ui.pvOn) schedulePreview(true); });
 
 // ---------------- ออกเอกสาร ----------------
 function renderDocList() {
@@ -497,8 +502,9 @@ async function guardExport() {
 }
 
 /** ดูเอกสารในหน้า (ไม่ดาวน์โหลด) แล้วพิมพ์/บันทึกเป็น PDF จากตัวดู */
-function viewDocs(docs, title) {
-  openViewer({ title, html: docsHtml(docs, S.data.layout) });
+async function viewDocs(docs, title) {
+  await documentFontsReady();
+  openViewer({ title, html: docs.map((d) => paginateHtml(docHtml(d, S.data.layout))).join('') });
 }
 actions.printAll = async () => { if (await guardExport()) viewDocs(currentDocs(), 'ชุดเอกสารทั้งหมด'); };
 actions.printDoc = async (el) => { const d = currentDocs().filter((x) => x.id === el.dataset.id); if (d.length && await guardExport()) viewDocs(d, d[0].title); };

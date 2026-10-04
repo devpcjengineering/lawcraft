@@ -131,5 +131,5 @@ export function ownerLine(x) {
 }
 /** หลังวาดหน้าแรก: ผู้ที่ไม่ใช่แอดมินไม่เห็นการ์ดกล่องข้อความปรึกษา */
 export function afterHome(root = document) {
-  if (!isAdmin()) root.querySelectorAll('[data-act="openInbox"]').forEach((n) => n.remove());
+  if (!isAdmin()) root.querySelectorAll('[data-act="openInbox"],[data-act="openSite"]').forEach((n) => n.remove());
 }

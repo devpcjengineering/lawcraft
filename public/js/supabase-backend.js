@@ -129,6 +129,10 @@ export const supabaseBackend = {
   },
 
   // กล่องข้อความปรึกษาจากหน้าเว็บ (ตาราง inquiries — RLS: เฉพาะแอดมินอ่าน/แก้/ลบได้)
+  // ข้อมูลเว็บไซต์ (แถว key='site' ใน law_data): ทุกคนอ่านได้ แอดมินเขียนได้
+  async loadSite() { const rows = must(await sb.from('law_data').select('data').eq('key', 'site')); return rows[0]?.data || {}; },
+  async saveSite(obj) { must(await sb.from('law_data').upsert({ key: 'site', data: obj, updated_at: new Date().toISOString() }, { onConflict: 'key' })); return { ok: true }; },
+
   async listInquiries() {
     const rows = must(await sb.from('inquiries').select('id,created_at,name,contact,topic,message,consent,status').order('created_at', { ascending: false }).limit(500));
     return rows.map((r) => ({ id: r.id, createdAt: r.created_at, name: r.name, contact: r.contact, topic: r.topic || '', message: r.message, consent: r.consent, status: r.status }));

@@ -30,3 +30,6 @@ Thaigaruda.png
 .DS_Store
 Thumbs.db
 .vercel/
+
+# ข้อมูลเว็บไซต์โหมดไฟล์ในเครื่อง (ช่องทางติดต่อจริง ไม่เก็บใน repo)
+data/site.json

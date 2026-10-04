@@ -495,3 +495,11 @@ a, button, select, input, textarea, label, summary { touch-action: manipulation;
 
 /* ตราชั่งหัวหน้า: พ้นจอแล้วหยุดโยก (site.js สลับคลาส .off) */
 .scales-wrap.off .scales.play .beam, .scales-wrap.off .scales.play .pan, .scales-wrap.off .scales.play .dish { animation-play-state: paused; }
+/* ประกาศบนหัวเว็บ (แอดมินตั้งจากหลังบ้าน) และเวลาทำการท้ายเว็บ */
+.announce { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 8px 16px; background: var(--ink); color: var(--bg); font-size: 14px; line-height: 1.5; text-align: center; }
+.announce p { margin: 0; }
+.announce a { color: inherit; text-decoration: underline; font-weight: 600; }
+.announce button { border: 0; background: transparent; color: inherit; opacity: .7; cursor: pointer; padding: 6px 8px; font-size: 14px; }
+.announce button:hover { opacity: 1; }
+.sf-hours { margin: 10px 0 0; font-size: 13.5px; line-height: 1.7; color: var(--ink-2); }
+.sf-hours b { color: var(--ink); font-weight: 600; }
