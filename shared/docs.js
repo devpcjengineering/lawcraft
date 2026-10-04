@@ -184,7 +184,7 @@ function attachmentDoc(c) {
   if (df.length > 1) section(df, 'จำเลย');
   blocks.push(
     p([t('เอกสารนี้เป็นส่วนหนึ่งของคำฟ้อง')], { indent: 1.5, gap: true }),
-    sigBlock([{ label: pl.length > 1 ? 'โจทก์ที่ 1 (ในนามโจทก์ทั้งหมด)' : 'โจทก์', name: pl[0] ? `(${partyName(pl[0])})` : '' }]),
+    sigBlock(pl.length > 1 ? plaintiffSigs(c) : [{ label: 'โจทก์', name: pl[0] ? `(${partyName(pl[0])})` : '' }]),
   );
   return { id: 'attachment', title: 'เอกสารแนบท้ายคำฟ้อง', blocks };
 }
@@ -197,11 +197,11 @@ function complaintDoc(c, idx) {
     top(c, '๔', 'คำฟ้อง'),
     courtBlock(c),
     betweenBlock(c),
-    p([t(civil ? 'ข้อหาหรือฐานความผิด ' : 'ข้อหาหรือฐานความผิด '), charges ? val(charges) : dots(40)], { gap: false }),
+    charges ? p([t('ข้อหาหรือฐานความผิด '), val(charges)], { gap: false }) : { t: 'leader', label: 'ข้อหาหรือฐานความผิด' },
   ];
   {
     // แบบ ๔ มีช่อง “จำนวนทุนทรัพย์” ทั้งคดีแพ่งและคดีอาญา — ไม่มีให้ขีดจุด
-    blocks.push(p([t('จำนวนทุนทรัพย์ '), c.amount.baht ? val(Number(c.amount.baht).toLocaleString('en-US')) : dots(20), t(' บาท '), c.amount.baht ? val(c.amount.satang || '00') : dots(10), t(' สตางค์')], { gap: false }));
+    blocks.push({ t: 'amount', baht: c.amount.baht ? Number(c.amount.baht).toLocaleString('en-US') : '', satang: c.amount.baht ? String(c.amount.satang || '00') : '' });
   }
   blocks.push(...sideIntro(c, 'plaintiff', true), ...sideIntro(c, 'defendant', true));
   blocks.push(p([t('มีข้อความตามที่จะกล่าวต่อไปนี้')], { indent: 0 }));
@@ -254,11 +254,12 @@ function firstPlaintiffIntro(c) {
 }
 
 export const MOTION_KINDS = ['คำร้อง', 'คำแถลง', 'คำขอ'];
+export const MOTION_KINDS_ALL = [...MOTION_KINDS, 'คำบอกกล่าว'];
 function motionDoc(c, idx, m, n) {
   const pl = plaintiffs(c);
   const items = textToItems(m.text);
   const blocks = [
-    top(c, '๗', m.title || '', { courtUse: false, kinds: { all: MOTION_KINDS, on: MOTION_KINDS.includes(m.kind) ? m.kind : 'คำร้อง' } }),
+    top(c, '๗', m.title || '', { courtUse: false, kinds: m.kind === 'คำบอกกล่าว' ? { all: ['คำบอกกล่าว'], on: 'คำบอกกล่าว' } : { all: MOTION_KINDS, on: MOTION_KINDS.includes(m.kind) ? m.kind : 'คำร้อง' } }),
     courtBlock(c),
     betweenBlock(c),
     ...sideIntro(c, 'plaintiff'),
@@ -283,8 +284,11 @@ function motionDoc(c, idx, m, n) {
 
 function witnessDoc(c, idx) {
   // ตามตัวอย่างบัญชีพยานของศาล: ตารางเดียว รวมพยานบุคคล/เอกสาร/วัตถุเรียงตามอันดับ หมายเหตุ = "นำ" หรือ "หมายเรียก"
-  const all = c.witnesses.filter((w) => (w.name || '').trim());
   const pl = plaintiffs(c);
+  const own = c.witnesses.filter((w) => (w.name || '').trim());
+  const selfW = c.options?.selfWitness === false ? [] : pl.filter((x) => partyName(x) && !own.some((w) => w.name === partyName(x)))
+    .map((x) => ({ kind: 'person', name: partyName(x), address: addressText(x.address, isBkk(x.address.province)), note: 'นำ', self: true }));
+  const all = [...selfW, ...own];
   const blocks = [
     top(c, '๑๕', 'บัญชีพยาน', { courtUse: true }),
     courtBlock(c),
@@ -347,6 +351,11 @@ function proxyDoc(c, idx) {
   };
 }
 
+/** “วันที่ … เวลา … นาฬิกา” — ไม่ระบุวันนัด ให้เว้นเป็น วันที่ ........ เดือน .................. พุทธศักราช ............ */
+function whenRuns(hd, time, tw = 10) {
+  return [hd ? t(' วันที่ ') : t(' วันที่ ........ เดือน .................. พุทธศักราช ............'), ...(hd ? [val(hd)] : []), t(' เวลา '), time ? val(time) : dots(tw), t(' นาฬิกา')];
+}
+
 /** หมายนัดไต่สวนมูลฟ้อง — จำเลยหลายคนออกแยกเป็นฉบับต่อคน (target = จำเลยที่รับหมาย) */
 function summonsDoc(c, idx, data = {}, target = null) {
   const df = defendants(c);
@@ -366,15 +375,15 @@ function summonsDoc(c, idx, data = {}, target = null) {
       courtBlock(c, 'อาญา'),
       betweenBlock(c),
       p([t('หมายถึง '), val(dName), t(' ' + dWord)], { indent: 0 }),
-      p([t(ft('summons.body') + ' วันที่ '), hd ? val(hd) : dots(14), t(' เวลา '), h.time ? val(h.time) : dots(10), t(' นาฬิกา')], { indent: 1.5, justify: true }),
+      p([t(ft('summons.body')), ...whenRuns(hd, h.time, 10)], { indent: 1.5, justify: true }),
       p([t('เพราะฉะนั้น จึงแจ้งมาเพื่อทราบ')], { indent: 1.5 }),
       sigBlock([{ label: 'ผู้พิพากษา', name: '' }], true),
       p([t('ศาล '), val(courtShort(c.court))], { indent: 0 }),
       p([t('โทรศัพท์ '), phone ? val(phone) : dots(14)], { indent: 0 }),
       { t: 'rule' },
-      p([t('ผู้รับหมาย '), ...(d0 ? fields([...addrPairs(d0.address), ['โทรศัพท์', d0.phone]], ' ', true) : [dots(40)])], { indent: 0, small: true }),
+      p([t('ผู้รับหมาย '), ...(d0 ? fields([...addrPairs(d0.address), ['โทรศัพท์', d0.phone]], ' ', true) : [dots(40)])], { indent: 0 }),
       { t: 'center', text: 'ใบรับหมายนัดไต่สวนมูลฟ้อง', u: true, b: false },
-      p([t('วันที่ ........ เดือน ................ พ.ศ. ........ ข้าพเจ้า '), val(dName), t(' ได้รับหมายนัดไต่สวนมูลฟ้องของศาล'), val(courtShort(c.court)), t(' ในคดีระหว่าง '), val(pName), t(' โจทก์ '), val(allD), t(' จำเลย ซึ่งนัดไต่สวนมูลฟ้อง วันที่ '), hd ? val(hd) : dots(10), t(' เวลา '), h.time ? val(h.time) : dots(8), t(' นาฬิกา ไว้แล้ว')], { indent: 1.5, justify: true }),
+      p([t('วันที่ ........ เดือน .................. พุทธศักราช ............ ข้าพเจ้า '), val(dName), t(' ได้รับหมายนัดไต่สวนมูลฟ้องของศาล'), val(courtShort(c.court)), t(' ในคดีระหว่าง '), val(pName), t(' โจทก์ '), val(allD), t(' จำเลย ซึ่งนัดไต่สวนมูลฟ้อง'), ...whenRuns(hd, h.time, 8), t(' ไว้แล้ว')], { indent: 1.5, justify: true }),
       sigBlock([{ label: 'ผู้รับหมาย', name: '' }, { label: 'ผู้ส่งหมาย', name: '' }], true),
       p([{ text: 'หมายเหตุ', u: true }, t(' ' + ft('summons.note'))], { indent: 0, small: true, justify: true }),
     ],

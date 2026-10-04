@@ -33,7 +33,7 @@ export function newCase(type = 'criminal') {
     summonKind: 'ออกหมายนัดไต่สวนมูลฟ้อง/หมายเรียก',  // ออกหมายนัดไต่สวนมูลฟ้อง/หมายเรียก | ออกหมายเรียก | ออกหมายจับ
     facts: [],                                    // [{id, text, src}]
     vars: {},                                     // ค่าตัวแปร {{ชื่อ}} ในเทมเพลต
-    prayers: [],                                  // [{id, text, src}]
+    prayers: [{ id: uid(), text: 'ให้จำเลยชำระค่าฤชาธรรมเนียมศาลและค่าทนายความแทนโจทก์ด้วย', src: 'base-cost' }],   // [{id, text, src}]
     copies: '',                                   // จำนวนสำเนา
     civilCause: '',                               // คดีแพ่ง: เรื่อง/มูลคดี
     witnesses: [],                                // [{id, kind:'person'|'document'|'object', name, address, note}]
@@ -45,8 +45,18 @@ export function newCase(type = 'criminal') {
     answer: { defendantId: '', templateId: '', text: '' },               // คำให้การจำเลย (แบบ ๑๑)
     settlement: { templateId: '', subject: '', clauses: [] },            // สัญญาประนีประนอมยอมความ (แบบ ๒๙)
     docs: { complaint: true, prayer: true, attachment: true, service: true, witness: true, summons: true, attorney: false, proxy: false, motions: true, answer: false, settlement: false },
-    options: { thaiDigits: true, autoFill: true },
+    options: { thaiDigits: true, autoFill: true, selfWitness: true },
+    closing: { mode: 'self' },                    // ข้อท้ายคำฟ้อง: self = ไม่ได้ร้องทุกข์ ประสงค์ดำเนินคดีเอง | police = ร้องทุกข์ต่อพนักงานสอบสวนแล้ว
   };
+}
+
+/** คำขอพื้นฐานท้ายคำฟ้อง: ให้จำเลยชำระค่าฤชาธรรมเนียมศาลและค่าทนายความแทนโจทก์ — อยู่เป็นข้อสุดท้ายเสมอ */
+export const BASE_COST_PRAYER = 'ให้จำเลยชำระค่าฤชาธรรมเนียมศาลและค่าทนายความแทนโจทก์ด้วย';
+export function ensureBasePrayer(c) {
+  const rest = c.prayers.filter((x) => x.src !== 'base-cost');
+  const base = c.prayers.find((x) => x.src === 'base-cost') || { id: uid(), text: BASE_COST_PRAYER, src: 'base-cost' };
+  c.prayers = [...rest, base];
+  return c;
 }
 
 export function plaintiffs(c) { return c.parties.filter((p) => p.role === 'plaintiff'); }
@@ -225,6 +235,9 @@ export function caseTitle(c) {
  *  - จำเลยอยู่เขตศาลอื่น       → status 'outside' → ฟ้องศาลหนึ่ง ส่งหมายผ่านอีกศาล (mode 'cross-post') court = ศาลปลายทาง
  *  - ไม่มีข้อมูลพอ             → status 'unknown'
  */
+/** ชื่อศาลตามเว็บ coj ที่ในระบบแยกเป็นศาลแพ่ง/ศาลอาญาประจำเขต (กรุงเทพ: ตลิ่งชัน พระโขนง มีนบุรี) */
+export const courtAlias = (name, crim) => String(name || '').replace(/^ศาลจังหวัด(ตลิ่งชัน|พระโขนง|มีนบุรี)$/, (_, x) => (crim ? 'ศาลอาญา' : 'ศาลแพ่ง') + x);
+
 export function serviceAdvice(c, data) {
   const J = data?.jurisdiction?.provinces;
   const df = defendants(c);
@@ -235,9 +248,9 @@ export function serviceAdvice(c, data) {
     const list = J[a.province]?.districts?.[a.district];
     if (!list) return { party: d, known: false };
     const firsts = list.filter((x) => x.type === 'first');
-    const inside = firsts.some((x) => x.name === c.court);
+    const inside = firsts.some((x) => courtAlias(x.name, crim) === c.court);
     const prefer = firsts.find((x) => !x.magistrate && (x.scope === 'both' || x.scope === (crim ? 'criminal' : 'civil'))) || firsts[0];
-    return { party: d, known: true, inside, dest: inside ? c.court : prefer?.name || '', courts: firsts.map((x) => x.name) };
+    return { party: d, known: true, inside, dest: inside ? c.court : courtAlias(prefer?.name, crim) || '', courts: firsts.map((x) => courtAlias(x.name, crim)) };
   });
   const known = rows.filter((r) => r.known);
   if (!known.length) return { status: 'unknown', rows };

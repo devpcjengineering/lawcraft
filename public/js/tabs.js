@@ -2,12 +2,14 @@
 import { S, esc, actions, hooks } from './store.js';
 import { field, select, check, seg, dateFields, addressFields, badge, pageHead, group, disclose, more } from './ui.js';
 import {
-  newParty, uid, plaintiffs, defendants, partyLabel, partyName, collectVars, validateCase, chargeItem, chargeSectionsText, chargeNamesText, serviceAdvice,
+  newParty, uid, plaintiffs, defendants, partyLabel, partyName, collectVars, validateCase, chargeItem, chargeSectionsText, chargeNamesText, serviceAdvice, ensureBasePrayer,
 } from '/shared/model.js';
-import { serviceMotionText, serviceMode, DOC_TYPES } from '/shared/docs.js';
+import { serviceMotionText, serviceMode, DOC_TYPES, MOTION_KINDS_ALL } from '/shared/docs.js';
+import { openViewer } from './viewer.js';
 import { FORM_TEXT, defaultFormText } from '/shared/formtext.js';
 import { validCitizenId, isBkk } from '/shared/thai.js';
 import { confirmBox } from './modal.js';
+import { notify } from './notify.js';
 import { LAYOUT_GROUPS, resolveLayout } from '/shared/layout.js';
 
 const kindOf = () => (S.c.type === 'civil' ? 'civil' : 'criminal');
@@ -310,7 +312,7 @@ function itemOptions() {
   }
   const num = (s) => parseFloat(String(s).replace(/[^0-9.]/g, '')) || 0;
   return [...groups].map(([g, list]) => `<optgroup label="${esc(g)}">${list.sort((a, b) => num(a.section) - num(b.section))
-    .map((it) => `<option value="${esc(it.id)}">${esc((S.idx.laws.get(it.lawId)?.short || '') + ' ม.' + it.section + ' — ' + it.name)}</option>`).join('')}</optgroup>`).join('');
+    .map((it) => { const taken = S.c.charges.some((x) => x.itemId === it.id); return `<option value="${esc(it.id)}" ${taken ? 'disabled' : ''}>${taken ? '✓ เลือกแล้ว · ' : ''}${esc((S.idx.laws.get(it.lawId)?.short || '') + ' ม.' + it.section + ' — ' + it.name)}</option>`; }).join('')}</optgroup>`).join('');
 }
 
 function precBlock(id) {
@@ -381,12 +383,16 @@ export function fillFromItem(it) {
   const c = S.c;
   if (!c.facts.some((f) => f.src === it.id)) for (const t of it.factTemplate || []) c.facts.push({ id: uid(), text: t, src: it.id });
   if (!c.prayers.some((f) => f.src === it.id)) for (const t of it.prayerTemplate || []) c.prayers.push({ id: uid(), text: t, src: it.id });
+  ensureBasePrayer(c);
 }
 actions.addCharge = () => {
   const id = document.getElementById('charge-sel')?.value;
   const it = S.idx.items.get(id);
   if (!it) return hooks.toast('กรุณาเลือกข้อหาก่อน');
-  if (S.c.charges.some((x) => x.itemId === id)) return hooks.toast('เลือกข้อหานี้ไว้แล้ว');
+  if (S.c.charges.some((x) => x.itemId === id)) {
+    const law = S.idx.laws.get(it.lawId);
+    return notify({ type: 'warn', id: 'dup-charge', title: 'เพิ่มข้อหานี้ซ้ำไม่ได้', message: `${law?.short || ''} มาตรา ${it.section} ${it.name} ถูกเลือกไว้ในคดีนี้แล้ว` });
+  }
   S.c.charges.push({ itemId: id, related: [] });
   if (S.c.options.autoFill !== false) fillFromItem(it);
   rerender(); hooks.changed();
@@ -394,6 +400,7 @@ actions.addCharge = () => {
 actions.addCustomCharge = () => {
   const name = document.getElementById('cust-name').value.trim(), sec = document.getElementById('cust-sec').value.trim();
   if (!name && !sec) return;
+  if (S.c.charges.some((x) => !x.itemId && (x.customName || '') === name && (x.customSection || '') === sec)) return notify({ type: 'warn', id: 'dup-charge', title: 'เพิ่มข้อหานี้ซ้ำไม่ได้', message: 'ข้อหา/บทมาตราที่กรอกเองนี้มีอยู่ในคดีแล้ว' });
   S.c.charges.push({ customName: name, customSection: sec, related: [] }); rerender(); hooks.changed();
 };
 actions.delCharge = async (el) => {
@@ -437,7 +444,7 @@ function varsPanel() {
 function snippetPicker(types, act, label = 'แทรกข้อความสำเร็จรูป') {
   const list = (S.data.procedure.snippets || []).filter((s) => types.includes(s.docType));
   if (!list.length) return '';
-  return `<div class="row"><select id="snip-${act}" style="max-width:420px;width:auto;flex:1;min-width:200px" aria-label="${esc(label)}"><option value="">${label}…</option>${list.map((s) => `<option value="${esc(s.id)}">${esc(s.title)}</option>`).join('')}</select>
+  return `<div class="row" style="margin-top:14px"><select id="snip-${act}" style="max-width:420px;width:auto;flex:1;min-width:200px" aria-label="${esc(label)}"><option value="">${label}…</option>${list.map((s) => `<option value="${esc(s.id)}">${esc(s.title)}</option>`).join('')}</select>
     <button class="btn outline" data-act="${act}">แทรก</button></div>`;
 }
 const snippetById = (id) => (S.data.procedure.snippets || []).find((s) => s.id === id);
@@ -471,8 +478,43 @@ actions.addJurisFact = () => {
   if (crim && !S.c.vars['ข้อความเรื่องการร้องทุกข์']) S.c.vars['ข้อความเรื่องการร้องทุกข์'] = 'มิได้ร้องทุกข์ต่อพนักงานสอบสวนในความผิดคดีนี้';
   rerender(); hooks.changed();
 };
+actions.addPrayer = () => { S.c.prayers.push({ id: uid(), text: '' }); ensureBasePrayer(S.c); rerender(); hooks.changed(); };
 actions.snipFact = () => { const s = snippetById(document.getElementById('snip-snipFact').value); if (s) { S.c.facts.push({ id: uid(), text: s.text, src: 'snip' }); rerender(); hooks.changed(); } };
-actions.snipPrayer = () => { const s = snippetById(document.getElementById('snip-snipPrayer').value); if (s) { S.c.prayers.push({ id: uid(), text: s.text, src: 'snip' }); rerender(); hooks.changed(); } };
+actions.snipPrayer = () => { const s = snippetById(document.getElementById('snip-snipPrayer').value); if (s) { S.c.prayers.push({ id: uid(), text: s.text, src: 'snip' }); ensureBasePrayer(S.c); rerender(); hooks.changed(); } };
+
+/** ข้อท้ายคำฟ้อง: เกิดเหตุที่ไหน / โจทก์เป็นผู้เสียหายอย่างไร (บุคคลทั่วไปหรือนิติบุคคล) / ร้องทุกข์ต่อพนักงานสอบสวนหรือไม่ */
+function tailTexts() {
+  const c = S.c, crim = c.type === 'criminal';
+  const pl = plaintiffs(c)[0] || {};
+  const out = [];
+  if (crim) {
+    out.push('เหตุคดีนี้เกิดที่ {{สถานที่เกิดเหตุ}} ซึ่งอยู่ในเขตอำนาจของศาลนี้');
+    out.push(pl.kind === 'juristic'
+      ? `โจทก์เป็นนิติบุคคล โดย ${pl.repName || '{{ผู้แทนโจทก์}}'}${pl.repPosition ? ' ตำแหน่ง' + pl.repPosition : ''} ผู้มีอำนาจกระทำการแทน เป็นผู้เสียหายโดยตรงจากการกระทำของจำเลยดังกล่าว จึงมีอำนาจฟ้องคดีนี้ตามประมวลกฎหมายวิธีพิจารณาความอาญา มาตรา 28 (2)`
+      : 'โจทก์เป็นผู้เสียหายโดยตรงจากการกระทำของจำเลยดังกล่าว จึงมีอำนาจฟ้องคดีนี้ตามประมวลกฎหมายวิธีพิจารณาความอาญา มาตรา 28 (2)');
+    out.push((c.closing?.mode || 'self') === 'police'
+      ? 'โจทก์ได้ร้องทุกข์ต่อพนักงานสอบสวน {{สถานีตำรวจที่ร้องทุกข์}} ไว้แล้ว แต่โจทก์ประสงค์ดำเนินคดีนี้ด้วยตนเอง จึงนำคดีมาฟ้องต่อศาลโดยตรง'
+      : 'โจทก์มิได้ร้องทุกข์ต่อพนักงานสอบสวนในความผิดคดีนี้ แต่ประสงค์ดำเนินคดีด้วยตนเอง จึงนำคดีมาฟ้องต่อศาลโดยตรง');
+  } else {
+    out.push('มูลคดีนี้เกิดที่ {{สถานที่เกิดเหตุ}} และจำเลยมีภูมิลำเนาอยู่ในเขตอำนาจของศาลนี้ ศาลนี้จึงมีอำนาจพิจารณาพิพากษาคดี');
+  }
+  return out;
+}
+actions.addTailFacts = () => {
+  S.c.facts = S.c.facts.filter((f) => f.src !== 'tail');
+  for (const text of tailTexts()) S.c.facts.push({ id: uid(), text, src: 'tail' });
+  hooks.toast('เพิ่มข้อท้ายคำฟ้องแล้ว — แก้ไขข้อความได้ในรายการด้านบน');
+  rerender(); hooks.changed();
+};
+function tailPanel() {
+  const crim = S.c.type === 'criminal';
+  S.c.closing ||= { mode: 'self' };
+  return `<div class="panel"><h3>ข้อท้ายคำฟ้อง</h3>
+    <p class="hint panel-note">สร้างข้อความท้ายคำฟ้องเป็นข้อ ๆ จากข้อมูลที่เลือก (ใช้ได้ทั้งโจทก์บุคคลธรรมดาและนิติบุคคล) แล้วแก้ไขหรือพิมพ์เองทั้งหมดได้ในรายการด้านบน</p>
+    <div class="grid">${field('เกิดเหตุที่', 'vars.สถานที่เกิดเหตุ', { cls: 's12', ph: 'เช่น ตำบล… อำเภอ… จังหวัด… หรือ “ทางเฟซบุ๊ก/อินเทอร์เน็ต”' })}</div>
+    ${crim ? `<div class="f" style="margin-top:12px"><span class="lbl">การร้องทุกข์ต่อพนักงานสอบสวน</span>${seg('closing.mode', [['self', 'ไม่ได้ร้องทุกข์ — ประสงค์ดำเนินคดีด้วยตนเอง'], ['police', 'ร้องทุกข์ไว้แล้ว แต่ประสงค์ฟ้องเอง']], { label: 'การร้องทุกข์', rerender: true })}</div>` : ''}
+    <div class="toolbar" style="margin:14px 0 0"><button class="btn outline" data-act="addTailFacts">${S.c.facts.some((f) => f.src === 'tail') ? 'สร้างข้อท้ายคำฟ้องใหม่' : '+ เพิ่มข้อท้ายคำฟ้อง'}</button></div></div>`;
+}
 
 function tabFacts() {
   return `${pageHead('ข้อเท็จจริงในคำฟ้อง', 'แต่ละช่องคือ “ข้อ ๑, ๒ …” ของคำฟ้อง ร่างจากข้อหาที่เลือก ปรับถ้อยคำได้')}
@@ -480,12 +522,29 @@ function tabFacts() {
   <div class="panel"><h3>รายการข้อเท็จจริง</h3>
     <p class="hint panel-note">ใช้ <code>{{โจทก์}}</code> <code>{{จำเลย}}</code> <code>{{ศาล}}</code> <code>{{มาตรา}}</code> แทนชื่อคู่ความ/ศาล/บทมาตราโดยอัตโนมัติ</p>
     ${itemEditor('facts', 'ข้อ')}
-    <div class="toolbar" style="margin:16px 0 0"><button class="btn outline" data-act="addItem" data-list="facts">+ เพิ่มข้อ</button>
-      <button class="btn outline" data-act="addJurisFact" title="ข้อสุดท้ายที่ศาลมักให้ระบุ: เหตุเกิดในเขตศาล และเหตุที่ราษฎรฟ้องเอง">+ ข้อ “เหตุเกิดในเขตศาล”</button></div>
-    ${snippetPicker(S.c.type === 'civil' ? ['complaint-civil'] : ['complaint-criminal'], 'snipFact')}</div>`;
+    <div class="toolbar" style="margin:16px 0 0"><button class="btn outline" data-act="addItem" data-list="facts">+ เพิ่มข้อ (พิมพ์เอง)</button></div>
+    ${snippetPicker(S.c.type === 'civil' ? ['complaint-civil'] : ['complaint-criminal'], 'snipFact')}</div>
+  ${tailPanel()}`;
 }
 
 // ===================== 6) คำขอท้ายฟ้อง =====================
+const amountText = () => (S.c.amount?.baht ? Number(S.c.amount.baht).toLocaleString('en-US') + (S.c.amount.satang && S.c.amount.satang !== '00' ? '.' + S.c.amount.satang : '') : '');
+actions.addInterestPrayer = (el) => {
+  const amt = amountText() || '{{จำนวนเงิน}}';
+  const text = el.dataset.from === 'filing'
+    ? `ให้จำเลยชำระเงินจำนวน ${amt} บาท แก่โจทก์ พร้อมดอกเบี้ยอัตราร้อยละ {{อัตราดอกเบี้ย}} ต่อปี ของต้นเงินดังกล่าว นับแต่วันฟ้องเป็นต้นไปจนกว่าจะชำระเสร็จสิ้น`
+    : `ให้จำเลยชำระเงินจำนวน ${amt} บาท แก่โจทก์ พร้อมดอกเบี้ยอัตราร้อยละ {{อัตราดอกเบี้ย}} ต่อปี ของต้นเงินดังกล่าว นับแต่วันที่ {{วันผิดสัญญา}} ซึ่งเป็นวันผิดสัญญา/ผิดนัด จนถึงวันฟ้อง และต่อไปจนกว่าจะชำระเสร็จสิ้น`;
+  S.c.prayers.push({ id: uid(), text, src: 'interest-' + el.dataset.from });
+  ensureBasePrayer(S.c);
+  rerender(); hooks.changed();
+};
+function interestPanel() {
+  const amt = amountText();
+  return `<div class="panel"><h3>ขอให้ชำระเงิน พร้อมดอกเบี้ย</h3>
+    <p class="hint panel-note">${amt ? `ทุนทรัพย์ตามหน้าฟ้อง <b>${esc(amt)}</b> บาท — เลือกเพิ่มคำขอได้แยกกัน (ดอกเบี้ยนับแต่วันผิดสัญญา หรือนับแต่วันฟ้อง) แล้วแก้ถ้อยคำในรายการคำขอ` : 'ยังไม่ได้ระบุจำนวนทุนทรัพย์ในหน้า “ข้อมูลคดี” — เมื่อระบุแล้วจำนวนเงินจะถูกใส่ในคำขอให้อัตโนมัติ'}</p>
+    <div class="toolbar" style="margin:0"><button class="btn outline" data-act="addInterestPrayer" data-from="breach">+ ชำระเงิน พร้อมดอกเบี้ยนับแต่วันผิดสัญญา</button>
+      <button class="btn outline" data-act="addInterestPrayer" data-from="filing">+ ชำระเงิน พร้อมดอกเบี้ยนับแต่วันฟ้อง</button></div></div>`;
+}
 function tabPrayer() {
   const crim = S.c.type === 'criminal';
   return `${pageHead('คำขอท้ายคำฟ้อง', crim ? 'แบบ ๖ — ระบบใส่ “การที่จำเลยได้กระทำ… เป็นความผิดตามบทมาตรา …” ให้อัตโนมัติ' : 'แบบ ๕ คำขอท้ายคำฟ้องแพ่ง')}
@@ -493,8 +552,9 @@ function tabPrayer() {
   <div class="panel"><h3>การยื่น</h3><div class="grid">
     ${crim ? select('ขอให้ศาล', 'summonKind', ['ออกหมายนัดไต่สวนมูลฟ้อง/หมายเรียก', 'ออกหมายเรียก', 'ออกหมายจับ'], { cls: 's8', rerender: true }) : ''}
     ${field('จำนวนสำเนาคำฟ้องที่ยื่นมาด้วย (ฉบับ)', 'copies', { cls: crim ? 's4' : 's6', type: 'number' })}</div></div>
+  ${interestPanel()}
   <div class="panel"><h3>รายการคำขอ</h3>${itemEditor('prayers', 'ข้อ')}
-    <div class="toolbar" style="margin:16px 0 0"><button class="btn outline" data-act="addItem" data-list="prayers">+ เพิ่มคำขอ</button></div>
+    <div class="toolbar" style="margin:16px 0 0"><button class="btn outline" data-act="addPrayer">+ เพิ่มคำขอ</button></div>
     ${snippetPicker(S.c.type === 'civil' ? ['prayer-civil'] : ['prayer-criminal'], 'snipPrayer')}</div>`;
 }
 
@@ -517,7 +577,8 @@ function tabWitness() {
     <span class="grow"></span>
     <select style="width:auto;min-height:36px;font-size:14.5px" data-onchange="witFromParty" aria-label="เพิ่มพยานจากรายชื่อคู่ความ"><option value="">เพิ่มจากรายชื่อคู่ความ…</option>${S.c.parties.map((p) => `<option value="${esc(p.id)}">${esc(partyLabel(S.c, p))}: ${esc(partyName(p))}</option>`).join('')}</select>
   </div>
-  ${w.length ? `<p class="hint" style="margin:0 0 8px">${w.length} รายการ · พยานบุคคล ${nPerson}</p>` : ''}
+  <div class="panel" style="padding:12px 16px">${check('โจทก์อ้างตนเองเป็นพยาน (ค่าเริ่มต้น — ใส่ชื่อโจทก์เป็นลำดับแรกในบัญชีพยานให้อัตโนมัติ)', 'options.selfWitness', { rerender: true })}</div>
+  ${w.length ? `<p class="hint" style="margin:0 0 8px">${w.length} รายการที่เพิ่มเอง · พยานบุคคล ${nPerson}</p>` : ''}
   ${w.length ? w.map((x, i) => disclose(`w:${x.id || i}`, `<span class="sum-main">${witSummary(x)}</span>
       <span class="sum-act"><button class="btn sm danger" data-act="delWit" data-i="${i}" aria-label="ลบพยานลำดับที่ ${i + 1}">ลบ</button></span>`, `
     <div class="grid">
@@ -525,8 +586,9 @@ function tabWitness() {
       ${field(x.kind === 'person' ? 'ชื่อและสกุลพยาน' : 'รายการเอกสาร/วัตถุ', `witnesses.${i}.name`, { cls: 's8' })}
       ${field(x.kind === 'person' ? 'ที่อยู่พยาน' : 'ผู้ครอบครอง / ที่เก็บรักษา', `witnesses.${i}.address`, { cls: 's12' })}
       ${field('หมายเหตุ', `witnesses.${i}.note`, { cls: 's6', list: 'dl-wnote', ph: 'นำ / หมายเรียก', hint: x.kind === 'person' ? 'พยานเป็นเด็กอายุไม่เกิน ๑๘ ปี ให้ระบุในช่องนี้' : '' })}
-    </div>`, { cls: 'item', open: !(x.name || '').trim(), attrs: `data-sum="wit" data-i="${i}"` })).join('') : '<div class="empty">ยังไม่มีพยาน</div>'}`;
+    </div>`, { cls: 'item', open: !(x.name || '').trim(), attrs: `data-sum="wit" data-i="${i}"` })).join('') : '<div class="empty">ยังไม่มีพยานที่เพิ่มเอง</div>'}`;
 }
+actions.viewPdf = (el) => openViewer({ title: el.dataset.title || 'แบบพิมพ์ศาล', src: el.getAttribute('href') });
 actions.addWit = (el) => { S.c.witnesses.push({ id: uid(), kind: el.dataset.kind, name: '', address: '', note: '' }); rerender(); hooks.changed(); };
 actions.delWit = (el) => { S.c.witnesses.splice(+el.dataset.i, 1); rerender(); hooks.changed(); };
 actions.witFromParty = (el) => {
@@ -547,13 +609,13 @@ function tabMotions() {
   return `${pageHead('คำร้อง / คำแถลง / คำขอ', 'นอกเหนือจากคำร้องส่งหมาย — แต่ละฉบับออกเป็นเอกสารแยก')}
   ${varsPanel()}
   <div class="panel"><h3>เพิ่มคำร้อง</h3>
-    <div class="row"><select id="motion-tpl" style="max-width:420px;width:auto;flex:1;min-width:200px" aria-label="แม่แบบคำร้อง"><option value="">เลือกแม่แบบคำร้อง / คำแถลง…</option>${tplMotions().map((x) => `<option value="${esc(x.id)}">[${esc(x.kind)}] ${esc(x.title)}</option>`).join('')}</select>
+    <div class="row"><select id="motion-tpl" style="max-width:420px;width:auto;flex:1;min-width:200px" aria-label="แม่แบบคำร้อง"><option value="">เลือกแม่แบบคำร้อง / คำแถลง (${tplMotions().length} แบบ)…</option>${MOTION_KINDS_ALL.map((k) => { const l = tplMotions().filter((x) => x.kind === k); return l.length ? `<optgroup label="${esc(k)} (${l.length})">${l.map((x) => `<option value="${esc(x.id)}">${esc(x.title)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>
       <button class="btn outline" data-act="addMotionTpl">เพิ่มจากแม่แบบ</button>
       <button class="btn outline" data-act="addMotion">+ คำร้องเปล่า</button></div>
     <div class="caution">แม่แบบเขียนขึ้นเองตามโครงเอกสารทั่วไป เลขมาตราที่อ้างยังไม่ผ่านการตรวจกับแหล่งทางการ ตรวจก่อนยื่นทุกครั้ง</div></div>
   ${m.length ? m.map((x, i) => disclose(`m:${x.id || i}`, `<span class="sum-main">${motionSummary(x, i)}</span>
       <span class="sum-act"><button class="btn sm danger" data-act="delMotion" data-i="${i}" aria-label="ลบคำร้องฉบับที่ ${i + 1}">ลบ</button></span>`, `
-    <div class="grid">${select('ประเภทเอกสาร (คำที่ไม่ใช้จะถูกขีดฆ่าที่หัวเอกสาร)', `motions.${i}.kind`, ['คำร้อง', 'คำแถลง', 'คำขอ'], { cls: 's6', rerender: true, value: x.kind || 'คำร้อง' })}
+    <div class="grid">${select('ประเภทเอกสาร (คำที่ไม่ใช้จะถูกขีดฆ่าที่หัวเอกสาร)', `motions.${i}.kind`, MOTION_KINDS_ALL, { cls: 's6', rerender: true, value: x.kind || 'คำร้อง' })}
     ${field('เรื่อง (แสดงใต้หัวเอกสาร)', `motions.${i}.title`, { cls: 's12', ph: 'เช่น ส่งหมายข้ามเขตและปิดหมาย' })}
     ${field('เนื้อหา', `motions.${i}.text`, { cls: 's12', type: 'textarea', rows: 9, hint: 'แบ่งข้อโดยเว้นบรรทัดว่าง — ระบบใส่ “ข้อ ๑ ๒ …” ให้' })}</div>
     <div style="margin-top:16px">${snippetPicker(['motion'], 'snipMotion', 'แทรกข้อความสำเร็จรูปลงฉบับนี้').replace('data-act="snipMotion"', `data-act="snipMotion" data-i="${i}"`)}</div>`,
@@ -639,7 +701,7 @@ function tabExport() {
   const issueRow = (x) => `<li><span class="st-ico ${ISSUE_ICON[x.level][0]}" aria-hidden="true">${ISSUE_ICON[x.level][1]}</span><span class="r-main">${esc(x.msg)}</span>
       <span class="r-act"><button class="btn sm outline" data-act="goTab" data-tab="${esc(x.tab)}">ไปที่${tabNames[x.tab] ? ' ' + tabNames[x.tab] : ''}</button></span></li>`;
   const issueGroup = (title, list) => list.length ? `<div class="iss-h">${title} <span class="pill ${title === 'ต้องแก้' ? 'err' : 'warn'}">${list.length}</span></div><ul class="rows">${list.map(issueRow).join('')}</ul>` : '';
-  return `${pageHead('ตรวจสอบและออกเอกสาร', 'ตรวจความครบถ้วน เลือกชุดเอกสาร แล้วดาวน์โหลดเป็น Word หรือพิมพ์/บันทึกเป็น PDF')}
+  return `${pageHead('ตรวจสอบและออกเอกสาร', 'ตรวจความครบถ้วน เลือกชุดเอกสาร แล้วกด “ดู PDF” เพื่อตรวจหน้าตาเอกสารก่อน จากนั้นบันทึกเป็น PDF')}
   <div class="status-bar ${tone}" role="status"><span class="st-ico ${tone}" aria-hidden="true" style="width:32px;height:32px;font-size:16px">${tone === 'ok' ? '✓' : '!'}</span>
     <div><div class="big">${errs.length ? `${errs.length} จุดต้องแก้ก่อนยื่น` : warns.length ? `พร้อมออกเอกสาร — มี ${warns.length} ข้อควรตรวจ` : 'พร้อมออกเอกสาร'}</div>
     <div class="hint">เอกสารขั้นต่ำครบ ${reqOk} จาก ${req.length} รายการ</div></div></div>
@@ -654,10 +716,9 @@ function tabExport() {
   <div class="panel"><h3>เลือกเอกสารในชุด</h3>
     <div class="doc-pick">${DOC_TYPES.filter((d) => d.key !== 'summons' || c.type === 'criminal').map((d) => check(esc(d.label), `docs.${d.key}`, { rerender: true })).join('')}</div></div>
   <div class="panel"><h3>ดาวน์โหลด</h3>
-    <div class="dl-main"><div class="btn-group"><button class="btn primary" data-act="dlDocx">ชุดเอกสารทั้งหมด (Word .docx)</button>
-      <button class="btn outline" data-act="printAll">พิมพ์ / บันทึกเป็น PDF ทั้งชุด</button>
+    <div class="dl-main"><div class="btn-group"><button class="btn primary" data-act="printAll">ดู PDF ทั้งชุด</button>
       <button class="btn outline" data-act="dlJson">ข้อมูลคดี (.json)</button></div>
-      <p class="hint">PDF: เลือก “บันทึกเป็น PDF” ในหน้าต่างพิมพ์ของเบราว์เซอร์ ตั้งขนาดกระดาษ A4 และปิด “ส่วนหัวและท้ายกระดาษ”</p></div>
+      <p class="hint">เปิดดูเอกสารในหน้านี้ได้เลย ไม่ดาวน์โหลดลงเครื่อง — พอตรวจแล้วกด “พิมพ์ / บันทึกเป็น PDF” (ตั้งกระดาษ A4 และปิด “ส่วนหัวและท้ายกระดาษ”)</p></div>
     <div class="dl-sub">แยกทีละฉบับ</div>
     <div id="doclist"></div></div>`;
 }
@@ -828,7 +889,7 @@ function tabForms() {
     <div class="toolbar"><input type="search" style="flex:1;min-width:160px" id="form-q" data-oninput="setFormQ" value="${esc(S.ui.formQ || '')}" placeholder="ค้นหา เช่น คำฟ้อง, บัญชีพยาน, 15" aria-label="ค้นหาแบบพิมพ์">
       <div class="chips" role="group" aria-label="กรองแบบพิมพ์">${chip('all', 'ทั้งหมด', base.length)}${chip('used', 'ใช้ในระบบ', base.filter((f) => USED_FORMS.has(f.no)).length)}</div></div>`;
   const body = `<div class="panel tbl-wrap" style="margin:0"><table class="simple"><thead><tr><th>แบบ</th><th>ชื่อ</th><th>ดาวน์โหลด</th></tr></thead><tbody>
-    ${list.map((f) => `<tr class="${USED_FORMS.has(f.no) ? 'used' : ''}"><td class="nowrap">${esc(f.no)}</td><td>${esc(f.title)} ${USED_FORMS.has(f.no) ? badge('ใช้ในระบบ', 'ok') : ''}</td><td class="nowrap">${link('word', f.word, 'Word')} ${link('pdf', f.pdf, 'PDF')}</td></tr>`).join('') || '<tr><td colspan="3"><div class="empty">ไม่พบรายการ</div></td></tr>'}
+    ${list.map((f) => `<tr class="${USED_FORMS.has(f.no) ? 'used' : ''}"><td class="nowrap">${esc(f.no)}</td><td>${esc(f.title)} ${USED_FORMS.has(f.no) ? badge('ใช้ในระบบ', 'ok') : ''}</td><td class="nowrap">${link('word', f.word, 'Word')} ${f.pdf ? `<a class="lnk" href="/templates/pdf/${encodeURIComponent(f.pdf)}" data-act="viewPdf" data-title="${esc(f.no + ' ' + f.title)}">ดู PDF</a>` : '<span class="hint">—</span>'}</td></tr>`).join('') || '<tr><td colspan="3"><div class="empty">ไม่พบรายการ</div></td></tr>'}
   </tbody></table></div>`;
   return fit(head, body, '', 'รายการแบบพิมพ์');
 }

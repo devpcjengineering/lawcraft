@@ -9,6 +9,9 @@
   text-align: left; word-break: normal; overflow-wrap: anywhere;
 }
 .page .p { margin: 0 0 calc(.15em + var(--p-gap, 0mm)); }
+.page .ldr { display: flex; align-items: flex-end; gap: .35em; margin: 0 0 calc(.15em + var(--p-gap, 0mm)); }
+.page .ldr-fill { flex: 1; min-width: 0; border-bottom: 1.5px dotted #000; min-height: 1.15em; text-align: center; }
+.page .ldr-fill.s { flex: 0 0 24mm; }
 .page .p.gap { margin-bottom: calc(.3em + var(--p-gap, 0mm)); }
 .page .p.just { text-align: justify; text-justify: inter-character; }
 .page .p.center { text-align: center; }

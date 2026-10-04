@@ -36,6 +36,8 @@ function blockHtml(b, doc) {
           ${b.noEmblem && !b.black ? '' : `<div>คดีหมายเลขดำที่ ${dotField(b.black, 4.5)}/${dotField(b.year, 3)}</div>`}
           ${b.showRed && !b.noEmblem ? `<div>คดีหมายเลขแดงที่ ${dotField(b.red, 4.5)}/${dotField(b.year, 3)}</div>` : ''}
         </div></div>`;
+    case 'leader': return `<div class="ldr"><span>${esc(b.label)}</span><span class="ldr-fill"></span></div>`;
+    case 'amount': return `<div class="ldr"><span>จำนวนทุนทรัพย์</span><span class="ldr-fill">${esc(b.baht)}</span><span>บาท</span><span class="ldr-fill s">${esc(b.satang)}</span><span>สตางค์</span></div>`;
     case 'subtitle': return `<div class="subtitle">${esc(b.text)}</div>`;
     case 'court':
       return `<div class="court"><div>ศาล ${dotField(b.court, 18)}</div>

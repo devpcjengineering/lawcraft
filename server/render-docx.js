@@ -147,6 +147,8 @@ function blockToDocx(b) {
       const base = b.small ? { size: Math.max(20, fz() - 4) } : {};
       return [para((b.runs || []).map((r) => run(r, base)), { opts, after: (b.gap ? 120 : 60) + mmToTwip(L['body.gap']) })];
     }
+    case 'leader': return [new Paragraph({ spacing: { after: 60, line: lineSp() }, children: [txt(`${b.label} ${'.'.repeat(60)}`)] })];
+    case 'amount': return [new Paragraph({ spacing: { after: 60, line: lineSp() }, children: [txt(`จำนวนทุนทรัพย์ ${b.baht || '.'.repeat(30)} บาท ${b.satang || '.'.repeat(10)} สตางค์`)] })];
     case 'center':
       return [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 100 }, children: [txt(b.text, { size: b.big ? fz() + 8 : fz(), bold: !!b.b, underline: b.u ? {} : undefined })] })];
     case 'sig': {
