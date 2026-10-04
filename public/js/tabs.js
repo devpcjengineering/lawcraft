@@ -60,7 +60,7 @@ function tabCase() {
 }
 
 // ===================== 2) คู่ความ =====================
-function personFields(base, p) {
+export function personFields(base, p) {
   if (p.kind === 'juristic') {
     return group('นิติบุคคล', `
       ${field('ชื่อนิติบุคคล', base + '.name', { cls: 's8', required: true, ph: 'บริษัท ... จำกัด' })}
@@ -163,8 +163,8 @@ function addressBookPanel() {
   const body = all.length
     ? `<div class="book-search"><input type="search" id="pb-q" data-oninput="setPbQ" value="${esc(S.ui.pbQ || '')}" placeholder="ค้นหาชื่อ / เลขบัตร / จังหวัด" aria-label="ค้นหาในสมุดรายชื่อ"></div>
       <div class="book-list">${list.map(row).join('') || '<div class="empty">ไม่พบรายการ</div>'}</div>`
-    : '<p class="hint" style="margin:0">ยังไม่มีรายการ — กรอกข้อมูลบุคคลแล้วกด “บันทึกลงสมุดรายชื่อ” ครั้งเดียว คดีต่อไปเลือกใช้ได้ทันที</p>';
-  return disclose('book', `<b>สมุดรายชื่อ</b><span class="hint">${all.length} รายการ · เลือกเป็นโจทก์/จำเลยได้ทันที</span>`, body, { cls: 'book', open: false });
+    : '<p class="hint" style="margin:0">ยังไม่มีรายการ — กด “จัดการสมุดรายชื่อ” เพื่อเพิ่มบุคคลได้เลย หรือกรอกในการ์ดคู่ความแล้วกด “บันทึกลงสมุดรายชื่อ”</p>';
+  return disclose('book', `<b>สมุดรายชื่อ</b><span class="hint">${all.length} รายการ · เลือกเป็นโจทก์/จำเลยได้ทันที</span>`, body + '<div style="margin-top:10px"><button type="button" class="btn sm outline" data-act="openBook">จัดการสมุดรายชื่อ — เพิ่มบุคคล/ทนายโดยตรง</button></div>', { cls: 'book', open: false });
 }
 
 function tabParties() {

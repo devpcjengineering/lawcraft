@@ -486,3 +486,28 @@ dialog.modal[open] { animation: pop .22s cubic-bezier(.2, .9, .3, 1.2); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- สมุดรายชื่อ (หน้าเดี่ยว) ---------- */
+.bookpage { max-width: 1180px; margin: 0 auto; padding: 28px 24px 64px; display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 28px; align-items: start; }
+.bk-side { position: sticky; top: 68px; display: grid; gap: 10px; max-height: calc(100vh - 84px); grid-template-rows: auto auto auto minmax(0, 1fr); }
+.bk-add { display: flex; gap: 6px; flex-wrap: wrap; }
+.bk-list { overflow: auto; display: grid; align-content: start; gap: 2px; padding-right: 2px; }
+.bk-row { text-align: left; border: 0; background: transparent; border-radius: 10px; padding: 9px 12px; cursor: pointer; display: grid; gap: 1px; font: inherit; color: inherit; }
+.bk-row:hover { background: var(--surface-2); }
+.bk-row.on { background: #fff; box-shadow: 0 0 0 1.5px var(--blue); }
+.bk-row small { color: var(--muted); font-size: 12.5px; }
+.seg-mini { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(0, 0, 0, .06); width: fit-content; }
+.seg-mini button { border: 0; background: transparent; padding: 3px 11px; border-radius: 8px; cursor: pointer; font: inherit; font-size: 13px; color: var(--muted); }
+.seg-mini button[aria-pressed=true] { background: #fff; color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+.bk-edit { min-width: 0; }
+.bk-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.bk-head h2 { margin: 0; font-size: 22px; }
+.bk-head .save-state { color: var(--muted); opacity: 1; }
+.bk-head .save-state[data-tone=ok] { color: #1a7f3c; } .bk-head .save-state[data-tone=err] { color: #c62828; }
+.bk-empty { padding: 60px 0; color: var(--muted); max-width: 34em; }
+.bk-empty h2 { color: var(--navy); margin: 0 0 8px; }
+@media (max-width: 860px) {
+  .bookpage { grid-template-columns: 1fr; padding: 16px 16px 48px; }
+  .bk-side { position: static; max-height: none; }
+  .bk-list { max-height: 260px; }
+}

@@ -8,6 +8,7 @@ import { resolveLayout, layoutCssVars } from '/shared/layout.js';
 import { docsHtml, docHtml } from './render-html.js';
 import { ageFromBirth, validCitizenId } from '/shared/thai.js';
 import { selectBackend } from './api.js';
+import { showBook, leaveBook } from './book.js';
 import { confirmBox, alertBox, issuesBox, modal } from './modal.js';
 import { notify, banner, clearBanner, mountBanners, inferType } from './notify.js';
 
@@ -65,6 +66,7 @@ function proactive() {
 }
 hooks.changed = () => {
   if (!S.c) return;
+  if (S.bookMode) return hooks.bookChanged(); // กำลังแก้สมุดรายชื่อ ไม่ใช่คดี
   S.c.title = caseTitle(S.c);
   if (applyServiceAuto(S.c, S.data)) serviceAutoNote(); // ปิดหมาย / ส่งข้ามเขต ตามภูมิลำเนาจำเลยเทียบกับศาลที่ฟ้อง
   savePending = true;
@@ -141,7 +143,7 @@ actions.claimAdmin = async () => {
 
 // ---------------- หน้าแรก (รายการคดี) ----------------
 async function showHome() {
-  S.c = null;
+  S.c = null; S.bookMode = false;
   let list = [];
   try { list = await backend.listCases(); } catch (e) { if (e.status === 401) return showLogin(); }
   app.innerHTML = `
@@ -155,6 +157,7 @@ async function showHome() {
     <div class="cards">
       <button class="card newcase" data-act="newCase" data-type="criminal"><h3>＋ คดีอาญา</h3><span class="hint">ราษฎรเป็นโจทก์ฟ้องเอง (ป.วิ.อ. มาตรา 28(2)) — คำฟ้อง คำขอท้ายฟ้อง คำร้องส่งหมาย บัญชีพยาน หมายนัดไต่สวนมูลฟ้อง</span></button>
       <button class="card newcase" data-act="newCase" data-type="civil"><h3>＋ คดีแพ่ง</h3><span class="hint">คำฟ้องแพ่ง คำขอท้ายฟ้อง ทุนทรัพย์และค่าขึ้นศาล มูลหนี้ตาม ป.พ.พ.</span></button>
+      <button class="card newcase" data-act="openBook"><h3>☰ สมุดรายชื่อ</h3><span class="hint">เพิ่ม/แก้ไขบุคคล นิติบุคคล และทนายความไว้ล่วงหน้า แล้วกดเลือกเป็นโจทก์ จำเลย หรือทนายในคดีใดก็ได้</span></button>
       <label class="card newcase" style="cursor:pointer"><h3>⬆ นำเข้าข้อมูลคดี (.json)</h3><span class="hint">ไฟล์ที่ส่งออกจากระบบนี้</span><input type="file" id="importFile" accept=".json,application/json" hidden></label>
     </div>
     <h2 class="section-title">คดีที่บันทึกไว้ (${list.length})</h2>
@@ -201,7 +204,8 @@ function openCase(c, tab = 'case') {
   showWorkspace();
 }
 
-actions.goHome = () => showHome();
+actions.goHome = async () => { if (S.bookMode) await leaveBook(); showHome(); };
+actions.openBook = () => showBook(app);
 actions.signOut = async () => { await backend.signOut(); showLogin(); };
 actions.googleLogin = async () => {
   try { await backend.signInWithGoogle(); } // เบราว์เซอร์จะถูกพาไปหน้า Google แล้วกลับมาที่ /admin/
@@ -315,7 +319,7 @@ function renderShell() {
   $('#work').classList.toggle('nopreview', !S.ui.pvOn);
   schedulePreview();
 }
-hooks.rerender = () => { renderSteps(); renderMain(); schedulePreview(); };
+hooks.rerender = () => { if (S.bookMode) return hooks.bookRender(); renderSteps(); renderMain(); schedulePreview(); };
 
 actions.togglePreview = () => {
   const w = $('#work');

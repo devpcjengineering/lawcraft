@@ -34,6 +34,8 @@ function adminAuth(req, res, next) {
 }
 app.use(['/admin', '/api/cases', '/api/people', '/api/docx', '/api/formtext', '/api/layout', '/api/inquiries'], adminAuth);
 
+// LOCAL_BACKEND=1 npm start → ใช้ไฟล์ในเครื่อง (cases/) แทน Supabase โดยไม่ต้องแก้ config.js (ใช้ทดสอบ/พัฒนา)
+if (process.env.LOCAL_BACKEND) app.get('/js/config.js', (req, res) => res.type('js').send('export default { supabase: { url: "", anonKey: "" } };'));
 app.use('/shared', express.static(path.join(ROOT, 'shared')));
 app.use('/templates', express.static(path.join(ROOT, 'templates')));
 app.use(express.static(path.join(ROOT, 'public')));
