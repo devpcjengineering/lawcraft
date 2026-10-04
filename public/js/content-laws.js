@@ -540,7 +540,7 @@ export default {
     lawMap = new Map(laws.map((l) => [l.id, l]));
     baseMap = new Map(base.items.filter((i) => i && typeof i.id === 'string').map((i) => [i.id, i]));
     keyOf = precedentKeys(base.precedents);
-    box.innerHTML = '<div class="boot"><div class="boot-logo-wrap"><img src="/logo.svg" alt="" aria-hidden="true"><div class="spinner" aria-hidden="true"></div></div><p>กำลังโหลดการแก้ไข…</p></div>';
+    box.innerHTML = '<div class="boot"><div class="boot-logo-wrap"><div class="spinner" aria-hidden="true"></div></div><p>กำลังโหลดการแก้ไข…</p></div>';
     let raw = {};
     try { raw = await ctx.load('laws'); } catch (e) { box.innerHTML = `<p class="empty">โหลดข้อมูลการแก้ไขไม่สำเร็จ: ${ctx.esc(e.message || e)}</p>`; return; }
     edits = normEdits(raw);

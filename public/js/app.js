@@ -137,7 +137,7 @@ actions.claimAdmin = async () => {
 };
 
 // ตัวโหลด: โลโก้ในวงแหวนหมุน — ขึ้นเมื่อรอเกิน 150 มิลลิวินาที (โหลดเร็วไม่กะพริบ)
-const bootHtml = (msg) => `<div class="boot"><div class="boot-logo-wrap"><img src="/logo.svg" alt="" aria-hidden="true"><div class="spinner" aria-hidden="true"></div></div>${msg ? `<p>${msg}<span class="ld" aria-hidden="true">...</span></p>` : ''}</div>`;
+const bootHtml = (msg) => `<div class="boot"><div class="boot-logo-wrap"><div class="spinner" aria-hidden="true"></div></div>${msg ? `<p>${msg}<span class="ld" aria-hidden="true">...</span></p>` : ''}</div>`;
 function showBoot(msg = '') {
   const boot = app.firstElementChild?.classList.contains('boot') && app.children.length === 1 ? app.firstElementChild : null;
   const p = boot?.querySelector(':scope > p');
