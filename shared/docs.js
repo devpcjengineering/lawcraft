@@ -76,7 +76,7 @@ function counselName(cn) {
 const p = (runs, o = {}) => ({ t: 'p', runs: runs.filter(Boolean), ...o });
 
 function top(c, formNo, title, o = {}) {
-  return { t: 'top', formNo: formNo ? `(${formNo})` : '', title, black: c.caseNoBlack, red: c.caseNoRed, year: c.caseYear, showRed: o.showRed !== false, courtUse: !!o.courtUse, noEmblem: !!o.noEmblem };
+  return { t: 'top', formNo: formNo ? `(${formNo})` : '', title, black: c.caseNoBlack, red: c.caseNoRed, year: c.caseYear, showRed: o.showRed !== false, courtUse: !!o.courtUse, noEmblem: !!o.noEmblem, kinds: o.kinds || null };
 }
 
 function courtBlock(c, kindOverride) {
@@ -253,11 +253,12 @@ function firstPlaintiffIntro(c) {
   return pl.map((x, i) => p([t(i === 0 ? 'ข้าพเจ้า ' : 'และ '), ...personRuns(x, plaintiffs(c).length > 1 ? partyLabel(c, x) : 'โจทก์')], { indent: 1.5, justify: true }));
 }
 
+export const MOTION_KINDS = ['คำร้อง', 'คำแถลง', 'คำขอ'];
 function motionDoc(c, idx, m, n) {
   const pl = plaintiffs(c);
   const items = textToItems(m.text);
   const blocks = [
-    top(c, '๗', 'คำร้อง / คำแถลง / คำขอ' + (m.title ? '\n' + m.title : ''), { courtUse: false }),
+    top(c, '๗', m.title || '', { courtUse: false, kinds: { all: MOTION_KINDS, on: MOTION_KINDS.includes(m.kind) ? m.kind : 'คำร้อง' } }),
     courtBlock(c),
     betweenBlock(c),
     ...sideIntro(c, 'plaintiff'),

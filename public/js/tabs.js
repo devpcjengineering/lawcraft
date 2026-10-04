@@ -553,7 +553,8 @@ function tabMotions() {
     <div class="caution">แม่แบบเขียนขึ้นเองตามโครงเอกสารทั่วไป เลขมาตราที่อ้างยังไม่ผ่านการตรวจกับแหล่งทางการ ตรวจก่อนยื่นทุกครั้ง</div></div>
   ${m.length ? m.map((x, i) => disclose(`m:${x.id || i}`, `<span class="sum-main">${motionSummary(x, i)}</span>
       <span class="sum-act"><button class="btn sm danger" data-act="delMotion" data-i="${i}" aria-label="ลบคำร้องฉบับที่ ${i + 1}">ลบ</button></span>`, `
-    <div class="grid">${field('เรื่อง (แสดงใต้หัวเอกสาร)', `motions.${i}.title`, { cls: 's12', ph: 'เช่น ส่งหมายข้ามเขตและปิดหมาย' })}
+    <div class="grid">${select('ประเภทเอกสาร (คำที่ไม่ใช้จะถูกขีดฆ่าที่หัวเอกสาร)', `motions.${i}.kind`, ['คำร้อง', 'คำแถลง', 'คำขอ'], { cls: 's6', rerender: true, value: x.kind || 'คำร้อง' })}
+    ${field('เรื่อง (แสดงใต้หัวเอกสาร)', `motions.${i}.title`, { cls: 's12', ph: 'เช่น ส่งหมายข้ามเขตและปิดหมาย' })}
     ${field('เนื้อหา', `motions.${i}.text`, { cls: 's12', type: 'textarea', rows: 9, hint: 'แบ่งข้อโดยเว้นบรรทัดว่าง — ระบบใส่ “ข้อ ๑ ๒ …” ให้' })}</div>
     <div style="margin-top:16px">${snippetPicker(['motion'], 'snipMotion', 'แทรกข้อความสำเร็จรูปลงฉบับนี้').replace('data-act="snipMotion"', `data-act="snipMotion" data-i="${i}"`)}</div>`,
   { cls: 'item', open: !(x.title || x.text), attrs: `data-sum="motion" data-i="${i}"` })).join('') : '<div class="empty">ยังไม่มีคำร้อง</div>'}`;
@@ -563,7 +564,7 @@ const tplMotions = () => (tplData().motions || []).filter((x) => x.caseType === 
 actions.addMotionTpl = () => {
   const tpl = tplMotions().find((x) => x.id === document.getElementById('motion-tpl')?.value);
   if (!tpl) return hooks.toast('เลือกแม่แบบก่อน');
-  S.c.motions.push({ id: uid(), title: tpl.title, text: tpl.text });
+  S.c.motions.push({ id: uid(), kind: tpl.kind, title: tpl.title, text: tpl.text });
   rerender(); hooks.changed(); hooks.toast('เพิ่มคำร้องแล้ว — กรอกช่องสีเหลือง');
 };
 
