@@ -607,7 +607,6 @@ document.addEventListener('click', (e) => {
 
 // ---------------- เริ่มต้น ----------------
 async function startApp() {
-  showBoot();
   if (!(await authUi.gate())) return; // ตั้ง S.role (admin | user | guest) หรือแสดงหน้าเข้าสู่ระบบ/ตั้งแอดมิน
   try {
     const { data, geo, people } = await backend.loadAll();
