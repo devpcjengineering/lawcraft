@@ -234,19 +234,9 @@ table.simple tr.used td { background: #f5f9ff; }
 .panel>.hint:last-child { margin-bottom: 0; }
 .presets .btn[aria-pressed=true] { background: var(--blue-soft); color: var(--blue); border-color: #b9d6f5; font-weight: 600; }
 .panel>h3 .btn.sm { font-weight: 500; }
-/* ---------- เข้าสู่ระบบ / กำลังโหลด ---------- */
-.boot { min-height: 60vh; display: grid; place-items: center; align-content: center; gap: 16px; color: var(--muted); }
-.boot-logo-wrap { position: relative; width: 44px; height: 44px; display: grid; place-items: center; margin: 0 auto; }
-.boot-logo-wrap img { width: 36px; height: 36px; opacity: 0.8; }
-.boot-logo-wrap .spinner { position: absolute; inset: 0; width: 100%; height: 100%; border-width: 4px; border-color: #e5e5ea; border-top-color: var(--blue); box-sizing: border-box; will-change: transform; }
-.boot p { margin: 0; text-align: center; }
-.boot-logo-wrap img { animation: ld-pulse 1.6s ease-in-out infinite; }
-.ld { display: inline-block; overflow: hidden; vertical-align: bottom; width: 0; animation: ld-dots 1.2s steps(4, end) infinite; }
-@keyframes ld-dots { to { width: 1.1em; } }
-@keyframes ld-pulse { 0%, 100% { transform: scale(1); opacity: .8; } 50% { transform: scale(1.12); opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .boot-logo-wrap img { animation: none; } .ld { animation: none; width: 1.1em; } }
-.spinner { width: 32px; height: 32px; border-radius: 50%; border: 3px solid #d6d6dc; border-top-color: var(--blue); animation: spin .8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* ---------- เข้าสู่ระบบ / เชื่อมต่อไม่ได้ (หน้าโหลดอยู่ที่ css/loading.css) ---------- */
+.conn-fail { min-height: 60vh; display: grid; place-items: center; padding: 24px; color: var(--muted); text-align: center; }
+.conn-fail p { margin: 0; max-width: 520px; }
 [hidden] { display: none !important; }
 @media print {
   body * { visibility: hidden; }
@@ -316,9 +306,8 @@ table.simple tr.used td { background: #f5f9ff; }
 .main.enter> :nth-child(n+6), .home.enter> :nth-child(n+6) { animation-delay: .2s; }
 .pv-inner.pv-swap { animation: pv-fade .22s ease both; }
 @keyframes pv-fade { from { opacity: .25; } to { opacity: 1; } }
-.boot { animation: pv-fade .35s ease both; }
 @media (prefers-reduced-motion: reduce) {
-  .main.enter>*, .home.enter>*, .home.enter .cards>.card, .pv-inner.pv-swap, .boot { animation: none; }
+  .main.enter>*, .home.enter>*, .home.enter .cards>.card, .pv-inner.pv-swap { animation: none; }
 }
 .panel.tail .tail-list { margin: 12px 0 0; padding-left: 1.6em; color: var(--muted); font-size: 14.5px; line-height: 1.7; }
 .panel.tail .tail-list li { margin-bottom: 4px; }

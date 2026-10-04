@@ -13,7 +13,7 @@
 
 // ไม่จำตำแหน่ง: รีโหลดแล้วเริ่มที่บนสุดของหน้าเสมอ และไม่เก็บ #หัวข้อ ไว้ใน URL (ลิงก์ภายในหน้าเลื่อนไปที่หัวข้อโดยไม่ใส่ #)
 (function () {
-  if (/^\/admin(\/|$)/.test(location.pathname)) return;
+  if (/^\/(workspace|admin)(\/|$)/.test(location.pathname)) return;
   try { history.scrollRestoration = 'manual'; } catch (e) { /* ข้าม */ }
   var id = function (h) { try { return decodeURIComponent(h.replace(/^#/, '')); } catch (e) { return ''; } };
   var go = function (name) { var el = name && document.getElementById(name); if (!el) return false; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return true; };
@@ -32,7 +32,7 @@
 
 // เบราว์เซอร์ที่ยังไม่รองรับ View Transitions ข้ามหน้า (เช่น Firefox/Safari เก่า): จางออกก่อนเปลี่ยนหน้า — หน้าใหม่จางเข้าเองจาก body opacity
 (function () {
-  if (/^\/admin(\/|$)/.test(location.pathname) || 'onpageswap' in window) return;
+  if (/^\/(workspace|admin)(\/|$)/.test(location.pathname) || 'onpageswap' in window) return;
   document.addEventListener('click', function (e) {
     var a = e.target.closest && e.target.closest('a[href]');
     if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button || a.target || a.hasAttribute('download') || a.hasAttribute('data-slug') || a.hasAttribute('data-list')) return;

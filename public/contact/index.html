@@ -17,8 +17,11 @@
 <link rel="stylesheet" href="/site/site.css">
 <link rel="stylesheet" href="/contact/contact.css">
 <link rel="stylesheet" href="/css/smooth.css">
+<link rel="stylesheet" href="/css/loading.css">
 </head>
 <body>
+<div class="lcl splash" id="splash" aria-hidden="true"><div class="lcl-box"><div class="lcl-brand"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span><span class="th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="en">Law Craft Legal Consultants</span></span></div><div class="lcl-track"></div><p class="lcl-text">กำลังโหลด…<b>ติดต่อปรึกษากฎหมาย</b></p></div></div>
+<script>addEventListener("load",function(){var s=document.getElementById("splash");if(!s)return;s.classList.add("out");setTimeout(function(){s.remove()},500)})</script>
 
 <a class="skip" href="#main">ข้ามไปยังเนื้อหา</a>
 <nav class="nav" id="nav" aria-label="เมนูหลัก">
@@ -35,7 +38,7 @@
       <a href="/#drafting">ร่างคำฟ้อง</a>
       <a href="/contact/" aria-current="page">ติดต่อ</a>
     </div>
-    <a class="nav-cta" href="/admin/">เข้าสู่ระบบ</a>
+    <a class="nav-cta" href="/workspace/">เข้าสู่ระบบ</a>
     <button class="nav-burger" id="burger" aria-label="เปิดเมนู" aria-expanded="false" aria-controls="navLinks"><span></span><span></span></button>
   </div>
 </nav>

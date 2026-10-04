@@ -5,14 +5,14 @@ const MARK = '<svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="cu
 
 /** โลโก้มุมซ้ายบน: คลิกกลับหน้าแรก, sub = ชื่อหน้าปัจจุบัน (ซ่อนบนมือถือ) */
 export function brandHtml(sub = '') {
-  return `<div class="brand" data-act="goHome" role="link" tabindex="0" aria-label="กลับหน้าแรกหลังบ้าน">${MARK}<span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span>${sub ? `<span class="brand-sub">${sub}</span>` : ''}</div>`;
+  return `<a class="brand" href="/workspace/" data-act="goHome" aria-label="กลับหน้าแรกหลังบ้าน">${MARK}<span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span>${sub ? `<span class="brand-sub">${sub}</span>` : ''}</a>`;
 }
 
 /** ปุ่มแถบบน: ไอคอนเสมอ ข้อความซ่อนเมื่อจอแคบ (≤1100px, class tb-i / tb-t) — มี title/aria-label เสมอ */
 export function tbBtn({ ico, text, act = '', label = '', href = '', cls = '', external = false }) {
   const inner = `<span class="tb-i" aria-hidden="true">${icon(ico)}</span><span class="tb-t">${text}</span>`;
   const aria = ` aria-label="${label || text}" title="${label || text}"`;
-  if (href) return `<a class="btn${cls ? ' ' + cls : ''}" href="${href}"${external ? ' target="_blank" rel="noopener"' : ''}${aria}>${inner}</a>`;
+  if (href) return `<a class="btn${cls ? ' ' + cls : ''}" href="${href}"${act ? ` data-act="${act}"` : ''}${external ? ' target="_blank" rel="noopener"' : ''}${aria}>${inner}</a>`;
   return `<button type="button" class="btn${cls ? ' ' + cls : ''}" data-act="${act}"${aria}>${inner}</button>`;
 }
 

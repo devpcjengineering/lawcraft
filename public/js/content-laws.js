@@ -4,6 +4,7 @@
 // สัญญาโมดูลแท็บ: export default { id, label, hint, mount(box, ctx), unmount() } (ดู content-admin.js)
 import { applyLawEdits, diffItem, diffPrecedent, precedentKeys, cleanItemPatch, cleanPrecPatch } from '/shared/content-merge.js';
 import { icon } from './icons.js';
+import { inlineLoading } from './loading.js';
 
 const PAGE = 150;      // แถวต่อหน้าในรายการ
 const SAVE_MS = 700;   // หน่วงก่อนบันทึกอัตโนมัติ
@@ -541,7 +542,7 @@ export default {
     lawMap = new Map(laws.map((l) => [l.id, l]));
     baseMap = new Map(base.items.filter((i) => i && typeof i.id === 'string').map((i) => [i.id, i]));
     keyOf = precedentKeys(base.precedents);
-    box.innerHTML = '<div class="boot"><div class="boot-logo-wrap"><div class="spinner" aria-hidden="true"></div></div><p>กำลังโหลดการแก้ไข…</p></div>';
+    box.innerHTML = inlineLoading('การแก้ไขข้อกฎหมาย');
     let raw = {};
     try { raw = await ctx.load('laws'); } catch (e) { box.innerHTML = `<p class="empty">โหลดข้อมูลการแก้ไขไม่สำเร็จ: ${ctx.esc(e.message || e)}</p>`; return; }
     edits = normEdits(raw);

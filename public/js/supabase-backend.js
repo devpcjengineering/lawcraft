@@ -3,7 +3,7 @@ import config from './config.js';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 const { url, anonKey } = config.supabase;
-// PKCE + detectSessionInUrl: จำเป็นสำหรับ Login ด้วย Google (Supabase ส่ง ?code=… กลับมาที่ /admin/ แล้วแลกเป็น session)
+// PKCE + detectSessionInUrl: จำเป็นสำหรับ Login ด้วย Google (Supabase ส่ง ?code=… กลับมาที่ /admin/ ซึ่งเป็นหน้าเด้งต่อไป /workspace/ พร้อม search+hash แล้ว client ที่หน้าใหม่แลกเป็น session)
 const sb = createClient(url, anonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' } });
 
 /** แปลงข้อผิดพลาดของ Supabase เป็น Error ที่มี status (401 = ต้องเข้าสู่ระบบใหม่) */
@@ -69,6 +69,7 @@ export const supabaseBackend = {
   async claimAdmin() { const { data, error } = await sb.rpc('claim_first_admin'); if (error) throw new Error(error.message); return data === true; },
   async addAdmin(email) { const { data, error } = await sb.rpc('add_admin', { new_email: email }); if (error) throw new Error(error.message); return data === true; },
   async signInWithGoogle() {
+    // redirectTo คง /admin/ ไว้ตามรายการ Redirect URLs ใน Supabase Auth (ยังไม่ได้เพิ่ม /workspace/) — public/admin/index.html เด้งต่อโดยพก ?code / #access_token ไปด้วย
     const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + '/admin/', queryParams: { prompt: 'select_account' } } });
     if (error) {
       throw new Error(/provider is not enabled|Unsupported provider/i.test(error.message)

@@ -2,6 +2,7 @@
 // ใช้ได้ 2 แบบ: เอกสารที่ระบบสร้าง (html) และไฟล์ PDF แบบพิมพ์ศาล (src)
 import { esc } from './store.js';
 import { icon } from './icons.js';
+import { inlineLoading } from './loading.js';
 
 let overlay = null, lastFocus = null;
 
@@ -34,7 +35,7 @@ export function openViewer(o) {
       ${o.html ? `<button type="button" class="btn primary vw-print" data-v="print">${icon('print')}<span class="vw-l">พิมพ์ / บันทึกเป็น PDF</span><span class="vw-s">พิมพ์ / PDF</span></button>` : ''}
     </div>
     ${o.html && o.hint !== '' ? `<div class="viewer-hint">${icon('info')}<span>${esc(o.hint || 'กด “พิมพ์ / บันทึกเป็น PDF” แล้วเลือก “บันทึกเป็น PDF” ตั้งกระดาษ A4 ขนาด 100% และปิด “ส่วนหัวและท้ายกระดาษ”')}</span></div>` : ''}
-    <div class="viewer-body"><div class="viewer-load" aria-hidden="true"><div class="vw-spin"><div class="spinner"></div><span>กำลังเปิดเอกสาร</span></div></div><iframe class="viewer-frame" title="${esc(o.title)}"></iframe></div>`;
+    <div class="viewer-body"><div class="viewer-load">${inlineLoading('เอกสาร')}</div><iframe class="viewer-frame" title="${esc(o.title)}"></iframe></div>`;
   document.body.appendChild(overlay);
   document.body.classList.add('viewer-open');
   const frame = overlay.querySelector('iframe');

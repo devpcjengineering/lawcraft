@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="robots" content="noindex, nofollow">
+<title>Law Craft · ระบบร่างคำฟ้อง</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="alternate icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap"></noscript>
+<link rel="stylesheet" href="/css/doc.css">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="/css/notify.css">
+<link rel="stylesheet" href="/css/smooth.css">
+<link rel="stylesheet" href="/css/loading.css">
+<link rel="stylesheet" href="/css/admin-base.css">
+<link rel="stylesheet" href="/css/admin-preview.css">
+<link rel="stylesheet" href="/css/admin-work.css">
+<link rel="stylesheet" href="/css/admin-home.css">
+<!-- ทุกไฟล์ในหน้านี้ต้องเป็นพาธเต็ม (/css/… /js/…) เพราะหน้านี้ถูกเสิร์ฟจากหลาย URL เช่น /workspace/case/<id>/parties -->
+</head>
+<body>
+<!-- หน้าโหลดตั้งต้น: ขึ้นตั้งแต่ก่อน JS โหลด ชื่อหน้าอ่านจาก URL (ตารางเดียวกับ js/router.js) แล้ว js/loading.js เป็นผู้ปิด -->
+<div id="lcl-boot" class="lcl"><div class="lcl-box"><div class="lcl-brand"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span><span class="th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="en">Law Craft Legal Consultants</span></span></div>
+<div class="lcl-track" role="progressbar" aria-label="กำลังโหลด"></div>
+<p class="lcl-text" role="status" aria-live="polite">กำลังโหลด…<b>หลังบ้าน</b></p></div></div>
+<script>
+(function () {
+  var T = { case: 'ข้อมูลคดี', parties: 'คู่ความ', counsel: 'ทนายความ', complaint: 'คำฟ้อง', prayer: 'คำขอท้ายคำฟ้อง', service: 'คำร้องส่งหมาย', witness: 'บัญชีพยาน', summons: 'หมายนัดไต่สวน', motions: 'คำร้อง / คำแถลง', extras: 'คำให้การ & สัญญา', export: 'ตรวจสอบ & ออกเอกสาร', ref: 'ตำรากฎหมาย', formtext: 'ข้อความในแบบฟอร์ม', layout: 'ตำแหน่ง & ตราครุฑ', forms: 'แบบพิมพ์ศาล', charges: 'คำฟ้อง', facts: 'คำฟ้อง' };
+  var C = { articles: 'บทความ', laws: 'ข้อกฎหมาย', pages: 'ข้อความหน้าเว็บ' };
+  var p = location.pathname.replace(/^\/workspace/, '').replace(/\/+$/, '').split('/').filter(Boolean);
+  var a = p[0], n = 'รายการคดี';
+  if (a === 'login') n = 'เข้าสู่ระบบ';
+  else if (a === 'setup') n = 'ตั้งผู้ดูแลระบบ';
+  else if (a === 'new') n = 'คดีใหม่';
+  else if (a === 'case') n = T[p[2] || 'case'] || 'ข้อมูลคดี';
+  else if (a === 'contacts') n = 'สมุดรายชื่อ';
+  else if (a === 'inbox') n = 'กล่องข้อความปรึกษา';
+  else if (a === 'site') n = 'จัดการเว็บไซต์';
+  else if (a === 'content') n = p[2] && p[1] === 'articles' ? 'แก้ไขบทความ' : 'จัดการเนื้อหา · ' + (C[p[1]] || C.articles);
+  var b = document.querySelector('#lcl-boot .lcl-text b');
+  if (b) b.textContent = n;
+  document.title = n + ' · Law Craft';
+})();
+</script>
+<div id="app"></div>
+<script type="module" src="/js/app.js"></script>
+<script src="/js/smooth.js"></script>
+</body>
+</html>

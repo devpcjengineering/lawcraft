@@ -6,12 +6,13 @@
 //
 // ตั้งแอดมินคนแรก: วิธีที่ปลอดภัยกว่าคือให้เจ้าของระบบรัน  select public.add_admin('you@example.com');  ใน SQL editor เอง
 // (หรือ insert into public.admins) เพราะเว็บเปิดให้ทุกคนล็อกอินได้ ใครล็อกอิน Google เป็นคนแรกขณะที่ยังไม่มีแอดมินจะยึดระบบได้
-// จึงแสดงหน้า “ตั้งเป็นผู้ดูแลคนแรก” เฉพาะเมื่อเปิด /admin/#setup เท่านั้น
+// จึงแสดงหน้า “ตั้งเป็นผู้ดูแลคนแรก” เฉพาะเมื่อเปิด /workspace/setup เท่านั้น (ลิงก์เก่า /admin/#setup เด้งมาที่นี่)
 import { S, esc, actions } from './store.js';
 import { banner, clearBanner, notify } from './notify.js';
 import { selectBackend } from './api.js';
 import { connHtml } from './conn.js';
 import { icon } from './icons.js';
+import { urls, parseRoute, replaceUrl, setTitle } from './router.js';
 
 /** หน้า (key ใน TABS) ที่เฉพาะแอดมินเข้าได้: ข้อความฟอร์ม, เลย์เอาต์/ตราครุฑ, แบบพิมพ์ศาล (กลุ่ม “ตั้งค่า” ในเมนูซ้าย) */
 export const ADMIN_ONLY = new Set(['formtext', 'layout', 'forms']);
@@ -33,7 +34,17 @@ const ss = {
   set(k, v) { try { sessionStorage.setItem(k, v); } catch { /* ข้าม */ } },
   del(k) { try { sessionStorage.removeItem(k); } catch { /* ข้าม */ } },
 };
-const hashHasSetup = () => new URLSearchParams(location.hash.slice(1)).has('setup');
+const RETURN_KEY = 'lawcraft:return';
+const onSetupPath = () => parseRoute().name === 'setup';
+/** หน้าที่ขอไว้ก่อนถูกพามาล็อกอิน (เก็บใน sessionStorage เพราะ OAuth พาออกนอกเว็บแล้วกลับมา) — ไม่ใช่ login/setup */
+export const peekReturn = () => {
+  const v = ss.get(RETURN_KEY) || '';
+  if (!v.startsWith('/workspace/')) return '';
+  const [p, q] = v.split('?');
+  const n = parseRoute(p, q ? '?' + q : '').name;
+  return n !== 'login' && n !== 'setup' ? v : '';
+};
+export const takeReturn = () => { const v = peekReturn(); ss.del(RETURN_KEY); return v; };
 
 /**
  * ตรวจสถานะก่อนเข้าแอป: ตั้ง S.role / S.email / S.uid แล้วคืน true ถ้าไปต่อได้
@@ -52,7 +63,7 @@ export async function gate() {
   if (st === 'ok') { S.role = 'admin'; ss.del(SETUP_KEY); return true; }
   S.role = 'user';
   // เสนอตั้งแอดมินคนแรกเฉพาะเมื่อผู้ใช้เปิดลิงก์ #setup (หรือเพิ่งกดล็อกอินจากหน้า #setup แล้วถูกพากลับมา) และยังไม่มีแอดมินจริง
-  const wantSetup = hashHasSetup() || ss.get(SETUP_KEY) === '1';
+  const wantSetup = onSetupPath() || ss.get(SETUP_KEY) === '1';
   if (wantSetup && b.adminExists && !(await b.adminExists())) { ctx.showClaim(S.email); return false; }
   ss.del(SETUP_KEY);
   if (!ss.get(NOTE_KEY)) {
@@ -66,10 +77,17 @@ const G_SVG = '<svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true
 const MARK_SVG = '<svg class="login-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg>';
 
 /** หน้าเข้าสู่ระบบ (บังคับ): Google | อีเมล+รหัสผ่าน */
-export async function showLogin(msg = '') {
+export async function showLogin(msg = '', { reset = false } = {}) {
   clearBanner('guest');
   S.c = null; S.role = 'user'; S.email = ''; S.uid = '';
-  if (hashHasSetup()) ss.set(SETUP_KEY, '1'); // OAuth ส่งกลับมาโดยไม่มี hash — จำไว้ว่ามาจากลิงก์ตั้งค่า
+  // หน้านี้ใช้ URL /workspace/login ; จำหน้าที่ขอไว้ (เฉพาะพาธที่ถูกรูป ไม่เก็บ ?code=… ของ OAuth) เพื่อกลับไปหลังล็อกอิน — ออกจากระบบเองไม่จำ
+  const here = parseRoute();
+  if (reset) ss.del(RETURN_KEY);
+  else if (here.name !== 'login') {
+    if (here.name === 'setup') ss.set(SETUP_KEY, '1'); // OAuth ส่งกลับมาโดยไม่มีพาธเดิม — จำไว้ว่ามาจากลิงก์ตั้งค่า
+    else if (here.name !== 'home' || !ss.get(RETURN_KEY)) ss.set(RETURN_KEY, here.canonical);
+  }
+  replaceUrl(urls.login()); setTitle('เข้าสู่ระบบ');
   const app = ctx.app;
   app.innerHTML = `<div class="login"><form class="login-card" id="loginForm">
     <div class="login-top">${MARK_SVG}<h1>เริ่มร่างคำฟ้องของคุณเอง</h1>
@@ -95,7 +113,7 @@ export async function signOut() {
   const b = ctx.getBackend();
   try { await b.signOut(); } catch (e) { console.error(e); }
   ss.del(NOTE_KEY);
-  return showLogin();
+  return showLogin('', { reset: true });
 }
 
 // actions.signOut อยู่ใน app.js (เรียก authUi.signOut) — ตรงนี้เพิ่มเฉพาะปุ่มที่ app.js ไม่มี

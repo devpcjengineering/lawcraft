@@ -19,7 +19,7 @@ const getData = (reload) => (cache && !reload ? cache : (cache = loadData()));
 const app = express();
 app.use(express.json({ limit: '5mb' }));
 
-// หลังบ้าน (/admin และ API ที่มีข้อมูลคู่ความ) — ตั้ง ADMIN_PASSWORD เพื่อบังคับล็อกอิน (HTTP Basic)
+// หลังบ้าน (/workspace — เดิม /admin ซึ่งเหลือไว้เป็นหน้าเด้งต่อ — และ API ที่มีข้อมูลคู่ความ) — ตั้ง ADMIN_PASSWORD เพื่อบังคับล็อกอิน (HTTP Basic)
 // ไม่ตั้งค่า = ใช้เฉพาะเครื่องตัวเอง (เซิร์ฟเวอร์ผูกกับ 127.0.0.1)
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
@@ -32,13 +32,18 @@ function adminAuth(req, res, next) {
   }
   res.set('WWW-Authenticate', 'Basic realm="Back office", charset="UTF-8"').status(401).send('ต้องเข้าสู่ระบบ');
 }
-app.use(['/admin', '/api/cases', '/api/people', '/api/docx', '/api/formtext', '/api/layout', '/api/inquiries'], adminAuth);
+app.use(['/workspace', '/admin', '/api/cases', '/api/people', '/api/docx', '/api/formtext', '/api/layout', '/api/inquiries'], adminAuth);
 
 // LOCAL_BACKEND=1 npm start → ใช้ไฟล์ในเครื่อง (cases/) แทน Supabase โดยไม่ต้องแก้ config.js (ใช้ทดสอบ/พัฒนา)
 if (process.env.LOCAL_BACKEND) app.get('/js/config.js', (req, res) => res.type('js').send('export default { supabase: { url: "", anonKey: "" } };'));
 app.use('/shared', express.static(path.join(ROOT, 'shared')));
 app.use('/templates', express.static(path.join(ROOT, 'templates')));
 app.use(express.static(path.join(ROOT, 'public')));
+// หลังบ้านเป็น SPA (History API): /workspace/case/<id>/parties ฯลฯ ไม่ใช่ไฟล์จริง → ส่ง index.html ของหลังบ้าน (พาธที่มีนามสกุลไฟล์ = ไฟล์ที่ไม่มีจริง → 404)
+app.use('/workspace', (req, res, next) => {
+  if ((req.method !== 'GET' && req.method !== 'HEAD') || path.extname(req.path)) return next();
+  res.sendFile(path.join(ROOT, 'public', 'workspace', 'index.html'));
+});
 
 app.get('/api/data', (req, res) => res.json(getData('reload' in req.query)));
 app.get('/api/jurisdiction', (req, res) => {

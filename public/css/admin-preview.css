@@ -76,8 +76,6 @@ body.viewer-open { overflow: hidden; }
 .viewer-hint { display: flex; align-items: flex-start; gap: 10px; padding: 10px 16px; font-size: 13.5px; line-height: 1.55; background: var(--info-bg); color: #174e8a; border-bottom: 0; box-shadow: 0 1px 0 rgba(23, 78, 138, .1); }
 .viewer-hint .ico { width: 18px; height: 18px; flex: none; margin-top: 2px; }
 .viewer-frame { background: #e3e4e9; }
-.vw-spin { display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--muted); font-size: 14px; }
-.vw-spin .spinner { width: 32px; height: 32px; }
 
 /* ============================================================
    3) ตรวจสอบ & ออกเอกสาร

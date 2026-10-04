@@ -23,7 +23,7 @@ edit('public/site/site.css', (s) => {
 });
 
 // ---------- หลังบ้าน ----------
-edit('public/admin/index.html', (s) => rep(s, '<link rel="stylesheet" href="/css/app.css">', '<link rel="stylesheet" href="/css/app.css">\n<link rel="stylesheet" href="/css/notify.css">'));
+edit('public/workspace/index.html', (s) => rep(s, '<link rel="stylesheet" href="/css/app.css">', '<link rel="stylesheet" href="/css/app.css">\n<link rel="stylesheet" href="/css/notify.css">'));
 
 edit('public/js/app.js', (s) => {
   s = rep(s, "import { confirmBox, alertBox, issuesBox } from './modal.js';", "import { confirmBox, alertBox, issuesBox, modal } from './modal.js';\nimport { notify, banner, clearBanner, mountBanners, inferType } from './notify.js';");

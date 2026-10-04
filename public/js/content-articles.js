@@ -7,6 +7,7 @@
 // ตรรกะรวมกับบทความตั้งต้นอยู่ใน /articles/merge.js (ใช้ร่วมกับหน้าเว็บสาธารณะ — รวมถึงตัวช่วย reviewKind/reviewCanon ของ "สถานะการตรวจ")
 import { SLUG_RE, normLive, isHidden, mergeIndex, refsFor, REVIEW, reviewKind, reviewCanon, reviewInfo } from '../articles/merge.js';
 import { icon } from './icons.js';
+import { urls } from './router.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clone = (x) => JSON.parse(JSON.stringify(x));
@@ -366,12 +367,18 @@ function renderEditor(focus) {
 }
 
 // ---------- สลับระหว่างรายการ ↔ หน้าแก้ไข ----------
-function setView(v) {
+// URL ตามหน้าจอ: รายการ = /workspace/content/articles · หน้าแก้ = /workspace/content/articles/<slug>
+// (เปิด/ปิดโดย router → show() อยู่แล้ว URL ตรงกัน ; เปิดจากภายใน เช่นสร้างบทความใหม่/ลบ จะปรับ URL เองแบบเงียบ ไม่วาดซ้ำ)
+function setView(v, sync = true) {
   view = v;
   const lv = box.querySelector('#cta-lv'), ev = box.querySelector('#cta-ev');
   if (lv) lv.hidden = v !== 'list';
   if (ev) ev.hidden = v !== 'edit';
   box.closest('.contentpage')?.classList.toggle('cta-editing', v === 'edit');
+  if (sync && ctx?.nav) {
+    const want = v === 'edit' && cur ? urls.content('articles', cur.slug) : urls.content('articles');
+    if (location.pathname !== want) ctx.nav(want, { quiet: true, replace: v !== 'edit' });
+  }
 }
 
 // ---------- เปิด/แก้ไขบทความ ----------
@@ -392,17 +399,19 @@ async function modelOf(slug) {
 }
 
 async function openArticle(slug) {
+  if (view === 'edit' && cur?.slug === slug) return true; // เปิดอยู่แล้ว (เช่น router เรียกซ้ำหลังสร้างบทความใหม่)
   try {
     cur = await modelOf(slug);
     sel = slug;
   } catch (e) {
     ctx.notify({ type: 'error', message: 'เปิดบทความไม่สำเร็จ: ' + (e.message || e) });
-    return;
+    return false;
   }
   listY = window.scrollY;
   setView('edit');
   renderEditor();
   window.scrollTo({ top: 0, behavior: 'auto' });
+  return true;
 }
 
 function backToList() {
@@ -480,8 +489,8 @@ async function onAction(btn) {
   const a = btn.dataset.a, p = btn.dataset.p, i = +btn.dataset.i;
   const slug = btn.dataset.slug || cur?.slug;
   switch (a) {
-    case 'open': return openArticle(slug);
-    case 'back': return backToList();
+    case 'open': return ctx.nav(urls.content('articles', slug)); // เปลี่ยน URL → router เรียก show(slug)
+    case 'back': return ctx.nav(urls.content('articles'));
     case 'filter': fil = btn.dataset.f; renderList(); return;
     case 'new': creating = { from: null, src: null, slug: '', title: '' }; renderCreate(); box.querySelector('#cta-create')?.scrollIntoView({ block: 'nearest' }); box.querySelector('#cta-nslug')?.focus(); return;
     case 'dup': {
@@ -645,8 +654,13 @@ export default {
       if (e.key === 'Enter' && e.target.dataset?.ref) { e.preventDefault(); e.target.closest('.cta-refbox').querySelector('[data-a=addRef]')?.click(); }
       if (e.key === 'Enter' && (e.target.id === 'cta-nslug' || e.target.id === 'cta-ntitle')) { e.preventDefault(); box.querySelector('[data-a=createGo]')?.click(); }
     }, sig);
-    setView('list');
+    setView('list', false); // URL เป็นของ router (อาจเป็น /articles/<slug> ที่กำลังจะเปิด)
     renderList();
+  },
+  /** router เรียกเมื่อ URL เปลี่ยนในแท็บนี้: slug = เปิดหน้าแก้บทความ · ว่าง = กลับรายการ */
+  async show(slug) {
+    if (!slug) { if (view === 'edit') backToList(); return; }
+    if (!(await openArticle(slug))) ctx.nav(urls.content('articles'), { quiet: true, replace: true });
   },
   async unmount() {
     await flushNow();

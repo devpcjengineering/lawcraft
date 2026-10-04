@@ -25,7 +25,7 @@ if (fs.existsSync(path.join(root, 'templates'))) cp('templates', 'templates');
   for (const [slug, a] of Object.entries(pack.articles)) fs.writeFileSync(path.join(out, `${slug}.json`), JSON.stringify(a));
 }
 
-// sitemap.xml + robots.txt สำหรับเสิร์ชเอนจิน: หน้าสาธารณะทั้งหมด + บทความทุกบท (หลังบ้าน /admin/ ไม่ใส่)
+// sitemap.xml + robots.txt สำหรับเสิร์ชเอนจิน: หน้าสาธารณะทั้งหมด + บทความทุกบท (หลังบ้าน /workspace/ ไม่ใส่)
 {
   const SITE = (process.env.SITE_URL || 'https://lawcraft.pcjengineering.co.th').replace(/\/$/, '');
   const { packArticles } = await import('../server/articles-pack.js');

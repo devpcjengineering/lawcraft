@@ -2,30 +2,32 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#ffffff">
-<title>Law Craft · หลังบ้านระบบร่างคำฟ้อง</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Law Craft · กำลังพาไปหลังบ้าน</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="alternate icon" type="image/png" href="/favicon.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap"></noscript>
-<link rel="stylesheet" href="/css/doc.css">
-<link rel="stylesheet" href="/css/app.css">
-<link rel="stylesheet" href="/css/notify.css">
-<link rel="stylesheet" href="/css/smooth.css">
-<link rel="stylesheet" href="/css/admin-base.css">
-<link rel="stylesheet" href="/css/admin-preview.css">
-<link rel="stylesheet" href="/css/admin-work.css">
-<link rel="stylesheet" href="/css/admin-home.css">
-
+<script>
+/* ลิงก์เก่า /admin/ → /workspace/ : สคริปต์นี้เป็นตัวแรกและตัวเดียวของหน้า (ไม่มี script อื่นแตะ hash ก่อน)
+   - กลับจาก Google/Supabase (redirectTo ยังเป็น /admin/): ส่ง ?code=… / #access_token=… / ?error=… ต่อไปที่ /workspace/ ครบทั้ง search และ hash
+     แล้ว supabase-js ที่หน้าใหม่แลกเป็น session เอง (PKCE verifier อยู่ใน localStorage ของโดเมนเดียวกัน)
+   - รูปแบบเก่า #setup · #newcase=criminal|civil&charge=<id> · #case=<id>&tab=<tab> → พาธใหม่ */
+(function () {
+  var s = location.search, h = location.hash, to = '/workspace/', rest = s + h;
+  var sp = new URLSearchParams(s), hp = new URLSearchParams(h.replace(/^#/, ''));
+  var auth = sp.has('code') || sp.has('error') || sp.has('error_code') || hp.has('access_token') || hp.has('refresh_token') || hp.has('error') || hp.has('error_code') || hp.get('type') === 'recovery' || hp.get('type') === 'signup' || hp.get('type') === 'magiclink';
+  if (!auth) {
+    var nt = hp.get('newcase'), id = hp.get('case');
+    if (hp.has('setup')) { to = '/workspace/setup'; rest = ''; }
+    else if (nt === 'criminal' || nt === 'civil') { to = '/workspace/new/' + nt + (hp.get('charge') ? '?charge=' + encodeURIComponent(hp.get('charge')) : ''); rest = ''; }
+    else if (id && /^[\w-]{1,64}$/.test(id)) { to = '/workspace/case/' + encodeURIComponent(id) + '/' + (/^[a-z]{2,12}$/.test(hp.get('tab') || '') ? hp.get('tab') : 'case'); rest = ''; }
+    else rest = s; // ไม่มีอะไรต้องพกไปนอกจาก query (hash ว่างหรือไม่รู้จัก)
+  }
+  location.replace(to + rest);
+})();
+</script>
+<noscript><meta http-equiv="refresh" content="0;url=/workspace/"></noscript>
 </head>
 <body>
-<div id="app"></div>
-<script type="module" src="/js/app.js"></script>
-<script src="/js/smooth.js"></script>
+<p style="font-family:system-ui,sans-serif;text-align:center;margin:20vh 16px 0">หลังบ้านย้ายไปที่ <a href="/workspace/">/workspace/</a> แล้ว</p>
 </body>
 </html>
-

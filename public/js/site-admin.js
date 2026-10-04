@@ -9,6 +9,7 @@ import { CONTACT_KINDS, contactHref } from '/site/live-config.js';
 import base from '/site/config.js';
 import { brandHtml, tbBtn } from './chrome.js';
 import { icon } from './icons.js';
+import { inlineLoading } from './loading.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const KIND_LABEL = Object.fromEntries(CONTACT_KINDS);
@@ -62,8 +63,8 @@ export async function showSiteAdmin(root) {
   app.innerHTML = `
   <header class="topbar">${brandHtml('จัดการเว็บไซต์')}<span class="grow"></span>
     ${tbBtn({ ico: 'external', text: 'ดูหน้าเว็บ', href: '/', external: true })}
-    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome' })}</header>
-  <main class="sitepage" id="site-main"><div class="boot"><div class="boot-logo-wrap"><div class="spinner" aria-hidden="true"></div></div><p>กำลังโหลดข้อมูลเว็บไซต์…</p></div></main>`;
+    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome', href: '/workspace/' })}</header>
+  <main class="sitepage" id="site-main">${inlineLoading('จัดการเว็บไซต์')}</main>`;
   let data = {};
   try { data = await hooks.api.loadSite(); } catch (e) { notify({ type: 'warn', title: 'โหลดข้อมูลเว็บไซต์ไม่สำเร็จ', message: e.message || String(e) }); }
   S.c = { site: normalize(data) };

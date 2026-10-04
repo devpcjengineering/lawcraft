@@ -10,7 +10,7 @@ import { ageFromBirth, validCitizenId, maskCitizenId } from '/shared/thai.js';
 import { selectBackend } from './api.js';
 import { showBook, leaveBook } from './book.js';
 import { showSiteAdmin, leaveSiteAdmin } from './site-admin.js';
-import { showContentAdmin, leaveContentAdmin } from './content-admin.js';
+import { showContentAdmin, contentGoto, contentOpen, leaveContentAdmin } from './content-admin.js';
 import { mergeLawEdits } from '/shared/content-merge.js';
 import { openViewer } from './viewer.js';
 import { morphInto } from './morph.js';
@@ -23,10 +23,15 @@ import { notify, banner, clearBanner, mountBanners, inferType } from './notify.j
 import * as authUi from './auth-ui.js';
 import { brandHtml, tbBtn } from './chrome.js';
 import { icon as ico2 } from './icons.js';
+import { showLoading, hideLoading, withLoading } from './loading.js';
+import { go, urls, parseRoute, routeLabel, setTitle, initRouter, replaceUrl, legacyHashTarget, TAB_NAMES } from './router.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const app = document.getElementById('app');
 let backend;
+let view = 'none';   // หน้าที่แสดงอยู่: home | case | book | site | content | inbox | auth — ใช้ตัดสินว่าต้องบันทึก/ปิดอะไรก่อนไปหน้าอื่น
+let ready = false;   // ผ่านการเข้าสู่ระบบ + โหลดข้อมูลกฎหมายแล้ว (false = ต้อง startApp() ก่อนวาดหน้าใด ๆ)
+let navSeq = 0;      // ลำดับการนำทาง: งานที่ await อยู่ของการนำทางเก่าจะเลิกวาดเมื่อมีการนำทางใหม่
 
 // ข้อความสั้น ๆ จากทุกหน้า → toast (ชนิดเดาจากถ้อยคำ: ไม่สำเร็จ=แดง, แล้ว=เขียว, กรอก/เลือก=เหลือง)
 hooks.toast = (msg, o = {}) => notify({ type: o.type || inferType(msg), message: msg, ...o });
@@ -54,6 +59,12 @@ async function doSave() {
     if (e.status === 401) return showLogin();
     banner('save', { type: 'error', message: 'บันทึกอัตโนมัติไม่สำเร็จ — ข้อมูลล่าสุดยังไม่ถูกเก็บ ตรวจการเชื่อมต่อแล้วลองอีกครั้ง', action: { label: 'ลองบันทึกใหม่', onClick: doSave } });
   }
+}
+/** ก่อนออกจากคดี: บันทึกที่ค้างอยู่ให้เสร็จ (ไม่รอ debounce) แล้วเคลียร์สถานะบันทึกของคดีนี้ */
+async function flushCase() {
+  clearTimeout(saveTimer); clearTimeout(proTimer); clearTimeout(stepsTimer); clearTimeout(pvTimer);
+  if (savePending && S.c) await doSave();
+  savePending = false; saveFailed = false; clearBanner('save'); setSaveState('', '');
 }
 function serviceAutoNote() {
   const sv = S.c.service;
@@ -117,10 +128,12 @@ function applyBrand() {
 
 // ---------------- เข้าสู่ระบบ (ใช้เมื่อเชื่อม Supabase) ----------------
 // หน้าเข้าสู่ระบบ (Google / อีเมล / โหมดทดลอง) อยู่ใน auth-ui.js
-function showLogin(msg = '') { return authUi.showLogin(msg); }
+function showLogin(msg = '') { ready = false; view = 'auth'; setTitle(routeLabel({ name: 'login' })); return authUi.showLogin(msg); }
 
-/** หน้ายืนยันตั้งบัญชีที่ล็อกอินอยู่เป็นผู้ดูแลระบบคนแรก */
+/** หน้ายืนยันตั้งบัญชีที่ล็อกอินอยู่เป็นผู้ดูแลระบบคนแรก (URL = /workspace/setup) */
 function showClaim(email) {
+  ready = false; view = 'auth';
+  replaceUrl(urls.setup()); setTitle(routeLabel({ name: 'setup' }));
   app.innerHTML = `<div class="login"><div class="login-card">
     <span class="login-badge">${ico2('shield')}</span>
     <h1>ตั้งผู้ดูแลระบบคนแรก</h1>
@@ -139,25 +152,14 @@ actions.claimAdmin = async () => {
   } catch (e) { $('#claimErr').textContent = e.message; }
 };
 
-// ตัวโหลด: โลโก้ในวงแหวนหมุน — ขึ้นเมื่อรอเกิน 150 มิลลิวินาที (โหลดเร็วไม่กะพริบ)
-const bootHtml = (msg) => `<div class="boot"><div class="boot-logo-wrap"><div class="spinner" aria-hidden="true"></div></div>${msg ? `<p>${msg}<span class="ld" aria-hidden="true">...</span></p>` : ''}</div>`;
-function showBoot(msg = '') {
-  const boot = app.firstElementChild?.classList.contains('boot') && app.children.length === 1 ? app.firstElementChild : null;
-  const p = boot?.querySelector(':scope > p');
-  if (boot && !msg) return; // มีตัวโหลดอยู่แล้ว: ไม่สร้างซ้ำ (วงแหวนหมุนต่อเนื่อง)
-  if (p && msg) p.firstChild.nodeValue = msg; else app.innerHTML = bootHtml(msg);
-}
-async function withLoader(promise, msg) {
-  const t = setTimeout(() => showBoot(msg), 150);
-  try { return await promise; } finally { clearTimeout(t); }
-}
-
 // ---------------- หน้าแรก (รายการคดี) ----------------
+// หน้าโหลด (กำลังโหลด…ชื่อหน้า) ครอบโดย dispatch() ตอนเปลี่ยนหน้า ; ตอนรีเฟรชรายการในหน้าเดิมใช้ reloadHome()
+const reloadHome = () => withLoading('รายการคดี', showHome());
 async function showHome() {
-  S.c = null; S.bookMode = false;
+  view = 'home'; S.c = null; S.bookMode = false;
   let list = [];
-  try { list = authUi.filterCases(await withLoader(backend.listCases(), 'กำลังโหลดรายการคดี')); } catch (e) { if (e.status === 401) return showLogin(); }
-  const act = (cls, data, ico, title, hint, extra = '') => `<button type="button" class="card newcase act-card ${cls}" ${data}><span class="ac-ico">${ico}</span><span class="ac-body"><span class="ac-t">${title}${extra}</span><span class="hint">${hint}</span></span><span class="ac-go" aria-hidden="true">${ico2('arrowRight')}</span></button>`;
+  try { list = authUi.filterCases(await backend.listCases()); } catch (e) { if (e.status === 401) return showLogin(); }
+  const act = (cls, data, ico, title, hint, extra = '', href = '#') => `<a href="${href}" class="card newcase act-card ${cls}" ${data}><span class="ac-ico">${ico}</span><span class="ac-body"><span class="ac-t">${title}${extra}</span><span class="hint">${hint}</span></span><span class="ac-go" aria-hidden="true">${ico2('arrowRight')}</span></a>`;
   app.innerHTML = `
   <header class="topbar">${brandHtml('ระบบร่างคำฟ้อง')}<span class="grow"></span>
     ${authUi.userBar()}
@@ -167,22 +169,22 @@ async function showHome() {
     <p class="lead">กรอกข้อมูลคู่ความและข้อเท็จจริงครั้งเดียว ระบบสร้างคำฟ้อง คำขอท้ายฟ้อง คำร้อง บัญชีพยาน หมายนัดไต่สวนมูลฟ้อง ตามแบบพิมพ์ศาลยุติธรรมให้ครบชุด เปิดคดีเดิมแล้วทำสำเนาเพื่อใช้ข้อมูลซ้ำได้</p></section>
     <section class="home-sec" aria-labelledby="hs-work"><h2 class="section-title" id="hs-work">เริ่มงาน</h2>
     <div class="cards">
-      ${act('is-new', 'data-act="newCase" data-type="criminal"', ico2('gavel'), 'คดีอาญา', 'ราษฎรเป็นโจทก์ฟ้องเอง (ป.วิ.อ. มาตรา 28(2)) — คำฟ้อง คำขอท้ายฟ้อง คำร้องส่งหมาย บัญชีพยาน หมายนัดไต่สวนมูลฟ้อง')}
-      ${act('is-new', 'data-act="newCase" data-type="civil"', ico2('scale'), 'คดีแพ่ง', 'คำฟ้องแพ่ง คำขอท้ายฟ้อง ทุนทรัพย์และค่าขึ้นศาล มูลหนี้ตาม ป.พ.พ.')}
-      ${act('', 'data-act="openBook"', ico2('users'), 'สมุดรายชื่อ', 'เพิ่ม/แก้ไขบุคคล นิติบุคคล และทนายความไว้ล่วงหน้า แล้วกดเลือกเป็นโจทก์ จำเลย หรือทนายในคดีใดก็ได้')}
+      ${act('is-new', 'data-act="newCase" data-type="criminal"', ico2('gavel'), 'คดีอาญา', 'ราษฎรเป็นโจทก์ฟ้องเอง (ป.วิ.อ. มาตรา 28(2)) — คำฟ้อง คำขอท้ายฟ้อง คำร้องส่งหมาย บัญชีพยาน หมายนัดไต่สวนมูลฟ้อง', '', '/workspace/new/criminal')}
+      ${act('is-new', 'data-act="newCase" data-type="civil"', ico2('scale'), 'คดีแพ่ง', 'คำฟ้องแพ่ง คำขอท้ายฟ้อง ทุนทรัพย์และค่าขึ้นศาล มูลหนี้ตาม ป.พ.พ.', '', '/workspace/new/civil')}
+      ${act('', 'data-act="openBook"', ico2('users'), 'สมุดรายชื่อ', 'เพิ่ม/แก้ไขบุคคล นิติบุคคล และทนายความไว้ล่วงหน้า แล้วกดเลือกเป็นโจทก์ จำเลย หรือทนายในคดีใดก็ได้', '', '/workspace/contacts')}
     </div></section>
     <section class="home-sec" data-admin-only aria-labelledby="hs-site"><h2 class="section-title" id="hs-site">จัดการเว็บไซต์ <span class="sec-note">เฉพาะผู้ดูแลระบบ</span></h2>
     <div class="cards">
-      ${act('', 'data-act="openInbox"', ico2('inbox'), 'กล่องข้อความปรึกษา', 'ข้อความที่ผู้เยี่ยมชมส่งจากหน้า “ติดต่อปรึกษากฎหมาย” ของเว็บไซต์ — ตรวจสอบ ติดต่อกลับ และทำเครื่องหมายว่าจัดการแล้ว', ' <span class="ib-badge" data-inbox-badge hidden></span>')}
-      ${act('', 'data-act="openContent"', ico2('newspaper'), 'จัดการเนื้อหา', 'เขียน/แก้บทความ ข้อกฎหมาย (มาตรา โทษ อายุความ) และข้อความบนเว็บไซต์ เช่น นโยบายความเป็นส่วนตัว')}
-      ${act('', 'data-act="openSite"', ico2('globe'), 'จัดการเว็บไซต์', 'แก้ช่องทางติดต่อ เวลาทำการ ประกาศบนหัวเว็บ ข้อมูลสำนักงาน และข้อความท้ายเว็บ')}
+      ${act('', 'data-act="openInbox"', ico2('inbox'), 'กล่องข้อความปรึกษา', 'ข้อความที่ผู้เยี่ยมชมส่งจากหน้า “ติดต่อปรึกษากฎหมาย” ของเว็บไซต์ — ตรวจสอบ ติดต่อกลับ และทำเครื่องหมายว่าจัดการแล้ว', ' <span class="ib-badge" data-inbox-badge hidden></span>', '/workspace/inbox')}
+      ${act('', 'data-act="openContent"', ico2('newspaper'), 'จัดการเนื้อหา', 'เขียน/แก้บทความ ข้อกฎหมาย (มาตรา โทษ อายุความ) และข้อความบนเว็บไซต์ เช่น นโยบายความเป็นส่วนตัว', '', '/workspace/content/articles')}
+      ${act('', 'data-act="openSite"', ico2('globe'), 'จัดการเว็บไซต์', 'แก้ช่องทางติดต่อ เวลาทำการ ประกาศบนหัวเว็บ ข้อมูลสำนักงาน และข้อความท้ายเว็บ', '', '/workspace/site')}
     </div></section>
     <section class="home-sec" aria-labelledby="hs-cases"><div class="sec-bar"><h2 class="section-title" id="hs-cases">คดีที่บันทึกไว้ <span class="sec-count">${list.length}</span></h2><div class="sec-tools">${authUi.caseToolbar()}<label class="btn sm import-btn" title="เลือกไฟล์ที่ส่งออกจากระบบนี้ เพื่อเปิดต่อหรือย้ายข้อมูลคดีมาไว้ที่นี่">${ico2('upload')}นำเข้าข้อมูลคดี (.json)<input type="file" id="importFile" accept=".json,application/json" class="vh"></label></div></div>
     ${list.length ? `<div class="cards">${list.map((x) => `<div class="card case-item">
         <div class="ci-top"><span class="pill ${x.type === 'civil' ? 'civil' : 'crim'}">${x.type === 'civil' ? 'แพ่ง' : 'อาญา'}</span>${authUi.ownerLine(x)}</div>
         <h3>${esc(caseLabel(x))}</h3>
         <div class="meta"><span class="m-court">${ico2('building')}<span>${esc(x.court || 'ยังไม่ได้เลือกศาล')}</span></span><span class="m-time">${ico2('clock')}<span>แก้ไขล่าสุด ${new Date(x.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}</span></span></div>
-        <div class="row"><button class="btn primary sm" data-act="openCase" data-id="${esc(x.id)}">เปิด</button>
+        <div class="row"><a class="btn primary sm" href="${urls.caseTab(x.id)}" data-act="openCase" data-id="${esc(x.id)}">เปิด</a>
           <button class="btn sm" data-act="dupCase" data-id="${esc(x.id)}" title="คัดลอกคู่ความ ทนาย และข้อมูลทั้งหมดไปเป็นคดีใหม่">ทำสำเนา</button>
           <button class="btn sm danger" data-act="delCase" data-id="${esc(x.id)}">ลบ</button></div></div>`).join('')}</div>`
       : `<div class="empty-state"><span class="es-ico">${ico2('folder')}</span><b>ยังไม่มีคดีที่บันทึกไว้</b><p>เริ่มจากกดปุ่ม “คดีอาญา” หรือ “คดีแพ่ง” ด้านบน ระบบจะบันทึกให้อัตโนมัติทุกครั้งที่แก้ไข</p></div>`}</section>
@@ -215,68 +217,101 @@ function normalizeCase(c) {
   return merged;
 }
 
+const TAB_ALIAS = { charges: 'complaint', facts: 'complaint' };
+const WIZ_NOTE = (blk) => notify({ type: 'warn', id: 'wiz-block', title: `กรอก “${blk.label}” ให้ครบก่อน`, message: `ยังขาด: ${blk.missing.slice(0, 4).join(', ')}${blk.missing.length > 4 ? ` และอีก ${blk.missing.length - 4} รายการ` : ''}` });
+const ADMIN_ONLY_MSG = 'หน้านี้สำหรับผู้ดูแลระบบเท่านั้น';
+
+/** หน้า (tab) ของคดีที่เปิดอยู่ที่จะแสดงจริง: ชื่อที่ไม่รู้จัก → ข้อมูลคดี · หน้าเฉพาะแอดมิน → ข้อมูลคดี · ขั้นก่อนหน้ายังไม่ครบ → พาไปขั้นนั้น */
+function resolveTab(tab) {
+  tab = TAB_ALIAS[tab] || tab;
+  if (!TABS.some((t) => t.key === tab)) tab = 'case';
+  if (authUi.tabBlocked(tab)) return { tab: 'case', adminOnly: true };
+  const blk = firstBlocked(tab, S.c);
+  return blk ? { tab: blk.key, blk } : { tab };
+}
+
+/** เปิดคดีที่โหลดมาแล้ว (view = case) ; tab ที่ขอถูกปรับตามสิทธิ์/ขั้นตอน และ URL แก้ให้ตรง */
 function openCase(c, tab = 'case') {
+  view = 'case';
   S.c = normalizeCase(c);
   alerted.clear();
   applyServiceAuto(S.c, S.data);
-  S.tab = TABS.some((t) => t.key === tab) && !authUi.tabBlocked(tab) ? tab : 'case';
+  const t = resolveTab(tab);
+  if (t.adminOnly) hooks.toast(ADMIN_ONLY_MSG, { type: 'warn' });
+  else if (t.blk) WIZ_NOTE(t.blk);
+  S.tab = t.tab;
+  if (S.tab === 'layout') S.ui.pvOn = true;
   S.ui.pvDoc = '';
   syncPreviewDoc();
+  replaceUrl(urls.caseTab(S.c.id, S.tab)); setTitle(TAB_NAMES[S.tab]);
   showWorkspace();
 }
 
-actions.goHome = async () => { if (S.bookMode) { await leaveSiteAdmin(); await leaveContentAdmin(); await leaveBook(); } showHome(); };
-actions.openBook = () => showBook(app);
-actions.openSite = () => { if (authUi.isAdmin()) showSiteAdmin(app); };
-actions.openContent = () => { if (authUi.isAdmin()) showContentAdmin(app); };
-actions.openInbox = () => { if (authUi.isAdmin()) showInbox(app); };
-actions.signOut = () => authUi.signOut();
+/** /workspace/new/<criminal|civil>[?charge=<id>] → สร้างคดีใหม่ แล้วเปลี่ยน URL เป็น /case/<id>/case */
+function createCase(type, charge = '') {
+  view = 'case';
+  const c = newCase(type);
+  if (type === 'civil') c.docs = { ...c.docs, summons: false };
+  const hasCharge = charge && S.data.items.some((x) => x.id === charge);
+  if (hasCharge) c.charges.push({ itemId: charge, related: [] });
+  S.c = c; S.tab = 'case'; S.ui.pvDoc = ''; alerted.clear(); hooks.changed();
+  replaceUrl(urls.caseTab(c.id, 'case')); setTitle(TAB_NAMES.case);
+  showWorkspace();
+  notify({ type: 'success', title: 'สร้างคดีใหม่แล้ว', message: hasCharge ? 'เลือกข้อหาจากบทความให้แล้ว เริ่มจากกรอกศาลและคู่ความ' : 'ระบบบันทึกอัตโนมัติทุกครั้งที่แก้ไข เริ่มจากกรอกศาลและคู่ความ' });
+}
+
+/** เปลี่ยนหน้าภายในคดีเดิม (ไม่โหลดคดีใหม่) */
+function switchTab(tab) {
+  const t = resolveTab(tab);
+  if (t.adminOnly) hooks.toast(ADMIN_ONLY_MSG, { type: 'warn' });
+  else if (t.blk) WIZ_NOTE(t.blk);
+  if (t.tab !== tab) replaceUrl(urls.caseTab(S.c.id, t.tab));
+  S.tab = t.tab;
+  if (S.tab === 'layout') S.ui.pvOn = true;
+  syncPreviewDoc();
+  setTitle(TAB_NAMES[S.tab]);
+  smoothSwap(() => { renderShell(true); window.scrollTo({ top: 0 }); });
+}
+
+// ---- การนำทาง: ทุกปุ่มเรียก go(url) → dispatch() ; ปุ่มย้อนกลับ/ไปข้างหน้าของเบราว์เซอร์ก็เข้า dispatch() ที่เดียวกัน ----
+actions.goHome = () => { go(urls.home()); };
+actions.openBook = () => { go(urls.contacts()); };
+actions.openSite = () => { go(urls.site()); };
+actions.openContent = () => { go(urls.content('articles')); };
+actions.openInbox = () => { go(urls.inbox()); };
+actions.signOut = async () => { await leaveCurrent(); return authUi.signOut(); };
 actions.googleLogin = async () => {
-  try { await backend.signInWithGoogle(); } // เบราว์เซอร์จะถูกพาไปหน้า Google แล้วกลับมาที่ /admin/
+  try { await backend.signInWithGoogle(); } // เบราว์เซอร์จะถูกพาไปหน้า Google แล้วกลับมาที่ /admin/ (หน้าเด้งต่อไป /workspace/ พร้อม ?code=…)
   catch (e) { const el = $('.login-err'); if (el) el.textContent = e.message; else alertBox(e.message, { title: 'Login ด้วย Google ไม่สำเร็จ', tone: 'warn' }); }
 };
-actions.newCase = (el) => {
-  const c = newCase(el.dataset.type);
-  c.docs = el.dataset.type === 'civil' ? { ...c.docs, summons: false } : c.docs;
-  S.c = c; S.tab = 'case'; S.ui.pvDoc = ''; alerted.clear(); hooks.changed(); showWorkspace();
-  notify({ type: 'success', title: 'สร้างคดีใหม่แล้ว', message: 'ระบบบันทึกอัตโนมัติทุกครั้งที่แก้ไข เริ่มจากกรอกศาลและคู่ความ' });
-};
-actions.openCase = async (el) => {
-  let c;
-  try { c = await withLoader(backend.getCase(el.dataset.id), 'กำลังเปิดคดี'); } catch (e) { hooks.toast('เปิดคดีไม่สำเร็จ'); return showHome(); }
-  openCase(c);
-};
+actions.newCase = (el) => { go(urls.newCase(el.dataset.type)); };
+actions.openCase = (el) => { go(urls.caseTab(el.dataset.id)); };
 actions.dupCase = async (el) => {
   const c = await backend.getCase(el.dataset.id);
   c.id = uid(); c.caseNoBlack = ''; c.caseNoRed = ''; c.createdAt = new Date().toISOString();
-  await backend.saveCase(c); hooks.toast('ทำสำเนาแล้ว'); showHome();
+  await backend.saveCase(c); hooks.toast('ทำสำเนาแล้ว'); reloadHome();
 };
 actions.delCase = async (el) => {
   if (!(await confirmBox('คดีนี้และเอกสารทั้งหมดจะถูกลบถาวร กู้คืนไม่ได้', { title: 'ลบคดี', okText: 'ลบคดี', danger: true }))) return;
-  await backend.deleteCase(el.dataset.id); showHome();
+  await backend.deleteCase(el.dataset.id); reloadHome();
 };
 
-const TAB_ALIAS = { charges: 'complaint', facts: 'complaint' };
 actions.wizGo = (el) => actions.goTab(el);
 actions.wizNext = (el) => actions.goTab(el); // ถ้าหน้านี้ยังไม่ครบ goTab จะแจ้งสิ่งที่ขาดและไม่ไปต่อ
 actions.goTab = (el) => {
-  if (authUi.tabBlocked(TAB_ALIAS[el.dataset.tab] || el.dataset.tab)) return hooks.toast('หน้านี้สำหรับผู้ดูแลระบบเท่านั้น', { type: 'warn' });
-  let target = TAB_ALIAS[el.dataset.tab] || el.dataset.tab;
+  if (!S.c || view !== 'case') return;
+  const want = TAB_ALIAS[el.dataset.tab] || el.dataset.tab;
+  if (authUi.tabBlocked(want)) return hooks.toast(ADMIN_ONLY_MSG, { type: 'warn' });
   // ไปทีละหน้า: หน้าก่อนหน้ายังกรอกไม่ครบ → พาไปหน้านั้นพร้อมบอกว่าขาดอะไร
-  const blk = firstBlocked(target, S.c);
-  if (blk) {
-    notify({ type: 'warn', id: 'wiz-block', title: `กรอก “${blk.label}” ให้ครบก่อน`, message: `ยังขาด: ${blk.missing.slice(0, 4).join(', ')}${blk.missing.length > 4 ? ` และอีก ${blk.missing.length - 4} รายการ` : ''}` });
-    if (blk.key === S.tab) return;
-    target = blk.key;
-  }
-  S.tab = target;
-  if (S.tab === 'layout') S.ui.pvOn = true;
-  syncPreviewDoc();
-  smoothSwap(() => { renderShell(true); window.scrollTo({ top: 0 }); });
+  const t = resolveTab(want);
+  if (t.blk) { WIZ_NOTE(t.blk); if (t.blk.key === S.tab) return; }
+  go(urls.caseTab(S.c.id, t.tab));
 };
 /** เปลี่ยนหน้าแบบจางข้ามกัน (View Transitions) ถ้าเบราว์เซอร์รองรับ ไม่งั้นสลับทันที */
+/** การเปลี่ยนที่ถูกอันใหม่ข้าม (AbortError) ไม่ใช่ข้อผิดพลาด — กันขึ้น unhandled rejection ในคอนโซล */
+const quietVT = (t) => { for (const k of ['ready', 'finished', 'updateCallbackDone']) t?.[k]?.catch?.(() => {}); return t; };
 function smoothSwap(fn) {
-  if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) { try { document.startViewTransition(fn); return; } catch { /* fallthrough */ } }
+  if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) { try { quietVT(document.startViewTransition(fn)); return; } catch { /* fallthrough */ } }
   fn();
 }
 
@@ -294,7 +329,7 @@ function showWorkspace() {
     <button class="ready-chip" id="ready-chip" data-act="showReadiness" type="button"></button>
     <span class="save-state" id="save-state" data-tone="">${esc(saveState)}</span>
     ${tbBtn({ ico: 'eye', text: 'ตัวอย่างเอกสาร', act: 'togglePreview' })}
-    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome' })}${authUi.userBar()}</header>
+    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome', href: urls.home() })}${authUi.userBar()}</header>
   <div class="work" id="work"><nav class="steps" id="steps" aria-label="เมนูเอกสารและขั้นตอน"></nav><main class="main" id="main"></main>
     <aside class="preview" id="preview"><div class="pv-bar" id="pv-bar"></div><div class="pv-scroll" id="pv-scroll"><div class="pv-inner" id="pv-inner"></div></div></aside></div>`;
   renderShell();
@@ -315,11 +350,11 @@ function renderSteps() {
       const st = t.status ? t.status() : null;
       const cnt = t.count ? t.count() : 0;
       const lock = isLocked(t.key, S.c);
-      return `<button class="nav-item ${S.tab === t.key ? 'on' : ''} ${lock ? 'locked' : ''}" data-act="goTab" data-tab="${t.key}" ${S.tab === t.key ? 'aria-current="page"' : ''} ${lock ? 'aria-disabled="true" title="กรอกหน้าก่อนหน้าให้ครบก่อน"' : ''}>
+      return `<a class="nav-item ${S.tab === t.key ? 'on' : ''} ${lock ? 'locked' : ''}" href="${urls.caseTab(S.c.id, t.key)}" data-act="goTab" data-tab="${t.key}" ${S.tab === t.key ? 'aria-current="page"' : ''} ${lock ? 'aria-disabled="true" title="กรอกหน้าก่อนหน้าให้ครบก่อน"' : ''}>
         <span class="nav-ico">${ico2(t.ico || 'file')}</span><span class="nav-label">${esc(t.label)}</span>
         ${cnt ? `<span class="nav-count">${cnt}</span>` : ''}
         ${t.key === 'export' && errors ? `<span class="badge">${errors}</span>` : ''}
-        ${lock ? `<span class="lock" aria-hidden="true">${ico2('lock', { size: 14 })}</span>` : (st ? `<span class="dot ${st}" title="${STATUS_TXT[st]}" role="img" aria-label="${STATUS_TXT[st]}">${st === 'ok' ? ico2('check', { size: 11, stroke: 3 }) : ''}</span>` : '')}</button>`;
+        ${lock ? `<span class="lock" aria-hidden="true">${ico2('lock', { size: 14 })}</span>` : (st ? `<span class="dot ${st}" title="${STATUS_TXT[st]}" role="img" aria-label="${STATUS_TXT[st]}">${st === 'ok' ? ico2('check', { size: 11, stroke: 3 }) : ''}</span>` : '')}</a>`;
     }).join('')}</div>`;
   }).join('');
   morphInto(el, stepsHtml, { mark: false });
@@ -524,7 +559,7 @@ async function guardExport() {
   if (!issues.length) return true;
   const r = await issuesBox(issues);
   if (r === 'fix') {
-    S.tab = 'export'; syncPreviewDoc(); renderShell();
+    go(urls.caseTab(S.c.id, 'export'));
     return false;
   }
   return true;
@@ -612,57 +647,138 @@ function geoChanged(el) {
   }
 }
 
+const NAV_ACTS = new Set(['goHome', 'openBook', 'openSite', 'openContent', 'openInbox', 'newCase', 'openCase', 'goTab', 'goTabClose', 'wizGo', 'wizNext']);
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-act]');
   if (!el) return;
+  if (el.tagName === 'A' && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button)) return; // Ctrl/⌘-คลิก = เปิดลิงก์ในแท็บใหม่ตามปกติ
   const fn = actions[el.dataset.act];
   if (fn) {
     e.preventDefault();
-    if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      document.startViewTransition(() => Promise.resolve(fn(el, e)));
+    // ปุ่มนำทางไม่ครอบด้วย View Transition: router วาดหน้าแบบ async เอง (ครอบหน้าโหลดไว้แล้ว) และการสลับ tab มี smoothSwap ของตัวเอง
+    if (!NAV_ACTS.has(el.dataset.act) && document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      quietVT(document.startViewTransition(() => Promise.resolve(fn(el, e))));
     } else {
       fn(el, e);
     }
   }
 });
 
+// ---------------- การนำทาง (router) ----------------
+/** ก่อนออกจากหน้าปัจจุบัน: บันทึกงานที่ค้างอยู่ (debounce) ให้เสร็จ แล้วปิดโหมดของหน้านั้น */
+async function leaveCurrent() {
+  const was = view;
+  view = 'none';
+  if (was === 'case') await flushCase();
+  else if (was === 'book') await leaveBook();
+  else if (was === 'site') await leaveSiteAdmin();
+  else if (was === 'content') await leaveContentAdmin();
+}
+
+const adminOnlyRoute = new Set(['inbox', 'site', 'content']);
+const stale = (seq) => seq !== navSeq;
+
+/** ทุกการเปลี่ยน URL (กดลิงก์ · ปุ่มย้อนกลับ · รีโหลด · ลิงก์ตรง) มาจบที่นี่ : ครอบหน้าโหลด “กำลังโหลด…ชื่อหน้า” แล้ววาดหน้า */
+async function dispatch(r, source = 'nav') {
+  if (!ready) { if (source !== 'init') startApp(); return; } // ยังไม่ได้เข้าสู่ระบบ: ให้ startApp ตัดสิน (แสดงหน้าล็อกอินซ้ำได้)
+  const seq = ++navSeq;
+  showLoading(routeLabel(r), source === 'init' ? 0 : 150);
+  try { await runRoute(r, seq); }
+  catch (e) {
+    console.error(e);
+    if (e?.status === 401) await showLogin();
+    else if (!stale(seq)) { hooks.toast('เปิดหน้านี้ไม่สำเร็จ ลองใหม่อีกครั้ง', { type: 'error' }); if (view === 'none') { replaceUrl(urls.home()); await showHome(); } }
+  } finally { if (!stale(seq)) hideLoading(); }
+}
+
+function normalizeUrl(r) {
+  const [p, q] = r.canonical.split('?');
+  if (location.pathname !== p) replaceUrl(p + (q ? '?' + q : location.search) + location.hash);
+}
+
+async function runRoute(r, seq) {
+  normalizeUrl(r);
+  setTitle(routeLabel(r));
+  if (adminOnlyRoute.has(r.name) && !authUi.isAdmin()) {
+    hooks.toast(ADMIN_ONLY_MSG, { type: 'warn' });
+    replaceUrl(urls.home());
+    return runRoute(parseRoute(), seq);
+  }
+  switch (r.name) {
+    case 'case': {
+      if (view === 'case' && S.c?.id === r.id) { switchTab(r.tab); return; }
+      await leaveCurrent(); if (stale(seq)) return;
+      let c;
+      try { c = await backend.getCase(r.id); } catch (e) {
+        if (e.status === 401) throw e;
+        if (stale(seq)) return;
+        hooks.toast('เปิดคดีไม่สำเร็จ — ไม่พบคดีนี้หรือไม่มีสิทธิ์เข้าถึง', { type: 'error' });
+        replaceUrl(urls.home()); return runRoute(parseRoute(), seq);
+      }
+      if (stale(seq)) return;
+      openCase(c, r.tab); return;
+    }
+    case 'new':
+      await leaveCurrent(); if (stale(seq)) return;
+      createCase(r.type, r.charge); return;
+    case 'contacts':
+      await leaveCurrent(); if (stale(seq)) return;
+      view = 'book'; showBook(app); return;
+    case 'inbox':
+      await leaveCurrent(); if (stale(seq)) return;
+      view = 'inbox'; await showInbox(app); return;
+    case 'site':
+      await leaveCurrent(); if (stale(seq)) return;
+      view = 'site'; await showSiteAdmin(app); return;
+    case 'content':
+      if (view === 'content' && contentOpen()) { await contentGoto(r.tab, r.slug); return; }
+      await leaveCurrent(); if (stale(seq)) return;
+      view = 'content'; await showContentAdmin(app, { tab: r.tab, slug: r.slug }); return;
+    case 'login': case 'setup': {
+      // ผ่านเข้าสู่ระบบแล้ว: กลับไปหน้าที่ขอไว้ก่อนถูกพามาล็อกอิน (หรือหน้าแรก)
+      const back = authUi.takeReturn();
+      replaceUrl(back || urls.home()); return runRoute(parseRoute(), seq);
+    }
+    default:
+      await leaveCurrent(); if (stale(seq)) return;
+      await showHome();
+  }
+}
+
 // ---------------- เริ่มต้น ----------------
 async function startApp() {
-  if (!(await authUi.gate())) return; // ตั้ง S.role (admin | user | guest) หรือแสดงหน้าเข้าสู่ระบบ/ตั้งแอดมิน
+  ready = false;
+  const want = parseRoute();
+  const [rp, rq] = (authUi.peekReturn() || urls.home()).split('?');
+  const pending = want.name === 'login' || want.name === 'setup' ? parseRoute(rp, rq ? '?' + rq : '') : want;
+  showLoading(routeLabel(pending), 0);
   try {
-    const { data, geo, people } = await backend.loadAll();
-    S.data = await mergeLawEdits(data, backend.loadContent); S.idx = indexLaw(S.data); S.geo = geo; S.people = people; // รวมข้อกฎหมายที่แอดมินแก้ (content-laws)
-    applyBrand();
-    hooks.api = backend;
-  } catch (e) {
-    if (e.status === 401) return showLogin();
-    app.innerHTML = '<div class="boot"><p>เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — รัน <code>npm start</code> ก่อน หรือตรวจการตั้งค่าใน <code>js/config.js</code></p></div>';
-    console.error(e);
-    return;
-  }
-  // ลิงก์ตรง: /admin/#case=<id>&tab=<tab>
-  const h = new URLSearchParams(location.hash.slice(1));
-  if (h.get('case')) {
-    try { openCase(await backend.getCase(h.get('case')), h.get('tab') || 'case'); return; } catch (err) { console.error('เปิดคดีไม่สำเร็จ', err); }
-  }
-  // ลิงก์จากบทความ: /admin/#newcase=criminal|civil&charge=<itemId> → เปิดคดีใหม่พร้อมข้อหาที่เลือก
-  const nt = h.get('newcase');
-  if (nt === 'criminal' || nt === 'civil') {
-    const c = newCase(nt);
-    if (nt === 'civil') c.docs = { ...c.docs, summons: false };
-    const itemId = h.get('charge');
-    if (itemId && S.data.items.some((x) => x.id === itemId)) c.charges.push({ itemId, related: [] });
-    S.c = c; S.tab = 'case'; S.ui.pvDoc = ''; alerted.clear(); hooks.changed(); showWorkspace();
-    history.replaceState(null, '', location.pathname);
-    notify({ type: 'success', title: 'สร้างคดีใหม่แล้ว', message: itemId ? 'เลือกข้อหาจากบทความให้แล้ว เริ่มจากกรอกศาลและคู่ความ' : 'เริ่มจากกรอกศาลและคู่ความ' });
-    return;
-  }
-  showHome();
+    if (!(await authUi.gate())) return; // ตั้ง S.role (admin | user) หรือแสดงหน้าเข้าสู่ระบบ/ตั้งแอดมินคนแรก
+    try {
+      const { data, geo, people } = await backend.loadAll();
+      S.data = await mergeLawEdits(data, backend.loadContent); S.idx = indexLaw(S.data); S.geo = geo; S.people = people; // รวมข้อกฎหมายที่แอดมินแก้ (content-laws)
+      applyBrand();
+      hooks.api = backend;
+    } catch (e) {
+      if (e.status === 401) return showLogin();
+      view = 'auth';
+      app.innerHTML = '<div class="conn-fail"><p>เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — รัน <code>npm start</code> ก่อน หรือตรวจการตั้งค่าใน <code>js/config.js</code></p></div>';
+      console.error(e);
+      return;
+    }
+    ready = true;
+    // OAuth/ตั้งแอดมินส่งกลับมาที่หน้าแรก: ไปต่อที่หน้าที่ขอไว้ก่อนถูกพามาล็อกอิน
+    if (parseRoute().name === 'home') { const back = authUi.takeReturn(); if (back) replaceUrl(back); }
+    await dispatch(parseRoute(), 'init');
+  } finally { hideLoading(); }
 }
 
 (async function boot() {
+  const legacy = legacyHashTarget(); // #setup · #newcase=… · #case=… (ลิงก์รุ่นเก่าที่พิมพ์ตรงที่ /workspace/) — ไม่แตะ #access_token ของ OAuth
+  if (legacy) replaceUrl(legacy);
+  initRouter(dispatch);
   backend = await selectBackend();
   startConn(() => backend);
-  authUi.bind({ app, getBackend: () => backend, setBackend: (b) => { backend = b; }, startApp, showHome, showClaim });
-  startApp(); // authUi.gate() ใน startApp ตัดสินบทบาท: แอดมิน | ผู้ใช้ทั่วไป | โหมดทดลอง | ต้องเข้าสู่ระบบ
+  authUi.bind({ app, getBackend: () => backend, setBackend: (b) => { backend = b; }, startApp, showHome: reloadHome, showClaim });
+  startApp(); // authUi.gate() ใน startApp ตัดสินบทบาท: แอดมิน | ผู้ใช้ทั่วไป | ต้องเข้าสู่ระบบ
 })();

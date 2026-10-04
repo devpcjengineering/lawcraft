@@ -61,7 +61,7 @@ export function showInbox(root) {
   app.innerHTML = `
   <header class="topbar">${brandHtml('กล่องข้อความปรึกษา')}<span class="grow"></span>
     ${tbBtn({ ico: 'refresh', text: 'รีเฟรช', act: 'ibRefresh' })}
-    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome' })}</header>
+    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome', href: '/workspace/' })}</header>
   <main class="bookpage ibpage">
     <aside class="bk-side ib-side" aria-label="รายการข้อความ">
       <input type="search" id="ib-q" data-oninput="ibSearch" placeholder="ค้นหาชื่อ / ช่องทางติดต่อ / เรื่อง" aria-label="ค้นหาข้อความปรึกษา">
@@ -71,7 +71,7 @@ export function showInbox(root) {
     <section class="bk-edit ib-detail" id="ib-detail" aria-live="polite"></section>
   </main>`;
   renderList(); renderDetail();
-  load();
+  return load(); // router รอให้โหลดข้อความเสร็จ (หน้าโหลดทั้งจอครอบอยู่)
 }
 
 async function load() {

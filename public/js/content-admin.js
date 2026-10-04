@@ -11,9 +11,12 @@ import { S, esc, hooks } from './store.js';
 import { indexLaw } from '/shared/model.js';
 import { confirmBox } from './modal.js';
 import { notify } from './notify.js';
+import { inlineLoading } from './loading.js';
 import { brandHtml, tbBtn } from './chrome.js';
 import { icon } from './icons.js';
+import { go, urls } from './router.js';
 
+// URL ของหน้านี้: /workspace/content/articles[/<slug>] | laws | pages — router.js เป็นผู้ตัดสิน ที่นี่รับ tab/slug แล้วสลับเนื้อหา
 const $ = (s, r = document) => r.querySelector(s);
 const TABS = [
   () => import('./content-articles.js'),
@@ -30,42 +33,51 @@ function setState(txt, tone = '') {
 
 const ctx = () => ({
   api: hooks.api, esc, notify, confirmBox, setState, data: S.data,
+  nav: (url, opt) => go(url, opt), // เปลี่ยน URL (เช่นเปิด/ปิดหน้าแก้บทความ) — { replace, quiet } ดู router.go
   load: (key) => hooks.api.loadContent(key),
   save: async (key, obj) => { await hooks.api.saveContent(key, obj); try { sessionStorage.removeItem('lawcraft:content:' + key); } catch { /* ข้าม */ } },
 });
 
-async function openTab(i) {
+async function openTab(i, slug = '') {
   if (cur?.unmount) { try { await cur.unmount(); } catch { /* ข้าม */ } }
   curIdx = i; cur = mods[i];
   document.querySelectorAll('.ct-tab').forEach((b, j) => { b.setAttribute('aria-selected', String(j === i)); b.classList.toggle('on', j === i); });
   const box = $('#ct-body');
-  box.innerHTML = '<div class="boot"><div class="boot-logo-wrap"><div class="spinner" aria-hidden="true"></div></div><p>กำลังโหลด<span class="ld" aria-hidden="true">...</span></p></div>';
+  box.innerHTML = inlineLoading(cur.label); // หน้าโหลดทั้งจอ (router) ครอบอยู่แล้วถ้าช้า — ตัวนี้กันกล่องว่างระหว่างโหลดเนื้อหาแท็บ
   setState('');
-  try { await cur.mount(box, ctx()); } catch (e) { box.innerHTML = `<p class="empty">โหลดไม่สำเร็จ: ${esc(e.message || e)}</p>`; }
+  try { await cur.mount(box, ctx()); } catch (e) { box.innerHTML = `<p class="empty">โหลดไม่สำเร็จ: ${esc(e.message || e)}</p>`; return; }
+  if (cur.show) await cur.show(slug); // เช่น /content/articles/<slug> → เปิดหน้าแก้บทความ
 }
 
-export async function showContentAdmin(root) {
+/** หน้าจัดการเนื้อหากำลังแสดงอยู่ (router ใช้ตัดสินว่าสลับแท็บในที่เดิมได้ ไม่ต้องวาดทั้งหน้าใหม่) */
+export const contentOpen = () => !!document.getElementById('ct-body') && mods.length > 0;
+
+/** ไปที่แท็บ/บทความตาม URL (เรียกจาก router เมื่ออยู่ในหน้านี้อยู่แล้ว) */
+export async function contentGoto(tab, slug = '') {
+  const i = Math.max(0, mods.findIndex((m) => m.id === tab));
+  if (i !== curIdx || !cur) return openTab(i, slug);
+  if (cur.show) await cur.show(slug);
+}
+
+export async function showContentAdmin(root, { tab = 'articles', slug = '' } = {}) {
   app = root;
   S.bookMode = true; S.c = null; stateTxt = ''; stateTone = '';
   app.innerHTML = `
   <header class="topbar">${brandHtml('จัดการเนื้อหา')}<span class="grow"></span>
     ${tbBtn({ ico: 'external', text: 'ดูบทความ', href: '/articles/', external: true })}
-    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome' })}</header>
+    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome', href: '/workspace/' })}</header>
   <main class="contentpage" id="ct-main">
     <div class="sp-head"><div><h1>จัดการเนื้อหาเว็บไซต์</h1><p class="hint">แก้บทความ ข้อกฎหมาย และข้อความบนเว็บไซต์ — บันทึกแล้วเว็บสาธารณะอัปเดตทันที (เฉพาะแอดมิน)</p></div><span class="save-state" id="ct-state"></span></div>
-    <div class="ct-tabs" role="tablist" aria-label="หมวดเนื้อหา"><span class="hint">กำลังโหลด…</span></div>
+    <div class="ct-tabs" role="tablist" aria-label="หมวดเนื้อหา"></div>
     <div id="ct-body"></div>
   </main>`;
   mods = [];
   for (const load of TABS) { try { mods.push((await load()).default); } catch (e) { console.warn('content tab', e); } }
-  $('.ct-tabs').innerHTML = mods.map((m, i) => `<button type="button" class="ct-tab" role="tab" data-ct-tab="${i}" title="${esc(m.hint || '')}">${esc(m.label)}</button>`).join('');
-  await openTab(0);
+  // แท็บเป็นลิงก์จริง (เปิดแท็บใหม่/คัดลอกลิงก์ได้) — router.js ดักคลิกแล้วเรียก contentGoto
+  $('.ct-tabs').innerHTML = mods.map((m) => `<a class="ct-tab" role="tab" href="${urls.content(m.id)}" title="${esc(m.hint || '')}">${esc(m.label)}</a>`).join('');
+  curIdx = -1; cur = null;
+  await openTab(Math.max(0, mods.findIndex((m) => m.id === tab)), slug);
 }
-
-document.addEventListener('click', (e) => {
-  const b = e.target.closest?.('[data-ct-tab]');
-  if (b && S.bookMode && document.getElementById('ct-body')) openTab(+b.dataset.ctTab);
-});
 
 export async function leaveContentAdmin() {
   if (cur?.unmount) { try { await cur.unmount(); } catch { /* ข้าม */ } }

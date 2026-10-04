@@ -208,7 +208,7 @@ $('#results').addEventListener('click', (e) => {
     if (flags) html += `<div class="box">${flags}</div>`;
     if (it.caution) html += `<div class="box">⚠ ${esc(it.caution)}</div>`;
     html += `<p class="fine" style="margin-top:16px">${it.verified === false ? 'ข้อมูลนี้ยังไม่ผ่านการตรวจกับแหล่งทางการ โปรดตรวจสอบตัวบทก่อนใช้' : 'ตรวจกับแหล่งอ้างอิงแล้ว'}${it.source ? ' · แหล่งอ้างอิง: ' + (/^https?:/.test(it.source) ? `<a href="${esc(it.source)}" target="_blank" rel="noopener">${esc(new URL(it.source).hostname)}</a>` : esc(it.source)) : ''}</p>`;
-    html += `<div class="cta"><a class="btn-pill primary" href="/admin/">ใช้ข้อหานี้ร่างคำฟ้อง</a></div>`;
+    html += `<div class="cta"><a class="btn-pill primary" href="/workspace/">ใช้ข้อหานี้ร่างคำฟ้อง</a></div>`;
   } else if (s) {
     html += dl([['สาระสำคัญ', s.summary], ['ใช้ในเอกสาร', s.usedIn]]);
     html += `<p class="fine" style="margin-top:16px">${s.verified === false ? 'ยังไม่ผ่านการตรวจกับแหล่งทางการ' : 'ตรวจกับแหล่งอ้างอิงแล้ว'}${s.source ? ' · ' + (/^https?:/.test(s.source) ? `<a href="${esc(s.source)}" target="_blank" rel="noopener">แหล่งอ้างอิง</a>` : esc(s.source)) : ''}</p>`;

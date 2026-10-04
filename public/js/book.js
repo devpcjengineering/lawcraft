@@ -86,7 +86,7 @@ export function showBook(root, selectId) {
   sel = null; q = ''; filter = 'all'; stateTxt = ''; stateTone = '';
   app.innerHTML = `
   <header class="topbar">${brandHtml('สมุดรายชื่อ')}<span class="grow"></span>
-    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome' })}</header>
+    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome', href: '/workspace/' })}</header>
   <main class="bookpage">
     <aside class="bk-side" aria-label="รายชื่อ">
       <div class="bk-add">

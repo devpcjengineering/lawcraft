@@ -143,7 +143,7 @@ function relatedHtml(a) {
       ${it.limitation ? `<p><span>อายุความ</span> ${esc(it.limitation)}</p>` : ''}
       ${it.privateOffence ? '<p class="ar-flag">ความผิดต่อส่วนตัว — ต้องร้องทุกข์/ฟ้องภายใน 3 เดือนนับแต่รู้เรื่องและรู้ตัวผู้กระทำผิด</p>' : ''}
       ${it.verified ? '' : '<p class="ar-flag warn">ข้อมูลมาตรานี้ยังไม่ผ่านการตรวจกับแหล่งทางการ — ตรวจสอบตัวบทก่อนใช้</p>'}
-      <a class="btn-pill ghost sm" href="/admin/#newcase=${it.kind === 'civil' ? 'civil' : 'criminal'}&charge=${encodeURIComponent(it.id)}">ร่างคำฟ้องข้อหานี้</a>
+      <a class="btn-pill ghost sm" href="/workspace/new/${it.kind === 'civil' ? 'civil' : 'criminal'}?charge=${encodeURIComponent(it.id)}">ร่างคำฟ้องข้อหานี้</a>
     </article>`).join('')}</div></section>`;
 }
 
@@ -228,7 +228,7 @@ function renderArticle(a, list, slug, update) {
         ${a.faq?.length ? `<section id="r-faq" class="ar-sec"><h2>คำถามที่พบบ่อย</h2>${a.faq.map((f) => `<details class="ar-faq"><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}</section>` : ''}
         ${a.sources?.length ? `<section id="r-src" class="ar-sec"><h2>แหล่งอ้างอิง</h2><ul class="ar-sources">${a.sources.map((s) => `<li><a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">${esc(s.label)} ↗</a>${s.verified ? '' : ' <span class="ar-flag warn inline">ยังไม่ได้ตรวจเปิดอ่าน</span>'}</li>`).join('')}</ul></section>` : ''}
         <aside class="ar-disclaimer" role="note"><b>ข้อมูลทั่วไป ไม่ใช่คำปรึกษากฎหมาย</b><p>บทความนี้เขียนเพื่อให้ความรู้เบื้องต้น แต่ละคดีมีข้อเท็จจริงและกำหนดเวลาแตกต่างกัน กฎหมายและแนวคำพิพากษาอาจเปลี่ยนแปลง ควรตรวจสอบตัวบทฉบับปัจจุบันและปรึกษาทนายความหรือพนักงานสอบสวนก่อนตัดสินใจดำเนินการ</p></aside>
-        <div class="ar-cta"><div><b>พร้อมร่างคำฟ้องแล้วหรือยัง</b><p>กรอกข้อมูลครั้งเดียว ระบบจัดทำคำฟ้อง คำขอท้ายฟ้อง และเอกสารประกอบตามแบบพิมพ์ศาล</p></div><a class="btn-pill primary" href="/admin/">เข้าสู่ระบบร่างคำฟ้อง</a></div>
+        <div class="ar-cta"><div><b>พร้อมร่างคำฟ้องแล้วหรือยัง</b><p>กรอกข้อมูลครั้งเดียว ระบบจัดทำคำฟ้อง คำขอท้ายฟ้อง และเอกสารประกอบตามแบบพิมพ์ศาล</p></div><a class="btn-pill primary" href="/workspace/">เข้าสู่ระบบร่างคำฟ้อง</a></div>
         <nav class="ar-pn" aria-label="บทความอื่น">
           ${prev ? `<a href="/articles/?a=${esc(prev.slug)}" data-slug="${esc(prev.slug)}"><small>← ก่อนหน้า</small>${esc(prev.title)}</a>` : '<span></span>'}
           ${next ? `<a href="/articles/?a=${esc(next.slug)}" data-slug="${esc(next.slug)}" class="r"><small>ถัดไป →</small>${esc(next.title)}</a>` : '<span></span>'}
