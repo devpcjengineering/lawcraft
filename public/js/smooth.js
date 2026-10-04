@@ -10,3 +10,22 @@
   } else done();
   setTimeout(done, 2200);
 })();
+
+// ไม่จำตำแหน่ง: รีโหลดแล้วเริ่มที่บนสุดของหน้าเสมอ และไม่เก็บ #หัวข้อ ไว้ใน URL (ลิงก์ภายในหน้าเลื่อนไปที่หัวข้อโดยไม่ใส่ #)
+(function () {
+  if (/^\/admin(\/|$)/.test(location.pathname)) return;
+  try { history.scrollRestoration = 'manual'; } catch (e) { /* ข้าม */ }
+  var id = function (h) { try { return decodeURIComponent(h.replace(/^#/, '')); } catch (e) { return ''; } };
+  var go = function (name) { var el = name && document.getElementById(name); if (!el) return false; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return true; };
+  var h = id(location.hash);
+  if (location.hash) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ข้าม */ } }
+  if (h) { var tries = 0; (function t() { if (go(h) || ++tries > 25) return; setTimeout(t, 120); })(); } else { window.scrollTo(0, 0); }
+  window.addEventListener('pageshow', function (e) { if (e.persisted) window.scrollTo(0, 0); });
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button || a.target) return;
+    var u; try { u = new URL(a.href, location.href); } catch (err) { return; }
+    if (u.origin !== location.origin || !u.hash || u.pathname !== location.pathname || u.search !== location.search) return;
+    if (go(id(u.hash))) e.preventDefault();
+  });
+})();

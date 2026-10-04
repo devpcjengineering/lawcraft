@@ -202,3 +202,96 @@
 .ar-main > .wrap { animation: ar-swap .4s cubic-bezier(.2, .8, .2, 1) both; }
 @keyframes ar-swap { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .ar-main > .wrap { animation: none; } }
+
+/* ==========================================================================
+   มือถือ (portrait) — บทความ / ตัวช่วยเลือกสถานการณ์ / หน้านโยบาย
+   ========================================================================== */
+@media (max-width: 900px) {
+  /* คอลัมน์เดียวต้องเป็น minmax(0,1fr) ไม่งั้นตาราง (min-width) ดันทั้งหน้าให้กว้างเกินจอ */
+  .ar-cols { grid-template-columns: minmax(0, 1fr); }
+}
+@media (hover: none) {
+  .ar-card:hover, .pk-opt:hover, .pk-opt:hover svg { transform: none; box-shadow: none; }
+  .pk-opt[aria-pressed=true], .pk-opt[aria-pressed=true]:hover { box-shadow: 0 0 0 2px var(--blue) inset, 0 10px 28px rgba(0, 0, 0, .08); }
+}
+@media (max-width: 760px) {
+  .ar-main { padding-top: 12px; }
+  .ar-hero { padding: 28px 0 18px; }
+  .ar-hero h1 { font-size: clamp(30px, 8.8vw, 40px); }
+  .ar-search { margin-bottom: 16px; }
+  #arcats { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    margin: 0 calc(var(--gut, 18px) * -1) 16px; padding: 2px var(--gut, 18px) 6px; scroll-padding: 0 var(--gut, 18px); }
+  #arcats::-webkit-scrollbar { display: none; }
+  #arcats > * { flex: none; }
+  .ar-grid { grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 12px; padding-bottom: 56px; }
+  .ar-card { padding: 20px 18px; border-radius: 20px; }
+  .ar-card h2, .ar-card h3 { font-size: 20px; }
+  .ar-cat { font-size: 13px; }
+  .ar-refs i { font-size: 13px; }
+  .ar-meta { font-size: 13.5px; }
+  .ar-facts { gap: 10px; }
+  .ar-facts div { padding: 16px 18px; border-radius: 18px; }
+
+  /* ตัวช่วยเลือกสถานการณ์ / เส้นทาง (หน้าแรก) */
+  .pk { margin-bottom: 40px; }
+  .pk-head p { font-size: 15.5px; }
+  .pk-opt { min-height: 64px; border-radius: 18px; }
+  .pk-opt b { font-size: 16px; text-wrap: balance; }
+  .pk-opt span { font-size: 13.5px; }
+  .pk-card { padding: 20px 16px; border-radius: 22px; gap: 18px; }
+  .pk-first li { font-size: 16px; }
+  .pk-paths span, .pk-paths i { font-size: 13.5px; }
+  .pk-side { padding: 16px; }
+  .pk-side .btn-pill { min-height: 48px; }
+  .pk-time, .pk-time b { font-size: 14.5px; }
+  .pk-row { margin-top: 40px; }
+  .rm a { font-size: 15px; display: inline-flex; align-items: center; min-height: 44px; }
+  .rm p { font-size: 15px; }
+  .hcta { padding: 24px 20px; border-radius: 24px; }
+  .hcta p { font-size: 15.5px; }
+  .hcta .btn-pill { width: 100%; }
+
+  /* หน้าอ่านบทความ */
+  .ar-crumb { margin-top: 4px; }
+  .ar-crumb a { display: inline-flex; align-items: center; min-height: 44px; }
+  .ar-head { padding: 8px 0 20px; }
+  .ar-head h1 { font-size: clamp(26px, 7.6vw, 34px); }
+  .ar-sub { font-size: 17px; }
+  .ar-toc { padding: 4px 16px; }
+  .ar-toc summary { display: flex; align-items: center; min-height: 48px; margin: 0; }
+  .ar-toc a { padding: 11px 0 11px 14px; font-size: 15px; }
+  .ar-body { font-size: 17px; line-height: 1.8; overflow-wrap: break-word; }
+  .ar-summary { font-size: 18px; }
+  .ar-key { padding: 16px 18px; border-radius: 18px; }
+  .ar-sec { padding-top: 28px; scroll-margin-top: 72px; }
+  .ar-callout { font-size: 16px; padding: 14px 16px; }
+  .ar-steps li { padding-left: 46px; }
+  .ar-check label { min-height: 44px; align-items: center; }
+  .ar-check input { width: 24px; height: 24px; margin-top: 0; }
+  .ar-rel-card, .ar-prec article { padding: 16px; }
+  .ar-rel-card .btn-pill { width: 100%; }
+  .ar-faq summary { min-height: 52px; display: flex; align-items: center; padding: 10px 36px 10px 0; }
+  .ar-faq summary::after { top: 50%; margin-top: -16px; }
+  .ar-sources { font-size: 15px; }
+  .ar-disclaimer { padding: 16px 18px; font-size: 15px; }
+  .ar-cta { padding: 22px 20px; border-radius: 22px; gap: 14px; }
+  .ar-cta .btn-pill { width: 100%; }
+  .ar-pn { margin: 24px 0 56px; }
+  .ar-pn a { padding: 16px 18px; min-height: 64px; }
+  .ar-pn a small { font-size: 13px; }
+
+  /* ตารางเลื่อนในกล่องของตัวเอง + เงาบอกว่ายังเลื่อนต่อได้ */
+  .ar-table { -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+    background: linear-gradient(90deg, var(--bg) 30%, transparent) left center / 28px 100% no-repeat local,
+                linear-gradient(270deg, var(--bg) 30%, transparent) right center / 28px 100% no-repeat local,
+                radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, .16), transparent) left center / 10px 100% no-repeat scroll,
+                radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, .16), transparent) right center / 10px 100% no-repeat scroll; }
+  .ar-table table { font-size: 15px; }
+  /* ตารางของหน้านโยบาย (2 คอลัมน์) พอดีจอได้ ไม่ต้องเลื่อน */
+  .ar-table.pv-table table { min-width: 0; }
+  .ar-table.pv-table td:first-child { white-space: normal; min-width: 7em; }
+  .ar-table.pv-table th { white-space: normal; }
+  .pv-head { padding-top: 12px; }
+  .pv-body h2 { margin-top: 32px; }
+}
+@media (max-width: 400px) { .pk-opts { gap: 8px; } .pk-opt { padding: 12px; } }

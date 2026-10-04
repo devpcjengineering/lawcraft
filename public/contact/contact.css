@@ -104,3 +104,36 @@
   .ct-check .ring, .ct-check .tick { animation: none; stroke-dashoffset: 0; }
   .ct-actions .btn-pill.busy::after { animation-duration: 2s; }
 }
+
+/* ==========================================================================
+   มือถือ (portrait) — ฟอร์มติดต่อปรึกษา: คอลัมน์เดียว ช่องกรอกใหญ่ กดนิ้วโป้งได้สบาย
+   ========================================================================== */
+@media (max-width: 900px) { .ct-cols { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) {
+  .ct-main { padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px)); }
+  .ct-hero { padding: 28px 0 20px; }
+  .ct-hero h1 { font-size: clamp(30px, 8.8vw, 40px); }
+  .ct-cols { gap: 14px; }
+  .ct-card { padding: 22px 16px 20px; border-radius: 24px; }
+  .ct-row, .ct-grid2, .ct-grid3, .ct-set { margin-bottom: 18px; }
+  .ct-f > label, .ct-set > legend { font-size: 16px; }
+  .ct-set .ct-f > label { font-size: 15px; }
+  .ct-f > label small { font-size: 14px; }
+  .ct-card input[type=text], .ct-card input[type=tel], .ct-card input[type=email], .ct-card input[type=date], .ct-card select, .ct-card textarea { min-height: 52px; padding: 13px 14px; border-radius: 14px; font-size: 16px; }
+  .ct-card input[type=date] { -webkit-appearance: none; appearance: none; display: block; min-height: 52px; }
+  .ct-card textarea { min-height: 170px; }
+  .ct-hint, .ct-count { font-size: 14px; }
+  .ct-err, .ct-warn { font-size: 14.5px; }
+  .ct-alert { font-size: 15px; padding: 14px 16px; }
+  .ct-chk { font-size: 15.5px; gap: 14px; min-height: 44px; }
+  .ct-chk input { width: 26px; height: 26px; margin-top: 0; }
+  .ct-consent .ct-err { margin-left: 40px; }
+  .ct-actions { flex-direction: column; align-items: stretch; gap: 12px; }
+  .ct-actions .btn-pill { min-height: 54px; font-size: 18px; width: 100%; }
+  .ct-status { text-align: center; }
+  .ct-fine { font-size: 14px; }
+  .ct-box { padding: 20px 18px; border-radius: 22px; }
+  .ct-box p, .ct-steps li, .ct-list { font-size: 15.5px; }
+  .ct-urgent a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; }
+  .ct-done-actions .btn-pill { width: 100%; }
+}

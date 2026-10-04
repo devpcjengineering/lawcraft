@@ -42,26 +42,13 @@ export let backend = localBackend;
 /**
  * เรียกครั้งเดียวตอนเริ่ม:
  *  - ไม่ได้ตั้ง Supabase → ใช้ไฟล์ในเครื่อง (ผู้ใช้คนเดียว = ผู้ดูแล)
- *  - ตั้ง Supabase แล้ว: มี session → Supabase (แอดมินหรือผู้ใช้ทั่วไป) | ไม่มี session แต่เลือกโหมดทดลองไว้ → เก็บในเบราว์เซอร์ | นอกนั้น → Supabase (app.js จะแสดงหน้าเข้าสู่ระบบ)
+ *  - ตั้ง Supabase แล้ว: มี session → Supabase (แอดมินหรือผู้ใช้ทั่วไป) | ไม่มี session → Supabase เช่นกัน (app.js จะแสดงหน้าเข้าสู่ระบบ — บังคับล็อกอิน ไม่มีโหมดทดลอง)
  */
 export async function selectBackend() {
   if (config.supabase?.url && config.supabase?.anonKey) {
     const mod = await import('./supabase-backend.js');
     backend = mod.supabaseBackend;
-    if (!(await backend.hasSession())) {
-      const g = await import('./guest-backend.js');
-      if (g.guestFlag()) backend = g.guestBackend;
-    }
   }
-  await backend.init();
-  return backend;
-}
-
-/** สลับเป็นโหมดทดลอง (เก็บในเบราว์เซอร์) โดยไม่โหลดหน้าใหม่ */
-export async function useGuestBackend() {
-  const g = await import('./guest-backend.js');
-  g.setGuestFlag(true);
-  backend = g.guestBackend;
   await backend.init();
   return backend;
 }

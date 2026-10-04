@@ -37,6 +37,16 @@ export const supabaseBackend = {
   mode: 'supabase',
   label: 'Supabase (ฐานข้อมูลออนไลน์)',
   needsLogin: true,
+  /** ตรวจว่า Supabase ตอบสนองหรือไม่ (ใช้แสดงจุดเขียว “ออนไลน์”) — คืนเวลาตอบสนองเป็น ms */
+  async ping() {
+    const t0 = performance.now();
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 6000);
+    try {
+      const r = await fetch(`${url}/auth/v1/health`, { headers: { apikey: anonKey }, cache: 'no-store', signal: ctl.signal });
+      if (!r.ok) throw new Error(String(r.status));
+    } finally { clearTimeout(to); }
+    return Math.round(performance.now() - t0);
+  },
   async init() {},
 
   /** มี session อยู่หรือไม่ (ไม่ยิง RPC) — ใช้ตัดสินว่าจะใช้ backend นี้หรือโหมดทดลอง */

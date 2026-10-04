@@ -1,7 +1,7 @@
 // บทบาทผู้ใช้ + หน้าเข้าสู่ระบบ + โหมดทดลอง ของหลังบ้าน (แยกออกจาก app.js)
 //   admin = อยู่ในตาราง admins (เห็น/จัดการทุกอย่าง, แก้แบบฟอร์ม/แม่แบบ/เลย์เอาต์ได้)
 //   user  = ล็อกอินแล้วแต่ไม่ใช่แอดมิน (เห็น/แก้เฉพาะคดีของตน, แก้แบบฟอร์มไม่ได้)
-//   guest = ไม่ล็อกอิน (โหมดทดลอง เก็บใน localStorage ของเบราว์เซอร์นี้)
+//   (ต้องล็อกอินเท่านั้น — ไม่มีโหมดทดลอง/ผู้เยี่ยมชมที่ไม่ล็อกอิน)
 // หมายเหตุความปลอดภัย: การซ่อนเมนูในหน้านี้เป็นเพียง UI — ตัวบังคับสิทธิ์จริงคือ RLS ใน supabase/migrations/20261005000000_user_cases.sql
 //
 // ตั้งแอดมินคนแรก: วิธีที่ปลอดภัยกว่าคือให้เจ้าของระบบรัน  select public.add_admin('you@example.com');  ใน SQL editor เอง
@@ -9,7 +9,8 @@
 // จึงแสดงหน้า “ตั้งเป็นผู้ดูแลคนแรก” เฉพาะเมื่อเปิด /admin/#setup เท่านั้น
 import { S, esc, actions } from './store.js';
 import { banner, clearBanner, notify } from './notify.js';
-import { selectBackend, useGuestBackend } from './api.js';
+import { selectBackend } from './api.js';
+import { connHtml } from './conn.js';
 
 /** หน้า (key ใน TABS) ที่เฉพาะแอดมินเข้าได้: ข้อความฟอร์ม, เลย์เอาต์/ตราครุฑ, แบบพิมพ์ศาล (กลุ่ม “ตั้งค่า” ในเมนูซ้าย) */
 export const ADMIN_ONLY = new Set(['formtext', 'layout', 'forms']);
@@ -40,16 +41,8 @@ const hashHasSetup = () => new URLSearchParams(location.hash.slice(1)).has('setu
 export async function gate() {
   const b = ctx.getBackend();
   S.email = ''; S.uid = '';
-  if (b.mode === 'guest') {
-    S.role = 'guest';
-    banner('guest', {
-      type: 'info',
-      message: 'โหมดทดลอง: ข้อมูลอยู่ในเบราว์เซอร์นี้เท่านั้น ผู้ดูแลระบบมองไม่เห็น — เข้าสู่ระบบเพื่อบันทึกบนระบบ',
-      action: { label: 'เข้าสู่ระบบ', onClick: () => signOut() },
-    });
-    return true;
-  }
   clearBanner('guest');
+  try { localStorage.removeItem('lawcraft:guest:on'); } catch { /* ข้าม */ } // ธงโหมดทดลองเก่า (เลิกใช้แล้ว)
   if (!b.needsLogin) { S.role = b.role?.() || 'admin'; return true; } // ไฟล์ในเครื่อง = เจ้าของเครื่อง
   const st = await b.sessionState();
   if (st === 'none') { await showLogin(); return false; }
@@ -71,16 +64,15 @@ export async function gate() {
 const G_SVG = '<svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>';
 const MARK_SVG = '<svg class="login-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg>';
 
-/** หน้าเข้าสู่ระบบสำหรับประชาชนทั่วไป: Google | อีเมล+รหัสผ่าน | ทดลองโดยไม่ล็อกอิน */
+/** หน้าเข้าสู่ระบบ (บังคับ): Google | อีเมล+รหัสผ่าน */
 export async function showLogin(msg = '') {
-  // มาจากโหมดทดลอง → กลับไปใช้ backend Supabase (ล้างธงโหมดทดลองก่อน)
-  if (ctx.getBackend().mode === 'guest') { await ctx.getBackend().signOut(); ctx.setBackend(await selectBackend()); }
   clearBanner('guest');
   S.c = null; S.role = 'user'; S.email = ''; S.uid = '';
   if (hashHasSetup()) ss.set(SETUP_KEY, '1'); // OAuth ส่งกลับมาโดยไม่มี hash — จำไว้ว่ามาจากลิงก์ตั้งค่า
   const app = ctx.app;
   app.innerHTML = `<div class="login"><form class="login-card" id="loginForm">
     ${MARK_SVG}<h1>เริ่มร่างคำฟ้องของคุณเอง</h1>
+    <div class="conn-row">${connHtml()}</div>
     <p class="hint">เตรียมคำฟ้อง คำร้อง และเอกสารประกอบสำหรับยื่นต่อศาลได้ด้วยตนเอง ใช้ได้ทันที</p>
     <button type="button" class="g-btn" data-act="googleLogin">${G_SVG}เข้าสู่ระบบด้วย Google</button>
     <div class="or"><span>หรือใช้อีเมลและรหัสผ่านที่มีอยู่แล้ว</span></div>
@@ -88,11 +80,8 @@ export async function showLogin(msg = '') {
     <label class="f s12"><span>รหัสผ่าน</span><input type="password" name="password" required autocomplete="current-password"></label>
     <div class="login-err" role="alert">${esc(msg)}</div>
     <button class="btn primary" style="width:100%;justify-content:center">เข้าสู่ระบบ</button>
-    <div class="or"><span>หรือ</span></div>
-    <button type="button" class="btn guest-btn" style="width:100%;justify-content:center" data-act="guestStart">ลองร่างคำฟ้องโดยไม่ต้องเข้าสู่ระบบ (เก็บในเครื่องนี้)</button>
     <div class="login-note">
-      <p><b>คดีที่บันทึกบนระบบ</b> เป็นของบัญชีคุณ ผู้ใช้คนอื่นมองไม่เห็น แต่ผู้ดูแลระบบสามารถเปิดดูได้เพื่อช่วยแก้ปัญหาการใช้งาน</p>
-      <p><b>โหมดทดลอง</b> เก็บเฉพาะในเบราว์เซอร์นี้ ผู้ดูแลระบบมองไม่เห็น แต่ข้อมูลจะหายถ้าล้างข้อมูลเบราว์เซอร์หรือเปลี่ยนเครื่อง และไม่ย้ายไปบัญชีให้อัตโนมัติ</p>
+      <p><b>ต้องเข้าสู่ระบบก่อนใช้งาน</b> คดีที่บันทึกเป็นของบัญชีคุณ ผู้ใช้คนอื่นมองไม่เห็น แต่ผู้ดูแลระบบสามารถเปิดดูได้เพื่อช่วยแก้ปัญหาการใช้งาน</p>
     </div>
     <a class="hint" href="/" style="text-align:center">← กลับเว็บไซต์</a></form></div>`;
   app.querySelector('#loginForm').addEventListener('submit', async (e) => {
@@ -106,7 +95,6 @@ export async function showLogin(msg = '') {
 /** เข้าสู่ระบบ/ออกจากระบบ/ออกจากโหมดทดลอง → กลับหน้าเข้าสู่ระบบ */
 export async function signOut() {
   const b = ctx.getBackend();
-  if (b.mode === 'guest') return showLogin();
   try { await b.signOut(); } catch (e) { console.error(e); }
   ss.del(NOTE_KEY);
   return showLogin();
@@ -114,24 +102,13 @@ export async function signOut() {
 
 // actions.signOut อยู่ใน app.js (เรียก authUi.signOut) — ตรงนี้เพิ่มเฉพาะปุ่มที่ app.js ไม่มี
 actions.authLogin = signOut;
-actions.guestStart = async () => {
-  try {
-    ctx.setBackend(await useGuestBackend());
-    await ctx.startApp();
-  } catch (e) { console.error(e); const el = document.querySelector('.login-err'); if (el) el.textContent = 'เปิดโหมดทดลองไม่สำเร็จ: ' + (e.message || e); }
-};
 actions.casesScope = (el) => { S.ui.onlyMine = el.dataset.scope === 'mine'; ctx.showHome(); };
 
 // ---------- ชิ้นส่วน UI ----------
 /** ปุ่มมุมขวาบน: ใครล็อกอินอยู่ + บทบาท + ออกจากระบบ (โหมดไฟล์ในเครื่องไม่มีบัญชี → ไม่แสดง) */
 export function userBar() {
-  if (S.role === 'guest') {
-    return '<span class="who who-guest" title="ข้อมูลอยู่ในเบราว์เซอร์นี้เท่านั้น">โหมดทดลอง</span>'
-      + '<button class="btn ghost" data-act="authLogin">เข้าสู่ระบบ</button>'
-      + '<button class="btn ghost" data-act="signOut">ออกจากโหมดทดลอง</button>';
-  }
   if (!ctx.getBackend().needsLogin) return '';
-  return `${S.email ? `<span class="who" title="${esc(S.email)}">${esc(S.email)}</span>` : ''}`
+  return `${connHtml()}${S.email ? `<span class="who" title="${esc(S.email)}">${esc(S.email)}</span>` : ''}`
     + `${isAdmin() ? '<span class="role-badge">ผู้ดูแลระบบ</span>' : ''}`
     + '<button class="btn ghost" data-act="signOut">ออกจากระบบ</button>';
 }
