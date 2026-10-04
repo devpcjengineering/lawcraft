@@ -75,7 +75,9 @@ function blockToDocx(b) {
       const left = [
         new Paragraph({ indent: shiftIndent(L['title.dx']), spacing: { before: mmToTwip(Math.max(0, L['title.dy'])), after: 0, line: lineSp() }, children: [txt(`○  ${b.formNo}`)] }),
         ...(b.kinds ? [para(b.kinds.all.flatMap((k, i) => [...(i ? [txt(' / ')] : []), txt(k, k === b.kinds.on ? {} : { strike: true })]), { after: 0, opts: { alignment: AlignmentType.CENTER, indent: shiftIndent(L['title.dx']) } })] : []),
-        ...(b.title ? String(b.title).split('\n') : []).map((l) => para([txt(l)], { after: 0, opts: { alignment: AlignmentType.CENTER, indent: shiftIndent(L['title.dx']) } })),
+        ...(b.title ? String(b.title).split('\n') : []).map((l) => (b.kinds
+          ? para([txt(l)], { after: 0, opts: { alignment: AlignmentType.CENTER, indent: shiftIndent(L['title.dx']) } })
+          : para([txt('      ' + l)], { after: 0, opts: { indent: shiftIndent(L['title.dx']) } }))),
       ];
       const mid = [new Paragraph({
         alignment: AlignmentType.CENTER, indent: shiftIndent(L['emblem.dx'], true),

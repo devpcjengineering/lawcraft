@@ -41,6 +41,7 @@ function setMeta(title, desc) {
 }
 
 // ---------- รายการ ----------
+const refsHtml = (a) => (a.refs?.length ? `<span class="ar-refs">${a.refs.map((r) => `<i>${esc(r)}</i>`).join('')}</span>` : '');
 const CAT_ORDER = ['ภาพรวม', 'พยานหลักฐาน', 'ซื้อขายออนไลน์', 'หมิ่นประมาท', 'คุกคาม', 'ภาพส่วนตัว', 'สิทธิเยียวยา'];
 
 async function showList() {
@@ -75,6 +76,7 @@ async function showList() {
       <span class="ar-cat">${esc(a.category)}</span>
       <h2>${esc(a.title)}</h2>
       <p>${esc(a.subtitle)}</p>
+      ${refsHtml(a)}
       <span class="ar-meta">อ่าน ${esc(a.readMinutes)} นาที · ปรับปรุง ${esc(thDate(a.updated))}</span>
     </a>`).join('');
   };

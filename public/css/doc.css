@@ -25,8 +25,9 @@
 .page .top { display: grid; grid-template-columns: 1fr max(30mm, calc(var(--em-w, 24mm) + 6mm)) 1fr; align-items: start; margin-bottom: 4mm; }
 .page .top-l { display: flex; gap: 8px; align-items: flex-start; transform: translate(var(--ti-x, 0mm), var(--ti-y, 0mm)); }
 .page .circle { width: 20px; height: 20px; border: 1.3px solid #000; border-radius: 50%; margin-top: 6px; flex: none; }
-.page .top-l > div { flex: 1; min-width: 0; }
-.page .top-title { line-height: 1.15; text-align: center; }
+.page .top-title { line-height: 1.15; }
+.page .top.kinds .top-l > div { flex: 1; min-width: 0; }
+.page .top.kinds .top-title { text-align: center; }
 .page .strike { text-decoration: line-through; text-decoration-thickness: 1.5px; }
 .page .top-c { text-align: center; }
 .page .top-c img { width: var(--em-w, 24mm); height: auto; display: var(--em-show, block); margin: 0 auto; transform: translate(var(--em-x, 0mm), var(--em-y, 0mm)); }
