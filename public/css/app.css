@@ -383,6 +383,8 @@ table.simple tr.used td { background: #f5f9ff; }
 #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1c2330; color: #fff; padding: 8px 16px; border-radius: 8px; opacity: 0; pointer-events: none; transition: .25s; z-index: 50; max-width: 90vw; }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 dialog.modal { border: 0; padding: 0; background: transparent; max-width: min(460px, calc(100vw - 32px)); width: 100%; color: var(--ink); }
+dialog.modal, dialog.modal:focus, dialog.modal:focus-visible, dialog.modal form { outline: none; border: 0; }
+dialog.modal .modal-card :focus:not(:focus-visible) { outline: none; }
 dialog.modal::backdrop { background: rgba(20, 20, 30, .45); backdrop-filter: blur(6px); }
 dialog.modal[open] { animation: pop .22s cubic-bezier(.2, .9, .3, 1.2); }
 @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.96); } }
@@ -511,3 +513,63 @@ dialog.modal[open] { animation: pop .22s cubic-bezier(.2, .9, .3, 1.2); }
   .bk-side { position: static; max-height: none; }
   .bk-list { max-height: 260px; }
 }
+
+/* ---------- กล่องข้อความปรึกษา (inbox.js) ---------- */
+.ib-badge { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 7px; margin-left: 6px; border-radius: 99px; background: var(--err); color: #fff; font-size: 12.5px; font-weight: 700; line-height: 1; vertical-align: 2px; font-variant-numeric: tabular-nums; }
+.ib-badge[hidden] { display: none; }
+.ib-side input[type=search] { width: 100%; min-height: 38px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; background: #fff; font: inherit; }
+.ib-side input[type=search]:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.ib-list .bk-row { gap: 3px; padding: 10px 12px; }
+.ib-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ib-top b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.ib-row.unread .ib-top b { font-weight: 700; }
+.ib-top time { flex: none; font-size: 12px; color: var(--muted); }
+.ib-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--blue); }
+.ib-dot[hidden] { display: none; }
+.ib-row small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ib-topic { color: var(--info); font-weight: 600; }
+.ib-err { color: var(--err); background: var(--err-bg); }
+.ib-head { flex-wrap: wrap; }
+.ib-head h2 { overflow-wrap: anywhere; }
+.ib-dl { display: grid; grid-template-columns: 11em minmax(0, 1fr); gap: 10px 18px; margin: 0 0 20px; padding: 18px 20px; background: #fff; border-radius: 14px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .05); font-size: 15px; }
+.ib-dl dt { color: var(--muted); font-size: 14px; padding-top: 1px; }
+.ib-dl dd { margin: 0; overflow-wrap: anywhere; }
+.ib-contact { display: block; margin-bottom: 4px; }
+.ib-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.ib-h { margin: 0 0 8px; font-size: 16px; }
+.ib-msg { background: #fff; border-radius: 14px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .05); padding: 18px 20px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.75; font-size: 15.5px; }
+@media (max-width: 860px) {
+  .ib-dl { grid-template-columns: 1fr; gap: 2px; }
+  .ib-dl dd { margin-bottom: 8px; }
+  .ib-list { max-height: 340px; }
+}
+/* ---------- ตัวดูเอกสาร / PDF ในหน้า ---------- */
+.viewer { position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; background: #d9d9de; opacity: 0; transition: opacity .18s ease; }
+.viewer.in { opacity: 1; }
+.viewer-bar { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: rgba(29, 29, 31, .92); color: #fff; backdrop-filter: blur(16px); min-height: 52px; }
+.viewer-title { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.viewer-hint { padding: 6px 16px; font-size: 13px; background: #fff7df; color: #6b4b00; border-bottom: 1px solid #f0e2b0; }
+.viewer-body { position: relative; flex: 1; min-height: 0; }
+.viewer-frame { width: 100%; height: 100%; border: 0; background: #d9d9de; opacity: 0; transition: opacity .25s ease; }
+.viewer-frame.ready { opacity: 1; }
+.viewer-load { position: absolute; inset: 0; display: grid; place-items: center; }
+body.viewer-open { overflow: hidden; }
+.viewer .btn.ghost { color: #fff; border-color: rgba(255, 255, 255, .35); }
+.f .lbl { font-size: 13.5px; color: var(--muted); font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { .viewer, .viewer-frame { transition: none; } }
+/* ---------- การเปลี่ยนหน้าแบบนุ่ม ๆ (ไม่ให้ข้อมูลโผล่พรึบ) ---------- */
+@keyframes enter-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.main.enter > *, .home.enter > * { animation: enter-up .42s cubic-bezier(.2, .8, .2, 1) both; }
+.main.enter > :nth-child(2), .home.enter > :nth-child(2) { animation-delay: .04s; }
+.main.enter > :nth-child(3), .home.enter > :nth-child(3) { animation-delay: .08s; }
+.main.enter > :nth-child(4), .home.enter > :nth-child(4) { animation-delay: .12s; }
+.main.enter > :nth-child(5), .home.enter > :nth-child(5) { animation-delay: .16s; }
+.main.enter > :nth-child(n+6), .home.enter > :nth-child(n+6) { animation-delay: .2s; }
+.home.enter .cards > .card { animation: enter-up .42s cubic-bezier(.2, .8, .2, 1) both; }
+.home.enter .cards > .card:nth-child(2) { animation-delay: .06s; } .home.enter .cards > .card:nth-child(3) { animation-delay: .12s; }
+.home.enter .cards > .card:nth-child(4) { animation-delay: .18s; } .home.enter .cards > .card:nth-child(n+5) { animation-delay: .24s; }
+.pv-inner.pv-swap { animation: pv-fade .22s ease both; }
+@keyframes pv-fade { from { opacity: .25; } to { opacity: 1; } }
+.boot { animation: pv-fade .35s ease both; }
+.save-state, .ready-chip { transition: color .2s, background-color .2s; }
+@media (prefers-reduced-motion: reduce) { .main.enter > *, .home.enter > *, .home.enter .cards > .card, .pv-inner.pv-swap, .boot { animation: none; } }

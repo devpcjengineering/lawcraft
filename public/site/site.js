@@ -15,23 +15,7 @@ const store = {
 document.querySelectorAll('[data-site=name]').forEach((e) => { e.textContent = config.legalName || config.name; });
 document.title = `${config.name} · ${config.legalName || ''} — กฎหมายไทย ฐานความรู้ และระบบร่างคำฟ้อง`;
 
-// ข้อมูลสำนักงาน (ท้ายเว็บ + JSON-LD)
-{
-  const o = config.office;
-  const box = document.getElementById('firm');
-  if (o && box) {
-    box.innerHTML = `<b>${esc(o.label)}</b><span>${esc(o.entity)}</span><span>${esc(o.street)} ${esc(o.district)} ${esc(o.province)}</span><span>ทะเบียนนิติบุคคลเลขที่ ${esc(o.regNo)}</span>`;
-    const ld = document.createElement('script');
-    ld.type = 'application/ld+json';
-    ld.textContent = JSON.stringify({
-      '@context': 'https://schema.org', '@type': 'LegalService', name: config.legalName, alternateName: config.name,
-      legalName: o.entity, identifier: o.regNo,
-      address: { '@type': 'PostalAddress', streetAddress: o.street, addressLocality: o.district, addressRegion: o.province, addressCountry: 'TH' },
-    });
-    document.head.appendChild(ld);
-  }
-}
-$('#contact').innerHTML = config.contacts.map((c) => `<a href="${esc(c.href)}">${esc(c.label)} ${esc(c.value)}</a>`).join('');
+// ท้ายเว็บ + ข้อมูลสำนักงาน (JSON-LD) สร้างโดย /site/footer.js ร่วมกันทุกหน้า
 
 // ---- nav ----
 const burger = $('#burger'), links = $('#navLinks');
@@ -156,6 +140,7 @@ function filtered() {
     (!q || `${e.section} ${e.title} ${e.category} ${e.body} ${lawShort(e.lawId)}`.toLowerCase().includes(q)))
     .sort((a, b) => lawRank(a.lawId) - lawRank(b.lawId) || secNum(a.section) - secNum(b.section));
 }
+let animFrom = 0; // การ์ดลำดับตั้งแต่นี้เป็นต้นไปจะค่อย ๆ ปรากฏ (กด “แสดงเพิ่มเติม” ไม่เล่นซ้ำของเดิม)
 function renderResults() {
   const list = filtered(), box = $('#results');
   box.setAttribute('aria-busy', 'false');
@@ -167,7 +152,7 @@ function renderResults() {
     box.innerHTML = '<div class="empty"><p>กำลังจัดทำฐานข้อมูลมาตรากฎหมาย — กลับมาดูอีกครั้งเร็ว ๆ นี้</p></div>';
     $('#resCount').textContent = ''; $('#moreBtn').hidden = true; return;
   }
-  box.innerHTML = list.slice(0, shown).map((e) => `<button class="card" data-key="${esc(e.key)}">
+  box.innerHTML = list.slice(0, shown).map((e, i) => `<button class="card${i >= animFrom ? ' pop' : ''}" style="--i:${Math.min(Math.max(i - animFrom, 0), 10)}" data-key="${esc(e.key)}">
       <span class="law"><span class="tag ${e.kind === 'civil' ? 'civil' : e.kind === 'criminal' ? 'crim' : ''}">${e.kind === 'civil' ? 'แพ่ง' : e.kind === 'criminal' ? 'อาญา' : ['pvor', 'pvpe'].includes(e.lawId) ? 'วิธีพิจารณา' : 'บททั่วไป'}</span>${esc(lawShort(e.lawId))}</span>
       <span class="sec-no"><small>มาตรา</small>${esc(e.section)}</span>
       <h3>${esc(e.title)}</h3>${e.body ? `<p>${esc(e.body)}</p>` : ''}</button>`).join('')
@@ -187,7 +172,7 @@ $('#chips').addEventListener('change', (e) => {
 });
 let qTimer;
 $('#q').addEventListener('input', (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { query = e.target.value; shown = 24; renderResults(); }, 120); });
-$('#moreBtn').addEventListener('click', () => { shown += 24; renderResults(); });
+$('#moreBtn').addEventListener('click', () => { animFrom = shown; shown += 24; renderResults(); animFrom = 0; });
 chips(); renderResults();
 
 // ---- detail sheet ----
@@ -478,6 +463,84 @@ async function initJurisdiction() {
 renderRules();
 renderResult();
 initJurisdiction();
+
+// ---- คดีออนไลน์: เลือกสถานการณ์ → สิ่งที่ควรทำก่อน + บทความที่เกี่ยวข้อง ----
+// เนื้อหาเป็นข้อมูลทั่วไป ไม่รับประกันผล; กำหนด 3 เดือนใช้เฉพาะความผิดต่อส่วนตัว (ป.อ. มาตรา 96)
+const SITUATIONS = [
+  { k: 'fraud', topic: 'trading', slug: 'online-trading-fraud', title: 'ถูกหลอกโอนเงินซื้อของ', hint: 'โอนแล้วไม่ได้ของ ร้านหาย บล็อก',
+    icon: '<rect x="3" y="6.5" width="18" height="11" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6.5 9.5v.01M17.5 14.5v.01"/>',
+    first: ['หยุดโอนเงินเพิ่ม แม้ถูกเร่งให้จ่าย “ค่าปลดล็อก” หรือ “ค่าธรรมเนียม”', 'เก็บสลิป แชต หน้าโปรไฟล์/โพสต์ร้าน และเลขบัญชีปลายทางไว้ก่อนถูกลบ', 'แจ้งธนาคารโดยเร็วเพื่อขอระงับธุรกรรม แล้วแจ้งความให้มีบันทึกเหตุการณ์'],
+    paths: ['แจ้งความ', 'ฟ้องฉ้อโกงเอง', 'ฟ้องแพ่งเรียกเงินคืน'],
+    time: 'ฉ้อโกงทั่วไปเป็นความผิดต่อส่วนตัว ต้องร้องทุกข์หรือฟ้องภายใน 3 เดือนนับแต่รู้เรื่องและรู้ตัวผู้กระทำ ถ้าไม่แน่ใจ ให้ถือว่ามีกำหนดนี้ไว้ก่อน' },
+  { k: 'defame', topic: 'defamation', slug: 'online-defamation', title: 'ถูกด่าหรือใส่ร้ายในโซเชียล', hint: 'โพสต์ รีวิว กลุ่มไลน์ ที่ทำให้เสียชื่อเสียง',
+    icon: '<path d="M4 5.5h16v10.5H10l-5 4v-4H4z"/><path d="M8.5 10h7"/>',
+    first: ['อย่าโพสต์ตอบโต้หรือประจานกลับ เพราะอาจทำให้ตัวเองถูกฟ้องได้', 'แคปโพสต์/คอมเมนต์ให้เห็นชื่อบัญชี ลิงก์ วันเวลา และจำนวนคนที่เห็น', 'จดไทม์ไลน์ว่าเห็นครั้งแรกเมื่อใด และรู้ว่าใครเป็นผู้ทำเมื่อใด'],
+    paths: ['แจ้งความ', 'ฟ้องหมิ่นประมาทเอง', 'ขอให้ลบเนื้อหา', 'ฟ้องแพ่งเรียกค่าเสียหาย'],
+    time: 'หมิ่นประมาทเป็นความผิดต่อส่วนตัว ต้องร้องทุกข์หรือฟ้องภายใน 3 เดือนนับแต่รู้เรื่องและรู้ตัวผู้กระทำ' },
+  { k: 'threat', topic: 'threat', slug: 'online-threat-harassment', title: 'ถูกข่มขู่ รีดเงิน หรือคุกคาม', hint: 'ขู่แฉ ขู่ทำร้าย ปลอมบัญชี ทวงหนี้ประจาน',
+    icon: '<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.2M12 17v.01"/>',
+    first: ['อย่าจ่ายเงินตามที่ถูกขู่ เพราะมักไม่จบและถูกเรียกเพิ่ม', 'อย่าลบแชต เก็บข้อความ เสียง เบอร์/บัญชีผู้ขู่ และหลักฐานการโอน (ถ้ามี)', 'แจ้งความโดยเร็ว หากรู้สึกไม่ปลอดภัยให้ขอความช่วยเหลือทันที'],
+    paths: ['แจ้งความ', 'ฟ้องคดีอาญาเอง', 'ขอคุ้มครอง/ลบข้อมูล'],
+    time: 'กรรโชก/รีดเอาทรัพย์ไม่ใช่ความผิดต่อส่วนตัว แต่บางฐานในเหตุการณ์เดียวกัน เช่น ข่มขืนใจวรรคแรก เป็นความผิดต่อส่วนตัว (3 เดือน) จึงควรนับเวลาแยกตามแต่ละฐาน' },
+  { k: 'images', topic: 'intimate', slug: 'intimate-images', title: 'ภาพส่วนตัวถูกเผยแพร่หรือขู่แฉ', hint: 'ภาพ/คลิปส่วนตัว ภาพตัดต่อ deepfake',
+    icon: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="m20.5 16-4.6-4.6L7 19.5"/>',
+    first: ['แคปหลักฐานไว้ก่อนแจ้งลบ (ลิงก์ ชื่อบัญชี วันเวลา) แต่อย่าแชร์ภาพต่อ', 'รายงานแพลตฟอร์มให้ลบ และอย่าจ่ายเงินให้ผู้ขู่ เพราะอาจถูกเรียกซ้ำ', 'แจ้งความ และขอคำแนะนำจากผู้เชี่ยวชาญหากเป็นภาพของผู้เยาว์'],
+    paths: ['แจ้งความ', 'ขอลบ/ระงับเนื้อหา', 'ฟ้องคดีอาญา/แพ่ง'],
+    time: 'บางฐาน เช่น ภาพตัดต่อตาม พ.ร.บ.คอมพิวเตอร์ มาตรา 16 และหมิ่นประมาท เป็นความผิดต่อส่วนตัว (3 เดือน) ส่วนฐานอื่นไม่ใช่ จึงควรรีบดำเนินการ' },
+  { k: 'shop', topic: 'civil', slug: 'online-trading-civil', title: 'ร้านไม่ส่งของ หรือส่งไม่ตรงปก', hint: 'ส่งช้า สินค้าไม่ตรงโฆษณา ไม่คืนเงิน',
+    icon: '<path d="M3.5 7.8 12 3.5l8.5 4.3v8.4L12 20.5l-8.5-4.3z"/><path d="m3.5 7.8 8.5 4.4 8.5-4.4M12 12.2v8.3"/>',
+    first: ['ทวงถามเป็นลายลักษณ์อักษร (แชต/ข้อความ) พร้อมกำหนดเวลาให้ส่งของหรือคืนเงิน', 'เก็บคำสั่งซื้อ โฆษณา สลิป และภาพ/วิดีโอตอนเปิดพัสดุ', 'ขอคืนเงินผ่านแพลตฟอร์มหรือผู้ให้บริการชำระเงิน ถ้ามีช่องทางนั้น'],
+    paths: ['เจรจา/ร้องเรียน', 'บอกเลิกสัญญา', 'ฟ้องแพ่งเรียกเงินคืน'],
+    time: 'ผิดสัญญาทางแพ่งไม่ติดกำหนด 3 เดือน แต่มีอายุความตามกฎหมายแพ่งซึ่งแตกต่างกันตามประเภทหนี้ และถ้าถูกหลอกตั้งแต่ต้นอาจเป็นฉ้อโกง ดูข้อแรก' },
+  { k: 'evidence', topic: 'other', slug: 'digital-evidence', title: 'ต้องเก็บหลักฐานก่อนถูกลบ', hint: 'โพสต์ แชต บัญชี ที่อาจหายไป',
+    icon: '<path d="M4 8.5V5.5a1.5 1.5 0 0 1 1.5-1.5h3M20 8.5V5.5A1.5 1.5 0 0 0 18.5 4h-3M4 15.5v3A1.5 1.5 0 0 0 5.5 20h3M20 15.5v3a1.5 1.5 0 0 1-1.5 1.5h-3"/><circle cx="12" cy="12" r="3.2"/>',
+    first: ['แคปให้เห็นชื่อบัญชี ลิงก์ (URL) วันที่ เวลา และบริบททั้งหมดของข้อความ', 'บันทึกวิดีโอหน้าจอขณะเปิดดู แล้วสำรองไฟล์ไว้หลายที่โดยไม่แก้ไขไฟล์ต้นฉบับ', 'จด ID/ลิงก์โปรไฟล์ และไทม์ไลน์ ก่อนผู้ทำจะลบหรือเปลี่ยนชื่อบัญชี'],
+    paths: ['เก็บหลักฐานเอง', 'ขอข้อมูลจากผู้ให้บริการ', 'ปรึกษาก่อนตัดสินใจ'],
+    time: 'ยิ่งเร็วยิ่งดี เพราะโพสต์และบัญชีอาจถูกลบได้ทุกเมื่อ และถ้าเรื่องนั้นเป็นความผิดต่อส่วนตัว กำหนด 3 เดือนก็นับอยู่' },
+];
+{
+  const root = $('#picker'), opts = $('#pkOpts'), out = $('#pkOut');
+  if (root && opts && out) {
+    let cur = null;
+    opts.innerHTML = SITUATIONS.map((s, i) => `<button type="button" class="pk-opt" data-i="${i}" aria-pressed="false" aria-controls="pkOut">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${s.icon}</svg>
+      <b>${esc(s.title)}</b><span>${esc(s.hint)}</span></button>`).join('');
+    const show = (i, scroll) => {
+      const s = SITUATIONS[i];
+      if (!s || i === cur) return;
+      cur = i;
+      opts.querySelectorAll('.pk-opt').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.i === i)));
+      out.innerHTML = `<div class="pk-card">
+        <div class="pk-main">
+          <h4>${esc(s.title)} — ทำอะไรก่อน</h4>
+          <ol class="pk-first">${s.first.map((t) => `<li>${esc(t)}</li>`).join('')}</ol>
+          <div class="pk-paths" aria-label="ทางเลือกที่เกี่ยวข้อง"><span>ทางเลือก</span>${s.paths.map((p) => `<i>${esc(p)}</i>`).join('')}</div>
+        </div>
+        <div class="pk-side">
+          <p class="pk-time"><b>เรื่องเวลา</b>${esc(s.time)}</p>
+          <a class="btn-pill primary sm" href="/articles/?a=${esc(s.slug)}">อ่านบทความที่เกี่ยวข้อง</a>
+          <a class="btn-pill ghost sm" href="/contact/?topic=${esc(s.topic)}">ปรึกษาเรื่องนี้</a>
+        </div>
+      </div><p class="fine pk-note">ข้อมูลทั่วไปเพื่อประกอบการตัดสินใจเบื้องต้น ไม่ใช่คำปรึกษาทางกฎหมายและไม่รับประกันผลของคดี ข้อเท็จจริงแต่ละเรื่องต่างกัน ควรปรึกษาทนายความก่อนดำเนินการ</p>`;
+      if (scroll) {
+        const r = out.getBoundingClientRect();
+        if (r.top > innerHeight * 0.62) out.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth', block: 'start' });
+      }
+    };
+    opts.addEventListener('click', (e) => { const b = e.target.closest('.pk-opt'); if (b) show(+b.dataset.i, true); });
+    // ลูกศรซ้าย/ขวา/ขึ้น/ลง ย้ายโฟกัสระหว่างตัวเลือก
+    opts.addEventListener('keydown', (e) => {
+      const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+      if (!(e.key in keys)) return;
+      const all = [...opts.querySelectorAll('.pk-opt')], at = all.indexOf(document.activeElement);
+      if (at < 0) return;
+      e.preventDefault();
+      all[(at + keys[e.key] + all.length) % all.length].focus();
+    });
+    root.hidden = false;
+    show(0, false);
+  }
+}
 
 // ---- บทความแนะนำ (การ์ดบนหน้าแรก) ----
 (async () => {

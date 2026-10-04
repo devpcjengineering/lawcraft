@@ -12,9 +12,7 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 // ---------- ส่วนหัว/ท้ายร่วม ----------
 document.querySelectorAll('[data-site=name]').forEach((e) => { e.textContent = config.legalName || config.name; });
 {
-  const o = config.office, box = $('#firm');
-  if (o && box) box.innerHTML = `<b>${esc(o.label)}</b><span>${esc(o.entity)}</span><span>${esc(o.street)} ${esc(o.district)} ${esc(o.province)}</span><span>ทะเบียนนิติบุคคลเลขที่ ${esc(o.regNo)}</span>`;
-  $('#contact').innerHTML = (config.contacts || []).map((c) => `<a href="${esc(c.href)}">${esc(c.label)} ${esc(c.value)}</a>`).join('');
+  // ท้ายเว็บสร้างโดย /site/footer.js
   const burger = $('#burger'), links = $('#navLinks');
   const close = () => { links.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); burger.setAttribute('aria-label', 'เปิดเมนู'); };
   burger.addEventListener('click', () => { const o2 = links.classList.toggle('open'); burger.setAttribute('aria-expanded', String(o2)); burger.setAttribute('aria-label', o2 ? 'ปิดเมนู' : 'เปิดเมนู'); });

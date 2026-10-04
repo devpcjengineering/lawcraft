@@ -9,6 +9,8 @@ import { docsHtml, docHtml } from './render-html.js';
 import { ageFromBirth, validCitizenId } from '/shared/thai.js';
 import { selectBackend } from './api.js';
 import { showBook, leaveBook } from './book.js';
+import { openViewer } from './viewer.js';
+import { showInbox } from './inbox.js';
 import { confirmBox, alertBox, issuesBox, modal } from './modal.js';
 import { notify, banner, clearBanner, mountBanners, inferType } from './notify.js';
 
@@ -158,6 +160,7 @@ async function showHome() {
       <button class="card newcase" data-act="newCase" data-type="criminal"><h3>＋ คดีอาญา</h3><span class="hint">ราษฎรเป็นโจทก์ฟ้องเอง (ป.วิ.อ. มาตรา 28(2)) — คำฟ้อง คำขอท้ายฟ้อง คำร้องส่งหมาย บัญชีพยาน หมายนัดไต่สวนมูลฟ้อง</span></button>
       <button class="card newcase" data-act="newCase" data-type="civil"><h3>＋ คดีแพ่ง</h3><span class="hint">คำฟ้องแพ่ง คำขอท้ายฟ้อง ทุนทรัพย์และค่าขึ้นศาล มูลหนี้ตาม ป.พ.พ.</span></button>
       <button class="card newcase" data-act="openBook"><h3>☰ สมุดรายชื่อ</h3><span class="hint">เพิ่ม/แก้ไขบุคคล นิติบุคคล และทนายความไว้ล่วงหน้า แล้วกดเลือกเป็นโจทก์ จำเลย หรือทนายในคดีใดก็ได้</span></button>
+      <button class="card newcase" data-act="openInbox"><h3>✉ กล่องข้อความปรึกษา <span class="ib-badge" data-inbox-badge hidden></span></h3><span class="hint">ข้อความที่ผู้เยี่ยมชมส่งจากหน้า “ติดต่อปรึกษากฎหมาย” ของเว็บไซต์ — ตรวจสอบ ติดต่อกลับ และทำเครื่องหมายว่าจัดการแล้ว</span></button>
       <label class="card newcase" style="cursor:pointer"><h3>⬆ นำเข้าข้อมูลคดี (.json)</h3><span class="hint">ไฟล์ที่ส่งออกจากระบบนี้</span><input type="file" id="importFile" accept=".json,application/json" hidden></label>
     </div>
     <h2 class="section-title">คดีที่บันทึกไว้ (${list.length})</h2>
@@ -172,6 +175,7 @@ async function showHome() {
     <p class="hint" style="margin-top:28px">แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม (สำนักงานศาลยุติธรรม) · ข้อมูลกฎหมายเป็นเครื่องมือช่วยร่าง ผู้ใช้ต้องตรวจสอบความถูกต้องก่อนยื่นต่อศาลทุกครั้ง</p>
   </main>`;
   mountBanners($('.topbar'));
+  playEnter($('.home'));
   $('#importFile')?.addEventListener('change', async (e) => {
     const f = e.target.files[0]; if (!f) return;
     try {
@@ -206,6 +210,7 @@ function openCase(c, tab = 'case') {
 
 actions.goHome = async () => { if (S.bookMode) await leaveBook(); showHome(); };
 actions.openBook = () => showBook(app);
+actions.openInbox = () => showInbox(app);
 actions.signOut = async () => { await backend.signOut(); showLogin(); };
 actions.googleLogin = async () => {
   try { await backend.signInWithGoogle(); } // เบราว์เซอร์จะถูกพาไปหน้า Google แล้วกลับมาที่ /admin/
@@ -233,7 +238,7 @@ actions.goTab = (el) => {
   S.tab = TAB_ALIAS[el.dataset.tab] || el.dataset.tab;
   if (S.tab === 'layout') S.ui.pvOn = true;
   syncPreviewDoc();
-  renderShell();
+  renderShell(true);
   window.scrollTo({ top: 0 });
 };
 
@@ -304,17 +309,25 @@ actions.goTabClose = (el) => { document.querySelector('dialog.modal')?.close(); 
 let stepsTimer;
 function renderStepsSoon() { clearTimeout(stepsTimer); stepsTimer = setTimeout(renderSteps, 250); }
 
-function renderMain() {
+function renderMain(enter = false) {
   const tab = TABS.find((t) => t.key === S.tab) || TABS[0];
   const scrollY = window.scrollY;
   $('#main').innerHTML = provinceList() + tab.render();
   if (tab.key === 'export') renderDocList();
   window.scrollTo(0, scrollY);
+  if (enter) playEnter($('#main'));
 }
 
-function renderShell() {
+/** ทำให้เนื้อหาที่เพิ่งเปลี่ยนค่อย ๆ ปรากฏ (fade + เลื่อนขึ้นเล็กน้อย ทีละส่วน) */
+function playEnter(el) {
+  if (!el) return;
+  el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter');
+  clearTimeout(playEnter.t); playEnter.t = setTimeout(() => el.classList.remove('enter'), 900);
+}
+
+function renderShell(enter = false) {
   renderSteps();
-  renderMain();
+  renderMain(enter);
   $('#work').classList.toggle('live', S.tab === 'layout');
   $('#work').classList.toggle('nopreview', !S.ui.pvOn);
   schedulePreview();
@@ -408,7 +421,7 @@ function renderPreview() {
   inner.classList.toggle('pv-guides', !!S.ui.guides);
   inner.dataset.doc = doc.id;
   if (same) { sc.scrollTop = keepTop * (zoom / oldZoom); sc.scrollLeft = keepLeft; }
-  else { sc.scrollTop = 0; sc.scrollLeft = 0; }
+  else { sc.scrollTop = 0; sc.scrollLeft = 0; inner.classList.remove('pv-swap'); void inner.offsetWidth; inner.classList.add('pv-swap'); }
 }
 actions.pvDoc = (el) => { S.ui.pvDoc = el.dataset.id; renderPreview(); };
 actions.pvSelect = (el) => { S.ui.pvDoc = el.value; renderPreview(); };
@@ -423,8 +436,7 @@ function renderDocList() {
   if (!box) return;
   const docs = currentDocs();
   box.innerHTML = docs.length ? docs.map((d) => `<div class="docrow"><span class="grow">📄 ${esc(d.title)}</span>
-    <button class="btn sm" data-act="dlDocx" data-id="${esc(d.id)}">Word</button>
-    <button class="btn sm" data-act="printDoc" data-id="${esc(d.id)}">พิมพ์ / PDF</button></div>`).join('') : '<div class="empty">ยังไม่ได้เลือกเอกสาร</div>';
+    <button class="btn sm" data-act="printDoc" data-id="${esc(d.id)}">ดู PDF</button></div>`).join('') : '<div class="empty">ยังไม่ได้เลือกเอกสาร</div>';
 }
 
 /** ตรวจก่อนออกเอกสาร: มีรายการผิดพลาด/เตือน → แสดง popup ให้เลือกกลับไปแก้หรือออกต่อ */
@@ -439,29 +451,12 @@ async function guardExport() {
   return true;
 }
 
-actions.dlDocx = async (el) => {
-  if (!(await guardExport())) return;
-  try {
-    const { blob, filename } = await backend.docx(S.c, el?.dataset?.id || undefined);
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = filename; a.click(); URL.revokeObjectURL(a.href);
-    notify({ type: 'success', title: 'ดาวน์โหลดไฟล์ Word แล้ว', message: filename });
-  } catch (e) { alertBox('สร้างไฟล์ Word ไม่สำเร็จ: ' + e.message, { title: 'เกิดข้อผิดพลาด', tone: 'danger' }); }
-};
-
-function printHtml(docs) {
-  const iframe = document.createElement('iframe');
-  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
-  iframe.srcdoc = `<!doctype html><html lang="th"><head><meta charset="utf-8"><title>เอกสารยื่นศาล</title><base href="${location.origin}/"><link rel="stylesheet" href="css/doc.css"></head><body style="margin:0">${docsHtml(docs, S.data.layout)}</body></html>`;
-  iframe.onload = async () => {
-    try { await iframe.contentDocument.fonts.ready; } catch { /* ignore */ }
-    setTimeout(() => { iframe.contentWindow.focus(); iframe.contentWindow.print(); setTimeout(() => iframe.remove(), 4000); }, 250);
-  };
-  document.body.appendChild(iframe);
+/** ดูเอกสารในหน้า (ไม่ดาวน์โหลด) แล้วพิมพ์/บันทึกเป็น PDF จากตัวดู */
+function viewDocs(docs, title) {
+  openViewer({ title, html: docsHtml(docs, S.data.layout) });
 }
-const printNote = () => notify({ type: 'info', title: 'เปิดหน้าต่างพิมพ์แล้ว', message: 'เลือก “บันทึกเป็น PDF” ตั้งกระดาษ A4 ขนาด 100% และปิด “ส่วนหัวและท้ายกระดาษ”', duration: 9000 });
-actions.printAll = async () => { if (await guardExport()) { printHtml(currentDocs()); printNote(); } };
-actions.printDoc = async (el) => { if (await guardExport()) { printHtml(currentDocs().filter((d) => d.id === el.dataset.id)); printNote(); } };
+actions.printAll = async () => { if (await guardExport()) viewDocs(currentDocs(), 'ชุดเอกสารทั้งหมด'); };
+actions.printDoc = async (el) => { const d = currentDocs().filter((x) => x.id === el.dataset.id); if (d.length && await guardExport()) viewDocs(d, d[0].title); };
 actions.dlJson = () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(S.c, null, 2)], { type: 'application/json' }));

@@ -102,6 +102,14 @@ export const supabaseBackend = {
     return { ok: true };
   },
 
+  // กล่องข้อความปรึกษาจากหน้าเว็บ (ตาราง inquiries — RLS: เฉพาะแอดมินอ่าน/แก้/ลบได้)
+  async listInquiries() {
+    const rows = must(await sb.from('inquiries').select('id,created_at,name,contact,topic,message,consent,status').order('created_at', { ascending: false }).limit(500));
+    return rows.map((r) => ({ id: r.id, createdAt: r.created_at, name: r.name, contact: r.contact, topic: r.topic || '', message: r.message, consent: r.consent, status: r.status }));
+  },
+  async setInquiryStatus(id, status) { must(await sb.from('inquiries').update({ status }).eq('id', id)); return { ok: true }; },
+  async deleteInquiry(id) { must(await sb.from('inquiries').delete().eq('id', id)); return { ok: true }; },
+
   async docx(c, docId) {
     const { data } = await sb.auth.getSession();
     if (!data.session) { const e = new Error('หมดเวลาเข้าสู่ระบบ'); e.status = 401; throw e; }

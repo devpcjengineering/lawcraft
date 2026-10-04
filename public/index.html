@@ -21,7 +21,7 @@
   <div class="nav-in">
     <a class="logo" href="#top" aria-label="Law Craft สำนักงานกฎหมาย ลอว์คราฟต์">
       <svg class="logo-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg>
-      <span class="logo-text">Law <b>Craft</b></span>
+      <span class="logo-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span>
     </a>
     <div class="nav-links" id="navLinks">
       <a href="#library">ประมวลกฎหมาย</a>
@@ -29,6 +29,7 @@
       <a href="#process">ขั้นตอนฟ้องคดี</a>
       <a href="#articles">บทความ</a>
       <a href="#drafting">ร่างคำฟ้อง</a>
+      <a href="/contact/">ติดต่อ</a>
     </div>
     <a class="nav-cta" href="/admin/">เข้าสู่ระบบ</a>
     <button class="nav-burger" id="burger" aria-label="เปิดเมนู" aria-expanded="false" aria-controls="navLinks"><span></span><span></span></button>
@@ -158,8 +159,41 @@
         <div><b>เก็บหลักฐานก่อนถูกลบ</b><span>แคปหน้าจอพร้อมลิงก์ วันเวลา และสลิปโอนเงิน ก่อนโพสต์หรือบัญชีจะหายไป</span></div>
         <div><b>ขอลบและเรียกค่าเสียหาย</b><span>นอกจากโทษทางอาญา ยังขอให้ลบเนื้อหาและฟ้องเรียกค่าสินไหมทดแทนได้</span></div>
       </div>
+
+      <!-- ตัวช่วยเลือกสถานการณ์ (สร้างโดย site.js) -->
+      <div class="pk reveal" id="picker" hidden>
+        <div class="pk-head">
+          <h3 id="pkTitle">ปัญหาของคุณคือแบบไหน</h3>
+          <p>เลือกสถานการณ์ที่ใกล้เคียงที่สุด เพื่อดูสิ่งที่ควรทำก่อน ทางเลือก และบทความที่เกี่ยวข้อง</p>
+        </div>
+        <div class="pk-opts" id="pkOpts" role="group" aria-labelledby="pkTitle"></div>
+        <div class="pk-out" id="pkOut" aria-live="polite"></div>
+      </div>
+
+      <!-- เส้นทางโดยสังเขป -->
+      <div class="rm-wrap reveal">
+        <h3 class="pk-h">เส้นทางโดยสังเขป</h3>
+        <ol class="rm" id="roadmap">
+          <li style="--i:0"><span class="rm-n" aria-hidden="true">1</span><b>เก็บหลักฐาน</b><p>แคปหน้าจอพร้อมลิงก์ วันเวลา และสลิปโอนเงิน ก่อนโพสต์หรือบัญชีจะหายไป</p><a href="/articles/?a=digital-evidence">วิธีเก็บหลักฐาน</a></li>
+          <li style="--i:1"><span class="rm-n" aria-hidden="true">2</span><b>เลือกทาง</b><p>แจ้งความ ฟ้องคดีอาญาเอง หรือฟ้องแพ่ง — ใช้ได้มากกว่าหนึ่งทางควบคู่กัน</p><a href="/articles/?a=online-case-overview">เปรียบเทียบทางเลือก</a></li>
+          <li style="--i:2"><span class="rm-n" aria-hidden="true">3</span><b>ยื่นคำฟ้อง / ไต่สวนมูลฟ้อง</b><p>คดีอาญาที่ราษฎรฟ้องเอง ศาลจะไต่สวนมูลฟ้องก่อนว่าจะประทับรับฟ้องหรือไม่</p><a href="#process">ดูขั้นตอนในศาล</a></li>
+          <li style="--i:3"><span class="rm-n" aria-hidden="true">4</span><b>ติดตามคดี</b><p>ตามนัดพิจารณา สืบพยาน และกำหนดเวลาต่าง ๆ จนถึงคำพิพากษา</p></li>
+        </ol>
+      </div>
+
+      <div class="pk-row reveal">
+        <h3 class="pk-h">บทความแนะนำ</h3>
+        <a class="link-arrow" href="/articles/">ดูบทความทั้งหมด</a>
+      </div>
       <div class="ar-grid" id="artTeaser" aria-busy="true"></div>
-      <div class="actions center reveal"><a class="btn-pill ghost" href="/articles/">ดูบทความทั้งหมด</a></div>
+
+      <aside class="hcta reveal" aria-labelledby="hctaTitle">
+        <div>
+          <h3 id="hctaTitle">ไม่แน่ใจว่าเรื่องของคุณเข้าข่ายแบบไหน?</h3>
+          <p>เล่าเรื่องโดยย่อ ให้เจ้าหน้าที่ตรวจสอบเบื้องต้นก่อน แล้วติดต่อกลับตามช่องทางที่คุณให้ไว้ การส่งข้อความไม่ใช่การว่าจ้างทนายความ และไม่ใช่การรับประกันผลของคดี</p>
+        </div>
+        <a class="btn-pill light" href="/contact/">ติดต่อปรึกษากฎหมาย</a>
+      </aside>
     </div>
   </section>
 
@@ -184,12 +218,11 @@
   </section>
 </main>
 
-<footer class="foot">
+<!-- ท้ายเว็บสร้างโดย /site/footer.js (ข้อความด้านล่างใช้เมื่อปิด JavaScript) -->
+<footer class="foot" id="siteFooter">
   <div class="wrap">
-    <p><strong data-site="name">สำนักงานกฎหมาย ลอว์คราฟต์ Law Craft Legal Consultants</strong> · ข้อมูลในเว็บไซต์นี้เป็นข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมาย และอาจไม่ทันต่อการแก้ไขกฎหมายล่าสุด ผู้ใช้ต้องตรวจสอบกับตัวบทฉบับปัจจุบันและปรึกษาทนายความก่อนดำเนินคดี</p>
-    <address class="firm" id="firm"></address>
-    <p class="contact" id="contact"></p>
-    <p class="fine">แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม สำนักงานศาลยุติธรรม</p>
+    <p><strong>สำนักงานกฎหมาย ลอว์คราฟต์ Law Craft Legal Consultants</strong> · ข้อมูลในเว็บไซต์นี้เป็นข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมาย</p>
+    <p><a href="/contact/">ติดต่อปรึกษากฎหมาย</a> · <a href="/privacy/">นโยบายความเป็นส่วนตัว</a></p>
   </div>
 </footer>
 
@@ -200,6 +233,7 @@
   </article>
 </dialog>
 
+<script type="module" src="/site/footer.js"></script>
 <script type="module" src="/site/site.js"></script>
 </body>
 </html>

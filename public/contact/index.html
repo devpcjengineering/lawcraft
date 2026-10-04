@@ -1,0 +1,187 @@
+﻿<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="ติดต่อปรึกษากฎหมาย Law Craft — ส่งเรื่องคดีออนไลน์ ซื้อขายออนไลน์ ฉ้อโกง หมิ่นประมาท ข่มขู่ ภาพส่วนตัว ให้เจ้าหน้าที่ตรวจสอบเบื้องต้นและติดต่อกลับ">
+<title>ติดต่อปรึกษากฎหมาย · Law Craft</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="alternate icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site/site.css">
+<link rel="stylesheet" href="/contact/contact.css">
+</head>
+<body>
+
+<a class="skip" href="#main">ข้ามไปยังเนื้อหา</a>
+<nav class="nav" id="nav" aria-label="เมนูหลัก">
+  <div class="nav-in">
+    <a class="logo" href="/" aria-label="Law Craft สำนักงานกฎหมาย ลอว์คราฟต์">
+      <svg class="logo-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg>
+      <span class="logo-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span>
+    </a>
+    <div class="nav-links" id="navLinks">
+      <a href="/#library">ประมวลกฎหมาย</a>
+      <a href="/#jurisdiction">เขตอำนาจศาล</a>
+      <a href="/#process">ขั้นตอนฟ้องคดี</a>
+      <a href="/articles/">บทความ</a>
+      <a href="/#drafting">ร่างคำฟ้อง</a>
+      <a href="/contact/" aria-current="page">ติดต่อ</a>
+    </div>
+    <a class="nav-cta" href="/admin/">เข้าสู่ระบบ</a>
+    <button class="nav-burger" id="burger" aria-label="เปิดเมนู" aria-expanded="false" aria-controls="navLinks"><span></span><span></span></button>
+  </div>
+</nav>
+
+<main id="main" class="ct-main">
+  <div class="wrap">
+    <header class="ct-hero">
+      <p class="eyebrow">ติดต่อปรึกษากฎหมาย</p>
+      <h1>เล่าเรื่องของคุณ.<br><span class="grad">เราจะตรวจสอบเบื้องต้น.</span></h1>
+      <p class="lead">กรอกข้อมูลสั้น ๆ เจ้าหน้าที่จะตรวจสอบเรื่องและติดต่อกลับตามช่องทางที่คุณให้ไว้</p>
+    </header>
+
+    <div class="ct-cols">
+      <section class="ct-card" aria-labelledby="ctFormTitle">
+        <h2 id="ctFormTitle" class="sr-only">แบบฟอร์มติดต่อปรึกษา</h2>
+
+        <form id="ctForm" novalidate autocomplete="on">
+          <div class="ct-alert" id="ctSummary" role="alert" tabindex="-1" hidden></div>
+
+          <div class="ct-row">
+            <div class="ct-f"><label for="fName">ชื่อ-นามสกุล <em aria-hidden="true">*</em></label>
+              <input id="fName" name="name" type="text" required minlength="2" maxlength="120" autocomplete="name" aria-describedby="eName">
+              <small class="ct-err" id="eName" hidden></small>
+            </div>
+          </div>
+
+          <fieldset class="ct-set" aria-describedby="hContact eContact">
+            <legend>ช่องทางติดต่อกลับ <em aria-hidden="true">*</em></legend>
+            <p class="ct-hint" id="hContact">กรอกอย่างน้อย 1 ช่องทาง — ใช้เพื่อติดต่อกลับเท่านั้น</p>
+            <div class="ct-grid3">
+              <div class="ct-f"><label for="fPhone">โทรศัพท์</label>
+                <input id="fPhone" name="phone" type="tel" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="เช่น 08x-xxx-xxxx" aria-describedby="ePhone">
+                <small class="ct-err" id="ePhone" hidden></small>
+              </div>
+              <div class="ct-f"><label for="fLine">LINE ID</label>
+                <input id="fLine" name="line" type="text" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="เช่น @yourid" aria-describedby="eLine">
+                <small class="ct-err" id="eLine" hidden></small>
+              </div>
+              <div class="ct-f"><label for="fEmail">อีเมล</label>
+                <input id="fEmail" name="email" type="email" inputmode="email" maxlength="120" autocomplete="email" placeholder="you@email.com" aria-describedby="eEmail">
+                <small class="ct-err" id="eEmail" hidden></small>
+              </div>
+            </div>
+            <small class="ct-err" id="eContact" hidden></small>
+          </fieldset>
+
+          <div class="ct-grid2">
+            <div class="ct-f"><label for="fTopic">ประเภทเรื่อง</label>
+              <select id="fTopic" name="topic">
+                <option value="">— ไม่ระบุ —</option>
+                <option value="trading">ซื้อขาย/ฉ้อโกงออนไลน์</option>
+                <option value="defamation">หมิ่นประมาท</option>
+                <option value="threat">ข่มขู่/คุกคาม</option>
+                <option value="intimate">ภาพส่วนตัว</option>
+                <option value="civil">คดีแพ่ง</option>
+                <option value="criminal">คดีอาญาอื่น ๆ</option>
+                <option value="other">อื่น ๆ</option>
+              </select>
+            </div>
+            <div class="ct-f"><label for="fProvince">จังหวัดที่เกิดเหตุ <small>(ไม่บังคับ)</small></label>
+              <input id="fProvince" name="province" type="text" maxlength="60" autocomplete="off" placeholder="เช่น ชัยภูมิ">
+            </div>
+          </div>
+
+          <div class="ct-row">
+            <div class="ct-f"><label for="fDate">วันที่เกิดเหตุ <small>(ไม่บังคับ)</small></label>
+              <input id="fDate" name="date" type="date" aria-describedby="hDate">
+              <small class="ct-hint" id="hDate">ความผิดต่อส่วนตัวบางประเภท เช่น หมิ่นประมาท ต้องร้องทุกข์หรือฟ้องภายใน 3 เดือนนับแต่รู้เรื่องและรู้ตัวผู้กระทำ — ถ้าเหตุเกิดมาสักพักแล้ว แจ้งเราโดยเร็ว</small>
+              <small class="ct-warn" id="wDate" hidden></small>
+            </div>
+          </div>
+
+          <div class="ct-row">
+            <div class="ct-f"><label for="fMsg">รายละเอียดเรื่อง <em aria-hidden="true">*</em></label>
+              <textarea id="fMsg" name="message" rows="7" required minlength="10" maxlength="3000" aria-describedby="hMsg eMsg" placeholder="เล่าโดยย่อว่าเกิดอะไรขึ้น เมื่อไร กับใคร และต้องการความช่วยเหลือแบบไหน"></textarea>
+              <span class="ct-meta"><small class="ct-hint" id="hMsg">ไม่ต้องส่งเลขบัตรประชาชน รหัสผ่าน หรือเอกสารสำคัญในขั้นนี้</small><small class="ct-count" id="msgCount" aria-live="off">0 / 3000</small></span>
+              <small class="ct-err" id="eMsg" hidden></small>
+            </div>
+          </div>
+
+          <!-- honeypot: ช่องล่อบอท มนุษย์ไม่เห็นและไม่ต้องกรอก -->
+          <div class="ct-hp" aria-hidden="true">
+            <label>เว็บไซต์ (ไม่ต้องกรอก)<input type="text" name="website" id="fWebsite" tabindex="-1" autocomplete="off"></label>
+          </div>
+
+          <div class="ct-consent">
+            <label for="fConsent" class="ct-chk">
+              <input id="fConsent" name="consent" type="checkbox" required aria-describedby="eConsent">
+              <span>ข้าพเจ้ายินยอมให้เก็บและใช้ข้อมูลข้างต้นเพื่อติดต่อกลับและตรวจสอบเรื่องที่ปรึกษา ตาม<a href="/privacy/" target="_blank" rel="noopener">นโยบายความเป็นส่วนตัว</a> <em aria-hidden="true">*</em></span>
+            </label>
+            <small class="ct-err" id="eConsent" hidden></small>
+          </div>
+
+          <div class="ct-actions">
+            <button type="submit" class="btn-pill primary" id="ctSubmit">ส่งข้อความ</button>
+            <p class="ct-status" id="ctStatus" role="status" aria-live="polite"></p>
+          </div>
+          <p class="fine ct-fine">การส่งข้อความนี้ไม่ใช่การว่าจ้างทนายความ และไม่ใช่การรับประกันผลของคดี</p>
+        </form>
+
+        <div class="ct-done" id="ctDone" role="status" tabindex="-1" hidden>
+          <svg class="ct-check" viewBox="0 0 52 52" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle class="ring" cx="26" cy="26" r="22"/><path class="tick" d="m16 27 7 7 14-15"/></svg>
+          <h2>ได้รับข้อความของคุณแล้ว</h2>
+          <p>ขอบคุณที่ไว้วางใจเล่าเรื่องให้เรา เจ้าหน้าที่จะตรวจสอบข้อมูลและติดต่อกลับตามช่องทางที่คุณให้ไว้</p>
+          <p class="ct-done-sub">ระหว่างนี้ ควรเก็บหลักฐาน เช่น ภาพหน้าจอ ลิงก์ และสลิปโอนเงิน ไว้ให้ครบ — ดู <a href="/articles/?a=digital-evidence">วิธีเก็บหลักฐานดิจิทัล</a></p>
+          <div class="ct-done-actions"><a class="btn-pill primary" href="/">กลับหน้าแรก</a><button type="button" class="btn-pill ghost" id="ctAgain">ส่งเรื่องอื่น</button></div>
+        </div>
+      </section>
+
+      <aside class="ct-aside" aria-label="ข้อมูลประกอบ">
+        <section class="ct-box">
+          <h2>หลังจากส่งข้อความ</h2>
+          <ol class="ct-steps">
+            <li><b>ตรวจสอบเบื้องต้น</b><span>เจ้าหน้าที่อ่านเรื่องและดูว่าเข้าข่ายประเด็นกฎหมายใด</span></li>
+            <li><b>ติดต่อกลับ</b><span>ตามช่องทางที่คุณระบุ เพื่อสอบถามข้อมูลเพิ่มเติม</span></li>
+            <li><b>แนะนำทางเลือก</b><span>แจ้งความ ฟ้องเอง ฟ้องแพ่ง หรือทางอื่น ตามข้อเท็จจริง</span></li>
+          </ol>
+        </section>
+        <section class="ct-box">
+          <h2>ควรเตรียมข้อมูลอะไรบ้าง</h2>
+          <ul class="ct-list">
+            <li>เกิดอะไรขึ้น เมื่อไร และคุณรู้เรื่องหรือรู้ตัวผู้กระทำเมื่อใด</li>
+            <li>ชื่อบัญชี/เพจ/ลิงก์ที่เกี่ยวข้อง และจำนวนเงิน (ถ้ามี)</li>
+            <li>สิ่งที่ทำไปแล้ว เช่น แจ้งความ แจ้งธนาคาร</li>
+          </ul>
+        </section>
+        <section class="ct-box ct-urgent" aria-label="กรณีเร่งด่วน">
+          <h2>กรณีเร่งด่วน</h2>
+          <p>หากคุณหรือผู้อื่นตกอยู่ในอันตราย โปรดติดต่อเจ้าหน้าที่ตำรวจทันทีที่ <a href="tel:191"><b>191</b></a> แบบฟอร์มนี้ไม่ใช่ช่องทางแจ้งเหตุฉุกเฉิน</p>
+        </section>
+        <section class="ct-box" id="ctDirect" hidden>
+          <h2>ช่องทางติดต่อโดยตรง</h2>
+          <ul class="ct-list plain" id="ctDirectList"></ul>
+        </section>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<!-- ท้ายเว็บสร้างโดย /site/footer.js (ข้อความด้านล่างใช้เมื่อปิด JavaScript) -->
+<footer class="foot" id="siteFooter">
+  <div class="wrap">
+    <p><strong>สำนักงานกฎหมาย ลอว์คราฟต์ Law Craft Legal Consultants</strong> · ข้อมูลในเว็บไซต์นี้เป็นข้อมูลทั่วไป ไม่ใช่คำปรึกษาทางกฎหมาย</p>
+    <p><a href="/privacy/">นโยบายความเป็นส่วนตัว</a></p>
+  </div>
+</footer>
+
+<noscript><style>.ct-card::before{content:"ต้องเปิด JavaScript เพื่อส่งแบบฟอร์มนี้";display:block;padding:14px 18px;margin-bottom:12px;border-radius:12px;background:#fdf1dc;color:#94560a}</style></noscript>
+<script type="module" src="/site/nav.js"></script>
+<script type="module" src="/site/footer.js"></script>
+<script type="module" src="/contact/contact.js"></script>
+</body>
+</html>

@@ -24,6 +24,10 @@ export const localBackend = {
   savePerson: (rec) => http(`/api/people/${rec.id}`, jsonOpt('PUT', rec)),
   saveLayout: (obj) => http('/api/layout', jsonOpt('PUT', obj)),
   saveFormText: (obj) => http('/api/formtext', jsonOpt('PUT', obj)),
+  // กล่องข้อความปรึกษาจากหน้าเว็บ
+  listInquiries: () => http('/api/inquiries'),
+  setInquiryStatus: (id, status) => http(`/api/inquiries/${encodeURIComponent(id)}`, jsonOpt('PATCH', { status })),
+  deleteInquiry: (id) => http(`/api/inquiries/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   async docx(c, docId) {
     const res = await fetch('/api/docx', jsonOpt('POST', { case: c, docId: docId || undefined }));
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.status);
