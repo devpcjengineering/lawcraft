@@ -590,7 +590,7 @@ document.addEventListener('click', (e) => {
 
 // ---------------- เริ่มต้น ----------------
 async function startApp() {
-  app.innerHTML = '<div class="boot"><div class="spinner" aria-hidden="true"></div><p>กำลังโหลดข้อมูลกฎหมาย…</p></div>';
+  app.innerHTML = '<div class="boot"><div class="boot-logo-wrap"><img src="/logo.svg" alt="" aria-hidden="true"><div class="spinner" aria-hidden="true"></div></div><p>กำลังโหลดข้อมูลกฎหมาย…</p></div>';
   if (!(await authUi.gate())) return; // ตั้ง S.role (admin | user | guest) หรือแสดงหน้าเข้าสู่ระบบ/ตั้งแอดมิน
   try {
     const { data, geo, people } = await backend.loadAll();

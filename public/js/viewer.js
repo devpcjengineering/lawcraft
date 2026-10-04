@@ -33,7 +33,7 @@ export function openViewer(o) {
       ${o.html ? '<button type="button" class="btn primary" data-v="print">พิมพ์ / บันทึกเป็น PDF</button>' : ''}
     </div>
     ${o.html && o.hint !== '' ? `<div class="viewer-hint">${esc(o.hint || 'กด “พิมพ์ / บันทึกเป็น PDF” แล้วเลือก “บันทึกเป็น PDF” ตั้งกระดาษ A4 ขนาด 100% และปิด “ส่วนหัวและท้ายกระดาษ”')}</div>` : ''}
-    <div class="viewer-body"><div class="viewer-load" aria-hidden="true"><div class="spinner"></div></div><iframe class="viewer-frame" title="${esc(o.title)}"></iframe></div>`;
+    <div class="viewer-body"><div class="viewer-load" aria-hidden="true"><div class="boot-logo-wrap"><img src="/logo.svg" alt="" aria-hidden="true"><div class="spinner"></div></div></div><iframe class="viewer-frame" title="${esc(o.title)}"></iframe></div>`;
   document.body.appendChild(overlay);
   document.body.classList.add('viewer-open');
   const frame = overlay.querySelector('iframe');
