@@ -137,10 +137,12 @@ actions.claimAdmin = async () => {
 };
 
 // ตัวโหลด: โลโก้ในวงแหวนหมุน — ขึ้นเมื่อรอเกิน 150 มิลลิวินาที (โหลดเร็วไม่กะพริบ)
-const bootHtml = (msg) => `<div class="boot"><div class="boot-logo-wrap"><img src="/logo.svg" alt="" aria-hidden="true"><div class="spinner" aria-hidden="true"></div></div><p>${msg}<span class="ld" aria-hidden="true">...</span></p></div>`;
-function showBoot(msg) {
-  const p = app.firstElementChild?.classList.contains('boot') && app.children.length === 1 ? app.querySelector('.boot > p') : null;
-  if (p) p.firstChild.nodeValue = msg; else app.innerHTML = bootHtml(msg);
+const bootHtml = (msg) => `<div class="boot"><div class="boot-logo-wrap"><img src="/logo.svg" alt="" aria-hidden="true"><div class="spinner" aria-hidden="true"></div></div>${msg ? `<p>${msg}<span class="ld" aria-hidden="true">...</span></p>` : ''}</div>`;
+function showBoot(msg = '') {
+  const boot = app.firstElementChild?.classList.contains('boot') && app.children.length === 1 ? app.firstElementChild : null;
+  const p = boot?.querySelector(':scope > p');
+  if (boot && !msg) return; // มีตัวโหลดอยู่แล้ว: ไม่สร้างซ้ำ (วงแหวนหมุนต่อเนื่อง)
+  if (p && msg) p.firstChild.nodeValue = msg; else app.innerHTML = bootHtml(msg);
 }
 async function withLoader(promise, msg) {
   const t = setTimeout(() => showBoot(msg), 150);
@@ -605,7 +607,7 @@ document.addEventListener('click', (e) => {
 
 // ---------------- เริ่มต้น ----------------
 async function startApp() {
-  showBoot('กำลังโหลดข้อมูลกฎหมาย');
+  showBoot();
   if (!(await authUi.gate())) return; // ตั้ง S.role (admin | user | guest) หรือแสดงหน้าเข้าสู่ระบบ/ตั้งแอดมิน
   try {
     const { data, geo, people } = await backend.loadAll();

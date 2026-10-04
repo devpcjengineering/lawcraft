@@ -42,6 +42,70 @@ if (fs.existsSync(path.join(root, 'templates'))) cp('templates', 'templates');
   fs.writeFileSync(rp, `${rb}\n\nSitemap: ${SITE}/sitemap.xml\n`);
   console.log(`sitemap.xml: ${urls.length} หน้า`);
 }
+// เร่งความเร็วหน้าสาธารณะ: รวมไฟล์ CSS หลายไฟล์ที่ <head> เป็นไฟล์เดียวต่อหน้า (ลดคำขอที่บล็อกการแสดงผล)
+{
+  const crypto = await import('node:crypto');
+  for (const page of ['index.html', 'articles/index.html', 'contact/index.html', 'privacy/index.html']) {
+    const hp = path.join(dist, page);
+    let html = fs.readFileSync(hp, 'utf8');
+    const re = /<link rel="stylesheet" href="(\/[^"?#]+\.css)">\r?\n?/g;
+    const hrefs = [...html.matchAll(re)].map((m) => m[1]);
+    if (hrefs.length < 2) continue;
+    const css = hrefs.map((h) => fs.readFileSync(path.join(dist, h), 'utf8').replace(/^\uFEFF/, '').replace(/\/\*# sourceMappingURL=.*?\*\//g, '')).join('\n');
+    const name = `css/bundle-${page.replace(/\/?index\.html$/, '') || 'home'}.css`.replace('//', '/');
+    fs.writeFileSync(path.join(dist, name), css);
+    let first = true;
+    html = html.replace(re, () => { if (!first) return ''; first = false; return `<link rel="stylesheet" href="/${name}">\n`; });
+    fs.writeFileSync(hp, html);
+    console.log(`รวม CSS ${page}: ${hrefs.length} ไฟล์ → ${name}`);
+  }
+}
+
+// llms.txt (สำหรับ AI/LLM อ่านภาพรวมเว็บ) + ai-catalog.json (/.well-known/) — สร้างจากรายการหน้า/บทความตอน build
+{
+  const SITE = (process.env.SITE_URL || 'https://lawcraft.pcjengineering.co.th').replace(/\/$/, '');
+  const { packArticles } = await import('../server/articles-pack.js');
+  const arts = packArticles().index;
+  const one = (t) => String(t || '').replace(/\s+/g, ' ').trim();
+  const llms = `# Law Craft Legal Consultants (สำนักงานกฎหมาย ลอว์คราฟต์)
+
+> เว็บไซต์ภาษาไทยให้ความรู้กฎหมายไทยสำหรับผู้เสียหายและประชาชน (คดีออนไลน์ ซื้อขายออนไลน์ ฉ้อโกง หมิ่นประมาท ข่มขู่ ภาพส่วนตัว) พร้อมเครื่องมือร่างคำฟ้อง คำร้อง และเอกสารยื่นศาลตามแบบพิมพ์ของศาลยุติธรรม เนื้อหาเป็นข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมายหรือการรับประกันผลของคดี ควรตรวจสอบกับแหล่งทางการและนักกฎหมายก่อนยื่นต่อศาล
+
+## หน้าหลัก
+
+- [หน้าแรก](${SITE}/): ค้นหามาตราและข้อกฎหมาย ตรวจเขตอำนาจศาล ขั้นตอนฟ้องคดี และทางเข้าระบบร่างคำฟ้อง
+- [บทความกฎหมายคดีออนไลน์](${SITE}/articles/): รวมบทความอธิบายสิทธิ ขั้นตอน และการเก็บหลักฐาน
+- [ติดต่อปรึกษากฎหมาย](${SITE}/contact/): ส่งเรื่องให้เจ้าหน้าที่ตรวจสอบเบื้องต้น
+- [นโยบายความเป็นส่วนตัว](${SITE}/privacy/): ข้อมูลที่เก็บ วัตถุประสงค์ และสิทธิของเจ้าของข้อมูลตาม PDPA
+
+## บทความ
+
+${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/?a=${encodeURIComponent(a.slug)}): ${one(a.summary || a.subtitle).slice(0, 160)}`).join('\n')}
+
+## Optional
+
+- [Sitemap](${SITE}/sitemap.xml): รายการหน้าทั้งหมดสำหรับเสิร์ชเอนจิน
+`;
+  fs.writeFileSync(path.join(dist, 'llms.txt'), llms);
+  const host = new URL(SITE).hostname;
+  const catalog = {
+    specVersion: '1.0',
+    host: { displayName: 'Law Craft Legal Consultants', identifier: host },
+    entries: [{
+      identifier: `urn:air:${host}:knowledge:site-overview`,
+      displayName: 'Law Craft — ภาพรวมเว็บไซต์และรายการบทความ',
+      type: 'text/markdown',
+      url: `${SITE}/llms.txt`,
+      description: 'ภาพรวมเว็บไซต์ความรู้กฎหมายไทยและระบบร่างคำฟ้อง พร้อมลิงก์ไปยังหน้าและบทความทั้งหมด (llms.txt)',
+      representativeQueries: ['ฟ้องหมิ่นประมาทออนไลน์ทำอย่างไร', 'ถูกโกงซื้อของออนไลน์ ฟ้องคดีอาญาเองได้ไหม', 'เก็บหลักฐานดิจิทัลสำหรับคดีออนไลน์'],
+    }],
+  };
+  fs.mkdirSync(path.join(dist, '.well-known'), { recursive: true });
+  const json = JSON.stringify(catalog, null, 2) + '\n';
+  fs.writeFileSync(path.join(dist, '.well-known', 'ai-catalog.json'), json);
+  fs.writeFileSync(path.join(dist, 'ai-catalog.json'), json);
+  console.log(`llms.txt: ${arts.length} บทความ · ai-catalog.json`);
+}
 // ตรวจก่อนปล่อย: ต้องตั้ง Supabase ใน config.js ไม่เช่นนั้นเว็บจะพยายามเรียก /api (ซึ่งไม่มีในโหมดสถิต)
 const cfg = fs.readFileSync(path.join(dist, 'js', 'config.js'), 'utf8');
 const hasSb = /url:\s*'https:\/\/[^']+'/.test(cfg) && /anonKey:\s*'[^']{20,}'/.test(cfg);
