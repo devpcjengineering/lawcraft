@@ -463,3 +463,12 @@ a, button, select, input, textarea, label, summary { touch-action: manipulation;
   .nav-links, .nav-links.open { transition: none; }
   dialog article { animation: none; }
 }
+
+/* การ์ดมาตรา (มือถือ): เลขมาตราซ้าย · ป้ายกฎหมายขวา — ลดความสูงต่อการ์ด */
+@media (max-width: 760px) {
+  .cards > .card:not(.skel) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; row-gap: 2px; align-items: center; }
+  .card .sec-no { grid-column: 1; grid-row: 1; }
+  .card .law { grid-column: 2; grid-row: 1; justify-self: end; }
+  .card h3, .card p { grid-column: 1 / -1; }
+  .sf-logo { min-height: 44px; }
+}

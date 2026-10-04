@@ -39,6 +39,13 @@ if (key) {
 }
 if (/sbp_[a-f0-9]{20,}/.test(cfg)) throw new Error('พบโทเค็นจัดการบัญชี (sbp_…) ใน config.js — ห้ามนำขึ้นเว็บ');
 
+// กันแคชค้างของ CDN: ใส่ ?v=<แฮชเนื้อหา> ให้ลิงก์ .js/.css/.ttf/.json ทุกตัว (ดู scripts/version-assets.js)
+{
+  const { versionAssets } = await import('./version-assets.js');
+  const r = versionAssets(dist);
+  console.log(`เวอร์ชันไฟล์: ?v=${r.version} (แก้ลิงก์ใน ${r.filesChanged} ไฟล์)`);
+}
+
 let files = 0, bytes = 0;
 (function walk(d) { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else { files++; bytes += fs.statSync(p).size; } } })(dist);
 console.log(`dist/ พร้อม deploy: ${files} ไฟล์, ${(bytes / 1048576).toFixed(1)} MB`);
