@@ -14,13 +14,14 @@ function runHtml(r) {
   return cls.length === 1 ? text : `<span class="${cls.join(' ')}">${text}</span>`;
 }
 
-// ปีกกา “{” ประกอบจากชิ้นส่วน: หัว – เส้นตรงยืดได้ – ปลายแหลมกลาง – เส้นตรงยืดได้ – ท้าย (ยืดตามความสูงของรายชื่อ ไม่เพี้ยน)
+// ปีกกา “{” ประกอบจากชิ้นส่วน: หัว (สูงคงที่) – เส้นตรงยืดได้ – ปลายแหลมกลาง (สูงคงที่) – เส้นตรงยืดได้ – ท้าย (สูงคงที่)
+// ปลายหัว/ท้ายอยู่ที่ขอบบน/ล่างของกล่องปีกกาพอดี และ CSS (.brace) เว้นขอบบน/ล่างให้ตรงกึ่งกลางบรรทัดโจทก์/จำเลย; ปลายแหลมอยู่กึ่งกลางกล่องพอดี
 const BRACE = [
-  '<svg viewBox="0 0 10 12" preserveAspectRatio="none"><path d="M10 0.8 C6.5 0.8 5 2.6 5 6 L5 12"/></svg>',
-  '<i class="bl"></i>',
-  '<svg viewBox="0 0 10 12" preserveAspectRatio="none"><path d="M5 0 L5 3.2 C5 5 3 6 0.4 6 C3 6 5 7 5 8.8 L5 12"/></svg>',
-  '<i class="bl"></i>',
-  '<svg viewBox="0 0 10 12" preserveAspectRatio="none"><path d="M5 0 L5 6 C5 9.4 6.5 11.2 10 11.2"/></svg>',
+  '<svg class="bc" viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M10 0 C6.4 0 5 1.6 5 5 L5 10"/></svg>',
+  '<svg class="bl" viewBox="0 0 10 1" preserveAspectRatio="none"><path d="M5 0 L5 1"/></svg>',
+  '<svg class="bm" viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M5 0 L5 2.4 C5 4.2 3 5 0 5 C3 5 5 5.8 5 7.6 L5 10"/></svg>',
+  '<svg class="bl" viewBox="0 0 10 1" preserveAspectRatio="none"><path d="M5 0 L5 1"/></svg>',
+  '<svg class="bc" viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M5 0 L5 5 C5 8.4 6.4 10 10 10"/></svg>',
 ].join('');
 
 const runsHtml = (runs) => (runs || []).map(runHtml).join('');
@@ -59,6 +60,7 @@ function blockHtml(b, doc) {
       if (b.small) cls.push('small');
       if (b.gap) cls.push('gap');
       if (b.keep) cls.push('keep');
+      if (b.fit) cls.push('fit1');
       return `<p class="${cls.join(' ')}" style="${st.join(';')}">${runsHtml(b.runs)}</p>`;
     }
     case 'center':

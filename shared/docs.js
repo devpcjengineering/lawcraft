@@ -113,13 +113,13 @@ function authorLine(c, noun = 'คำฟ้อง', selfParty = null) {
         ...(cn.license ? [t(' ทนายความใบอนุญาตที่ '), val(cn.license)] : [t(' ทนายความ')]),
         ...fields(addrPairs(cn.address), ' ').length ? [t(' '), ...fields(addrPairs(cn.address))] : [],
         ...(cn.phone ? [t(' โทรศัพท์ '), val(cn.phone)] : []),
-        t(' ผู้เรียงและเขียนหรือพิมพ์')], { indent: 1.5, keep: true }),
+        t(' ผู้เรียงและเขียนหรือพิมพ์')], { align: 'center', keep: true }),
       sigBlock([{ label: 'ผู้เรียงและเขียนหรือพิมพ์', name: `(${counselName(cn)})` }]),
     ];
   }
   const pl = selfParty || plaintiffs(c)[0];
   return [
-    p([t(`${noun}ฉบับนี้ ข้าพเจ้า `), val(pl ? partyName(pl) : ''), t(' ผู้เรียงและเขียนหรือพิมพ์')], { indent: 1.5, keep: true }),
+    p([t(`${noun}ฉบับนี้ ข้าพเจ้า `), val(pl ? partyName(pl) : ''), t(' ผู้เรียงและเขียนหรือพิมพ์')], { align: 'center', keep: true }),
     sigBlock([{ label: 'ผู้เรียงและเขียนหรือพิมพ์', name: '' }]),
   ];
 }
@@ -390,11 +390,11 @@ function summonsDoc(c, idx, data = {}, target = null) {
       p([t('ศาล '), val(courtShort(c.court))], { indent: 0 }),
       p([t('โทรศัพท์ '), phone ? val(phone) : dots(14)], { indent: 0 }),
       { t: 'rule' },
-      p([t('ผู้รับหมาย '), ...(d0 ? fields([...addrPairs(d0.address), ['โทรศัพท์', d0.phone]], ' ', true) : [dots(40)])], { indent: 0 }),
+      p([t('ผู้รับหมาย '), ...(d0 ? fields([...addrPairs(d0.address), ['โทรศัพท์', d0.phone]], ' ', true) : [dots(40)])], { indent: 0, fit: true }),
       { t: 'center', text: 'ใบรับหมายนัดไต่สวนมูลฟ้อง', u: true, b: false },
       p([t('วันที่ ........ เดือน ................ พ.ศ. .................. ข้าพเจ้า '), val(dName), t(' ได้รับหมายนัดไต่สวนมูลฟ้องของศาล'), val(courtShort(c.court)), t(' ในคดีระหว่าง '), val(pName), t(' โจทก์ '), val(allD), t(' จำเลย ซึ่งนัดไต่สวนมูลฟ้อง'), ...whenRuns(hd, h.time, 8), t(' ไว้แล้ว')], { indent: 1.5, justify: true }),
       sigBlock([{ label: 'ผู้รับหมาย', name: '' }, { label: 'ผู้ส่งหมาย', name: '' }], true),
-      p([{ text: 'หมายเหตุ', u: true }, t(' ' + ft('summons.note'))], { indent: 0, small: true, justify: true }),
+      p([{ text: 'หมายเหตุ', u: true }, t(' ' + ft('summons.note'))], { indent: 0, small: true, fit: true }),
     ],
   };
 }

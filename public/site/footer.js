@@ -79,7 +79,7 @@ function footerHtml() {
       </section>
     </div>
     <div class="sf-bottom">
-      <p class="sf-copy"><span>© ${new Date().getFullYear()}</span><span class="sf-copy-name"><span>สำนักงานกฎหมาย ลอว์คราฟต์</span><span>Law Craft Legal Consultants</span></span></p>
+      <p class="sf-copy">© ${new Date().getFullYear()} Law Craft Legal Consultants</p>
       <p class="sf-legal">ข้อมูลในเว็บไซต์นี้เป็นข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมาย และอาจไม่ทันต่อการแก้ไขกฎหมายล่าสุด ควรตรวจสอบตัวบทฉบับปัจจุบันและปรึกษาทนายความก่อนดำเนินคดี แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม สำนักงานศาลยุติธรรม</p>
       <p class="sf-links"><a href="/privacy/">นโยบายความเป็นส่วนตัว</a><a href="/admin/" class="sf-admin">เข้าสู่ระบบร่างคำฟ้อง</a></p>
     </div>

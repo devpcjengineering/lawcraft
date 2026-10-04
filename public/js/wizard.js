@@ -59,7 +59,6 @@ export function stepMissing(key, c) {
     if (!crim && !filled(c.civilCause) && !(c.charges || []).length) m.push('มูลคดีแพ่ง');
     if (!hasText(c.facts)) m.push('ข้อเท็จจริงในคำฟ้องอย่างน้อย 1 ข้อ');
   }
-  if (key === 'prayer' && !(c.prayers || []).some((p) => filled(p.text) && p.src !== 'base-cost')) m.push('คำขอท้ายคำฟ้องอย่างน้อย 1 ข้อ (นอกจากข้อค่าฤชาธรรมเนียม)');
   return m;
 }
 

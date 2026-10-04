@@ -40,11 +40,16 @@
 .page .court { text-align: center; margin: var(--ct-b, 3mm) 0 var(--ct-a, 6mm); transform: translateX(var(--ct-x, 0mm)); }
 .page .between { display: grid; grid-template-columns: 24mm 7mm 1fr; align-items: stretch; margin: var(--bt-b, 4mm) 0 var(--bt-a, 5mm); }
 .page .bt-lab { font-weight: 700; align-self: center; }
-.page .brace { display: flex; flex-direction: column; min-height: 20mm; }
-.page .brace svg { display: block; width: 100%; height: 6mm; flex: none; overflow: visible; }
-.page .brace path { fill: none; stroke: #000; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.page .brace .bl { flex: 1; min-height: 1mm; background: linear-gradient(#000, #000) 50% 0 / 1.3px 100% no-repeat; }
-.page .bt-rows { padding-left: 1mm; align-self: center; }
+/* ปีกกา: กล่องปีกกาเว้นขอบบน/ล่างเท่าครึ่งความสูงบรรทัดชื่อ (--bt-half) → ปลายบนอยู่กึ่งกลางบรรทัดโจทก์ ปลายล่างอยู่กึ่งกลางบรรทัดจำเลย
+   ปลายแหลมกลางอยู่กึ่งกลางกล่องพอดี และ "ระหว่าง" (align-self:center) ก็อยู่กึ่งกลางเดียวกัน */
+.page .between { --bt-half: calc(var(--fs, 16pt) * var(--lh, 1.32) / 2 + 1px); }
+.page .brace { display: flex; flex-direction: column; min-height: 0; margin: var(--bt-half) 0; }
+.page .brace svg { display: block; width: 100%; flex: none; overflow: visible; }
+.page .brace .bc { height: 3.8mm; }
+.page .brace .bm { height: 5.2mm; }
+.page .brace .bl { flex: 1 1 0; height: 0; min-height: 0; }
+.page .brace path { fill: none; stroke: #000; stroke-width: 1.3px; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.page .bt-rows { padding-left: 1mm; }
 .page .bt-brace { border-left: 1.5px solid #000; border-radius: 10px 0 0 10px; padding-left: 5mm; position: relative; }
 .page .bt-row { display: flex; gap: 6px; align-items: baseline; }
 .page .bt-name { flex: 1; border-bottom: 1.5px dotted #000; min-height: 1.1em; padding-bottom: 1px; }
@@ -96,3 +101,6 @@
   .page.sheet { padding: 0 !important; height: 297mm; min-height: 0; break-after: page; break-inside: avoid; }
   .page.sheet:last-child { break-after: auto; }
 }
+
+/* บรรทัดที่ต้องอยู่บรรทัดเดียว (หมายเหตุท้ายหมาย / ผู้รับหมาย): ตัวอักษรย่อลงเองให้พอดีความกว้าง (js/paginate.js) */
+.page .p.fit1 { white-space: nowrap; overflow: visible; text-indent: 0 !important; }

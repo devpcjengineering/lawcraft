@@ -140,6 +140,20 @@ export function initMeasureFrame() {
   return measureLoading;
 }
 
+/**
+ * ย่อตัวอักษรของย่อหน้า .fit1 (หมายเหตุท้ายหมาย / ที่อยู่ผู้รับหมาย) ให้ข้อความทั้งหมดอยู่บรรทัดเดียวพอดีความกว้าง — ยิ่งยาวยิ่งเล็ก
+ * ย่อได้ไม่เกิน 60% ของขนาดเดิม ถ้ายาวกว่านั้นให้ตัดขึ้นบรรทัดใหม่ตามปกติ (ยังอ่านได้) ผลฝังเป็น font-size ในแท็ก จึงตรงกันทั้งตัวอย่างและ PDF
+ */
+function fitOneLineParagraphs(host, doc) {
+  for (const el of host.querySelectorAll('.p.fit1')) {
+    const avail = el.clientWidth, need = el.scrollWidth;
+    if (!avail || need <= avail + 1) continue;
+    const fs0 = parseFloat(doc.defaultView.getComputedStyle(el).fontSize) || 21;
+    const k = avail / need;
+    if (k < 0.6) { el.style.fontSize = `${(fs0 * 0.6).toFixed(2)}px`; el.style.whiteSpace = 'normal'; } else el.style.fontSize = `${(fs0 * k * 0.995).toFixed(2)}px`; // 0.995 กันเศษทศนิยมล้นขอบ
+  }
+}
+
 /** รับ HTML ของเอกสาร (หนึ่งหรือหลาย <section class="page">) คืน HTML ที่แบ่งเป็นแผ่น A4 แล้ว — ต้องเรียก initMeasureFrame() ให้เสร็จก่อนเพื่อผลที่ตรงกับตัวพิมพ์ */
 export function paginateHtml(html) {
   const doc = measure?.doc || document;
@@ -149,6 +163,7 @@ export function paginateHtml(html) {
   host.innerHTML = html;
   doc.body.appendChild(host);
   try {
+    fitOneLineParagraphs(host, doc);
     const out = [];
     for (const sec of [...host.children]) {
       if (sec.matches('section.page')) for (const s of sheetsOf(sec, doc)) out.push(s.outerHTML); else out.push(sec.outerHTML);
