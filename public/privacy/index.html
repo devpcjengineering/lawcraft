@@ -56,14 +56,14 @@
     <p class="ar-crumb"><a href="/">← หน้าแรก</a></p>
     <header class="pv-head">
       <span class="ar-cat">นโยบายความเป็นส่วนตัว</span>
-      <h1>นโยบายความเป็นส่วนตัว</h1>
-      <p class="ar-sub">เราเก็บ ใช้ และเปิดเผยข้อมูลของคุณอย่างไร และคุณมีสิทธิอะไรบ้าง ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)</p>
-      <p class="ar-meta">ปรับปรุงล่าสุด 5 ตุลาคม 2569</p>
+      <h1 data-live="privacy.title">นโยบายความเป็นส่วนตัว</h1>
+      <p class="ar-sub" data-live="privacy.lead">เราเก็บ ใช้ และเปิดเผยข้อมูลของคุณอย่างไร และคุณมีสิทธิอะไรบ้าง ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)</p>
+      <p class="ar-meta">ปรับปรุงล่าสุด <span data-live="privacy.updated">5 ตุลาคม 2569</span></p>
     </header>
-    <p class="ar-review pv-draft">ฉบับร่างตั้งต้น — สำนักงานควรให้ที่ปรึกษากฎหมายหรือเจ้าหน้าที่คุ้มครองข้อมูลส่วนบุคคลตรวจ และยืนยันระยะเวลาเก็บข้อมูล ผู้รับข้อมูล และช่องทางติดต่อ ก่อนใช้งานจริง</p>
+    <p class="ar-review pv-draft" data-live="privacy.draftNote" data-live-hide="privacy.hideDraft">ฉบับร่างตั้งต้น — สำนักงานควรให้ที่ปรึกษากฎหมายหรือเจ้าหน้าที่คุ้มครองข้อมูลส่วนบุคคลตรวจ และยืนยันระยะเวลาเก็บข้อมูล ผู้รับข้อมูล และช่องทางติดต่อ ก่อนใช้งานจริง</p>
 
     <div class="ar-cols">
-      <nav class="ar-toc" aria-label="สารบัญ"><details open><summary>สารบัญ</summary><ol>
+      <nav class="ar-toc" aria-label="สารบัญ"><details open><summary>สารบัญ</summary><ol data-live-toc>
         <li><a href="#who">ผู้ควบคุมข้อมูล</a></li>
         <li><a href="#what">ข้อมูลที่เราเก็บ</a></li>
         <li><a href="#why">วัตถุประสงค์และฐานทางกฎหมาย</a></li>
@@ -80,8 +80,9 @@
       </ol></details></nav>
 
       <article class="ar-body pv-body">
-        <p>นโยบายนี้ใช้กับเว็บไซต์ Law Craft (ส่วนเว็บไซต์สาธารณะ ฟอร์มติดต่อปรึกษากฎหมาย และระบบหลังบ้านร่างคำฟ้อง) อธิบายว่าเราเก็บข้อมูลส่วนบุคคลอะไร เพราะเหตุใด เก็บนานเท่าใด เปิดเผยแก่ใคร และคุณใช้สิทธิของตนได้อย่างไร</p>
+        <p data-live="privacy.intro">นโยบายนี้ใช้กับเว็บไซต์ Law Craft (ส่วนเว็บไซต์สาธารณะ ฟอร์มติดต่อปรึกษากฎหมาย และระบบหลังบ้านร่างคำฟ้อง) อธิบายว่าเราเก็บข้อมูลส่วนบุคคลอะไร เพราะเหตุใด เก็บนานเท่าใด เปิดเผยแก่ใคร และคุณใช้สิทธิของตนได้อย่างไร</p>
 
+        <div class="pv-sections" data-live-sections="privacy.sections">
         <h2 id="who">1. ผู้ควบคุมข้อมูลส่วนบุคคล</h2>
         <p><b>สำนักงานกฎหมาย ลอว์คราฟต์ Law Craft Legal Consultants</b><br>สำนักงานแห่งใหญ่ ห้างหุ้นส่วนจำกัด พีซีเจ เอ็นจิเนียริ่ง<br>173 หมู่ที่ 7 ตำบลคูเมือง อำเภอหนองบัวแดง จังหวัดชัยภูมิ<br>ทะเบียนนิติบุคคลเลขที่ 0363569001102</p>
 
@@ -166,6 +167,7 @@
         <h2 id="contact">13. ติดต่อเรา</h2>
         <p>หากต้องการใช้สิทธิหรือมีคำถามเกี่ยวกับข้อมูลส่วนบุคคล ติดต่อได้ผ่าน <a href="/contact/">หน้าติดต่อปรึกษากฎหมาย</a> โดยระบุหัวข้อ “คำขอเกี่ยวกับข้อมูลส่วนบุคคล” หรือติดต่อที่สำนักงานตามที่อยู่ในข้อ 1</p>
         <p class="fine">ร้องเรียนต่อหน่วยงานกำกับ: สำนักงานคณะกรรมการคุ้มครองข้อมูลส่วนบุคคล (สคส.)</p>
+        </div>
       </article>
     </div>
   </div>
@@ -179,15 +181,22 @@
 </footer>
 
 <script type="module" src="/site/footer.js"></script>
+<script type="module" src="/site/live-pages.js"></script>
 <script>
   // เมนูมือถือ + ไฮไลต์สารบัญตามส่วนที่กำลังอ่าน
   (function () {
     var b = document.getElementById('burger'), l = document.getElementById('navLinks');
     b.addEventListener('click', function () { var o = l.classList.toggle('open'); b.setAttribute('aria-expanded', String(o)); b.setAttribute('aria-label', o ? 'ปิดเมนู' : 'เปิดเมนู'); });
-    var links = {}; document.querySelectorAll('.ar-toc a').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
-    if (!('IntersectionObserver' in window)) return;
-    var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (!e.isIntersecting) return; Object.keys(links).forEach(function (k) { if (k === e.target.id) links[k].setAttribute('aria-current', 'true'); else links[k].removeAttribute('aria-current'); }); }); }, { rootMargin: '-20% 0px -70% 0px' });
-    Object.keys(links).forEach(function (k) { var el = document.getElementById(k); if (el) io.observe(el); });
+    // ไฮไลต์สารบัญ — เรียกซ้ำได้ (live-pages.js เรียกหลังสร้างสารบัญใหม่จากข้อความที่แอดมินแก้)
+    var io = null;
+    window.__tocSpy = function () {
+      if (io) io.disconnect();
+      var links = {}; document.querySelectorAll('.ar-toc a').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
+      if (!('IntersectionObserver' in window)) return;
+      io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (!e.isIntersecting) return; Object.keys(links).forEach(function (k) { if (k === e.target.id) links[k].setAttribute('aria-current', 'true'); else links[k].removeAttribute('aria-current'); }); }); }, { rootMargin: '-20% 0px -70% 0px' });
+      Object.keys(links).forEach(function (k) { var el = document.getElementById(k); if (el) io.observe(el); });
+    };
+    window.__tocSpy();
     if (matchMedia('(max-width: 900px)').matches) { var d = document.querySelector('.ar-toc details'); if (d) d.removeAttribute('open'); }
   })();
 </script>

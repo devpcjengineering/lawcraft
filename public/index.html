@@ -49,11 +49,7 @@
           <linearGradient id="sgA" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stop-color="#0071e3"/><stop offset=".55" stop-color="#8e5af7"/><stop offset="1" stop-color="#e0428b"/>
           </linearGradient>
-          <radialGradient id="sgS">
-            <stop offset="0" stop-color="currentColor" stop-opacity=".18"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/>
-          </radialGradient>
         </defs>
-        <ellipse class="shadow" cx="200" cy="340" rx="132" ry="9" fill="url(#sgS)"/>
         <path class="d" style="--d:0.3s" pathLength="1" fill="none" d="M136 336H264M158 336V327Q158 322 164 322H236Q242 322 242 327V336"/>
         <path class="d" style="--d:1.35s" pathLength="1" fill="none" d="M200 322V78"/>
         <g class="beam">
@@ -74,12 +70,12 @@
         <circle class="d" style="--d:2.78s" pathLength="1" fill="none" cx="200" cy="45" r="4"/>
       </svg>
     </div>
-    <p class="eyebrow reveal">กฎหมายไทย · ฐานความรู้ และระบบร่างคำฟ้อง</p>
-    <h1 class="reveal">กฎหมายที่ชัดเจน.<br><span class="grad">คำฟ้องที่พร้อมยื่น.</span></h1>
-    <p class="lead reveal">ค้นหามาตรา ตรวจเขตอำนาจศาล และจัดทำเอกสารยื่นศาลตามแบบพิมพ์ของศาลยุติธรรม ในที่เดียว</p>
+    <p class="eyebrow reveal" data-live="home.heroEyebrow">กฎหมายไทย · ฐานความรู้ และระบบร่างคำฟ้อง</p>
+    <h1 class="reveal"><span data-live="home.heroTitle">กฎหมายที่ชัดเจน.</span><br><span class="grad" data-live="home.heroAccent">คำฟ้องที่พร้อมยื่น.</span></h1>
+    <p class="lead reveal" data-live="home.heroLead">ค้นหามาตรา ตรวจเขตอำนาจศาล และจัดทำเอกสารยื่นศาลตามแบบพิมพ์ของศาลยุติธรรม ในที่เดียว</p>
     <div class="actions reveal">
-      <a class="btn-pill primary" href="#library">ค้นหาข้อกฎหมาย</a>
-      <a class="link-arrow" href="#drafting">ดูระบบร่างคำฟ้อง</a>
+      <a class="btn-pill primary" href="#library" data-live="home.ctaPrimary">ค้นหาข้อกฎหมาย</a>
+      <a class="link-arrow" href="#drafting" data-live="home.ctaSecondary">ดูระบบร่างคำฟ้อง</a>
     </div>
     <div class="stats reveal" id="stats" aria-label="สถิติข้อมูล"></div>
   </section>
@@ -128,10 +124,10 @@
 
       <aside class="hcta reveal" aria-labelledby="hctaTitle">
         <div>
-          <h3 id="hctaTitle">ไม่แน่ใจว่าเรื่องของคุณเข้าข่ายแบบไหน?</h3>
-          <p>เล่าเรื่องโดยย่อ ให้เจ้าหน้าที่ตรวจสอบเบื้องต้นก่อน แล้วติดต่อกลับตามช่องทางที่คุณให้ไว้ การส่งข้อความไม่ใช่การว่าจ้างทนายความ และไม่ใช่การรับประกันผลของคดี</p>
+          <h3 id="hctaTitle" data-live="home.helpTitle">ไม่แน่ใจว่าเรื่องของคุณเข้าข่ายแบบไหน?</h3>
+          <p data-live="home.helpText">เล่าเรื่องโดยย่อ ให้เจ้าหน้าที่ตรวจสอบเบื้องต้นก่อน แล้วติดต่อกลับตามช่องทางที่คุณให้ไว้ การส่งข้อความไม่ใช่การว่าจ้างทนายความ และไม่ใช่การรับประกันผลของคดี</p>
         </div>
-        <a class="btn-pill light" href="/contact/">ติดต่อปรึกษากฎหมาย</a>
+        <a class="btn-pill light" href="/contact/" data-live="home.helpButton">ติดต่อปรึกษากฎหมาย</a>
       </aside>
     </div>
   </section>
@@ -210,10 +206,10 @@
         <p class="lead">คำฟ้อง คำขอท้ายฟ้อง คำร้อง บัญชีพยาน ใบแต่งทนายความ ตามแบบพิมพ์ศาลยุติธรรม เลือกโจทก์ จำเลย ข้อหา จากรายการ ที่เหลือระบบเติมให้</p>
       </header>
       <div class="feat">
-        <article class="tile reveal"><h3>ฟอร์มเดียว<br>เอกสารทุกฉบับ</h3><p>ข้อมูลคู่ความ ที่อยู่ และเลขคดี ใช้ซ้ำในทุกแบบพิมพ์ ไม่ต้องพิมพ์ซ้ำ</p></article>
-        <article class="tile reveal"><h3>เลือกข้อหา<br>จากรายการ</h3><p>ตัวบท ระวางโทษ อายุความ และร่างข้อเท็จจริง พร้อมแก้ไขต่อ</p></article>
-        <article class="tile reveal"><h3>ตรวจก่อนยื่น</h3><p>เตือนข้อมูลที่ขาด เลขบัตรไม่ถูกต้อง และกำหนด 3 เดือนของความผิดต่อส่วนตัว</p></article>
-        <article class="tile reveal"><h3>ดู PDF ก่อนบันทึก</h3><p>ดูตัวอย่างเต็มหน้าก่อน แล้วบันทึกเป็น PDF ฟอนต์ TH Sarabun IT๙ ตามแบบพิมพ์ศาล</p></article>
+        <article class="tile reveal"><h3 data-live="home.tile1Title">ฟอร์มเดียว<br>เอกสารทุกฉบับ</h3><p data-live="home.tile1Text">ข้อมูลคู่ความ ที่อยู่ และเลขคดี ใช้ซ้ำในทุกแบบพิมพ์ ไม่ต้องพิมพ์ซ้ำ</p></article>
+        <article class="tile reveal"><h3 data-live="home.tile2Title">เลือกข้อหา<br>จากรายการ</h3><p data-live="home.tile2Text">ตัวบท ระวางโทษ อายุความ และร่างข้อเท็จจริง พร้อมแก้ไขต่อ</p></article>
+        <article class="tile reveal"><h3 data-live="home.tile3Title">ตรวจก่อนยื่น</h3><p data-live="home.tile3Text">เตือนข้อมูลที่ขาด เลขบัตรไม่ถูกต้อง และกำหนด 3 เดือนของความผิดต่อส่วนตัว</p></article>
+        <article class="tile reveal"><h3 data-live="home.tile4Title">ดู PDF ก่อนบันทึก</h3><p data-live="home.tile4Text">ดูตัวอย่างเต็มหน้าก่อน แล้วบันทึกเป็น PDF ฟอนต์ TH Sarabun IT๙ ตามแบบพิมพ์ศาล</p></article>
       </div>
       <div class="actions center reveal">
         <a class="btn-pill light" href="/admin/">เข้าสู่ระบบร่างคำฟ้อง</a>
@@ -238,6 +234,7 @@
 </dialog>
 
 <script type="module" src="/site/footer.js"></script>
+<script type="module" src="/site/live-pages.js"></script>
 <script type="module" src="/site/site.js"></script>
 <script src="/js/smooth.js"></script>
 </body>

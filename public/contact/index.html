@@ -43,9 +43,9 @@
 <main id="main" class="ct-main">
   <div class="wrap">
     <header class="ct-hero">
-      <p class="eyebrow">ติดต่อปรึกษากฎหมาย</p>
-      <h1>เล่าเรื่องของคุณ.<br><span class="grad">เราจะตรวจสอบเบื้องต้น.</span></h1>
-      <p class="lead">กรอกข้อมูลสั้น ๆ เจ้าหน้าที่จะตรวจสอบเรื่องและติดต่อกลับตามช่องทางที่คุณให้ไว้</p>
+      <p class="eyebrow" data-live="contact.eyebrow">ติดต่อปรึกษากฎหมาย</p>
+      <h1><span data-live="contact.title">เล่าเรื่องของคุณ.</span><br><span class="grad" data-live="contact.accent">เราจะตรวจสอบเบื้องต้น.</span></h1>
+      <p class="lead" data-live="contact.lead">กรอกข้อมูลสั้น ๆ เจ้าหน้าที่จะตรวจสอบเรื่องและติดต่อกลับตามช่องทางที่คุณให้ไว้</p>
     </header>
 
     <div class="ct-cols">
@@ -133,7 +133,7 @@
             <button type="submit" class="btn-pill primary" id="ctSubmit">ส่งข้อความ</button>
             <p class="ct-status" id="ctStatus" role="status" aria-live="polite"></p>
           </div>
-          <p class="fine ct-fine">การส่งข้อความนี้ไม่ใช่การว่าจ้างทนายความ และไม่ใช่การรับประกันผลของคดี</p>
+          <p class="fine ct-fine" data-live="contact.formNote">การส่งข้อความนี้ไม่ใช่การว่าจ้างทนายความ และไม่ใช่การรับประกันผลของคดี</p>
         </form>
 
         <div class="ct-done" id="ctDone" role="status" tabindex="-1" hidden>
@@ -186,6 +186,7 @@
 <noscript><style>.ct-card::before{content:"ต้องเปิด JavaScript เพื่อส่งแบบฟอร์มนี้";display:block;padding:14px 18px;margin-bottom:12px;border-radius:12px;background:#fdf1dc;color:#94560a}</style></noscript>
 <script type="module" src="/site/nav.js"></script>
 <script type="module" src="/site/footer.js"></script>
+<script type="module" src="/site/live-pages.js"></script>
 <script type="module" src="/contact/contact.js"></script>
 <script src="/js/smooth.js"></script>
 </body>

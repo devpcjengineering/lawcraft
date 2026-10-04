@@ -20,7 +20,7 @@ let role = 'user';
 
 /** ข้อมูลกฎหมายสาธารณะ (law_data อ่านได้ทุกคนรวม anon) — โหมดทดลองใช้ฟังก์ชันนี้ร่วมกัน */
 export async function loadLaw() {
-  const rows = must(await sb.from('law_data').select('key,data').neq('key', 'geo'));
+  const rows = must(await sb.from('law_data').select('key,data').neq('key', 'geo').not('key', 'like', 'content-*'));
   const m = Object.fromEntries(rows.map((r) => [r.key, r.data]));
   const data = {
     laws: m.laws || [], items: m.items || [], procedure: m.procedure || { laws: [], sections: [], snippets: [] },
@@ -131,6 +131,9 @@ export const supabaseBackend = {
   // กล่องข้อความปรึกษาจากหน้าเว็บ (ตาราง inquiries — RLS: เฉพาะแอดมินอ่าน/แก้/ลบได้)
   // ข้อมูลเว็บไซต์ (แถว key='site' ใน law_data): ทุกคนอ่านได้ แอดมินเขียนได้
   async loadSite() { const rows = must(await sb.from('law_data').select('data').eq('key', 'site')); return rows[0]?.data || {}; },
+  // เนื้อหาที่แอดมินจัดการ (บทความ ข้อกฎหมายที่แก้ หน้าข้อความ): แถว key='content-<ชื่อ>' ใน law_data
+  async loadContent(key) { const rows = must(await sb.from('law_data').select('data').eq('key', 'content-' + key)); return rows[0]?.data || {}; },
+  async saveContent(key, obj) { must(await sb.from('law_data').upsert({ key: 'content-' + key, data: obj, updated_at: new Date().toISOString() }, { onConflict: 'key' })); return { ok: true }; },
   async saveSite(obj) { must(await sb.from('law_data').upsert({ key: 'site', data: obj, updated_at: new Date().toISOString() }, { onConflict: 'key' })); return { ok: true }; },
 
   async listInquiries() {

@@ -82,20 +82,17 @@ h2 { font-size: clamp(32px, 5.2vw, 56px); font-weight: 700; }
 .scales-wrap .scales { --amp: var(--amp-live, 6deg); }
 .scales .d { stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 2; stroke-dashoffset: 1; }
 .scales .bowl { fill-opacity: 0; }
-.scales .shadow { opacity: 0; transform-origin: 200px 340px; }
 .scales .beam { transform-origin: 200px 70px; }
 .scales .pan, .scales .dish { transform-origin: 60px 70px; }
 .scales .pan.r, .scales .dish.r { transform-origin: 340px 70px; }
 .scales.play .d { animation: s-draw var(--dur, .65s) cubic-bezier(.4,0,.2,1) calc(var(--d, 0s) * .28) forwards; }
 .scales.play .bowl { animation: s-draw var(--dur, .65s) cubic-bezier(.4,0,.2,1) calc(var(--d, 0s) * .28) forwards, s-fill .5s ease-out calc(var(--d, 0s) * .28 + var(--dur, .65s) * .7) forwards; }
-.scales.play .shadow { animation: s-shadow 1s ease-out 1s forwards; transform: scaleX(calc(1 + var(--p, 0) * .1)); }
 .scales.play .beam { animation: s-tilt 7.5s ease-in-out 2.4s infinite both; }
 .scales.play .pan { animation: s-untilt 7.5s ease-in-out 2.4s infinite both; }
 .scales.play .dish { animation: s-dish 7.5s ease-in-out 2.7s infinite both; }
 .scales.mini { --amp: 4deg; --dur: .5s; }
 @keyframes s-draw { to { stroke-dashoffset: 0; } }
 @keyframes s-fill { to { fill-opacity: .92; } }
-@keyframes s-shadow { to { opacity: 1; } }
 @keyframes s-tilt { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(var(--amp)); } 75% { transform: rotate(calc(var(--amp) * -1)); } }
 @keyframes s-untilt { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(calc(var(--amp) * -1)); } 75% { transform: rotate(var(--amp)); } }
 @keyframes s-dish { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(calc(var(--amp) * -.22)); } 75% { transform: rotate(calc(var(--amp) * .22)); } }

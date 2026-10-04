@@ -10,6 +10,8 @@ import { ageFromBirth, validCitizenId, maskCitizenId } from '/shared/thai.js';
 import { selectBackend } from './api.js';
 import { showBook, leaveBook } from './book.js';
 import { showSiteAdmin, leaveSiteAdmin } from './site-admin.js';
+import { showContentAdmin, leaveContentAdmin } from './content-admin.js';
+import { mergeLawEdits } from '/shared/content-merge.js';
 import { openViewer } from './viewer.js';
 import { morphInto } from './morph.js';
 import { paginateHtml, countSheets, documentFontsReady } from './paginate.js';
@@ -152,6 +154,7 @@ Indictment</h1>
       <button class="card newcase" data-act="newCase" data-type="civil"><h3>＋ คดีแพ่ง</h3><span class="hint">คำฟ้องแพ่ง คำขอท้ายฟ้อง ทุนทรัพย์และค่าขึ้นศาล มูลหนี้ตาม ป.พ.พ.</span></button>
       <button class="card newcase" data-act="openBook"><h3>☰ สมุดรายชื่อ</h3><span class="hint">เพิ่ม/แก้ไขบุคคล นิติบุคคล และทนายความไว้ล่วงหน้า แล้วกดเลือกเป็นโจทก์ จำเลย หรือทนายในคดีใดก็ได้</span></button>
       <button class="card newcase" data-act="openSite"><h3>🌐 จัดการเว็บไซต์</h3><span class="hint">แก้ช่องทางติดต่อ เวลาทำการ ประกาศบนหัวเว็บ ข้อมูลสำนักงาน และข้อความท้ายเว็บ — เฉพาะผู้ดูแลระบบ</span></button>
+      <button class="card newcase" data-act="openContent"><h3>📝 จัดการเนื้อหา</h3><span class="hint">เขียน/แก้บทความ ข้อกฎหมาย (มาตรา โทษ อายุความ) และข้อความบนเว็บไซต์ เช่น นโยบายความเป็นส่วนตัว — เฉพาะผู้ดูแลระบบ</span></button>
       <button class="card newcase" data-act="openInbox"><h3>✉ กล่องข้อความปรึกษา <span class="ib-badge" data-inbox-badge hidden></span></h3><span class="hint">ข้อความที่ผู้เยี่ยมชมส่งจากหน้า “ติดต่อปรึกษากฎหมาย” ของเว็บไซต์ — ตรวจสอบ ติดต่อกลับ และทำเครื่องหมายว่าจัดการแล้ว</span></button>
       <label class="card newcase" style="cursor:pointer"><h3>⬆ นำเข้าข้อมูลคดี (.json)</h3><span class="hint">ไฟล์ที่ส่งออกจากระบบนี้</span><input type="file" id="importFile" accept=".json,application/json" hidden></label>
     </div>
@@ -203,9 +206,10 @@ function openCase(c, tab = 'case') {
   showWorkspace();
 }
 
-actions.goHome = async () => { if (S.bookMode) { await leaveSiteAdmin(); await leaveBook(); } showHome(); };
+actions.goHome = async () => { if (S.bookMode) { await leaveSiteAdmin(); await leaveContentAdmin(); await leaveBook(); } showHome(); };
 actions.openBook = () => showBook(app);
 actions.openSite = () => { if (authUi.isAdmin()) showSiteAdmin(app); };
+actions.openContent = () => { if (authUi.isAdmin()) showContentAdmin(app); };
 actions.openInbox = () => { if (authUi.isAdmin()) showInbox(app); };
 actions.signOut = () => authUi.signOut();
 actions.googleLogin = async () => {
@@ -590,7 +594,7 @@ async function startApp() {
   if (!(await authUi.gate())) return; // ตั้ง S.role (admin | user | guest) หรือแสดงหน้าเข้าสู่ระบบ/ตั้งแอดมิน
   try {
     const { data, geo, people } = await backend.loadAll();
-    S.data = data; S.idx = indexLaw(data); S.geo = geo; S.people = people;
+    S.data = await mergeLawEdits(data, backend.loadContent); S.idx = indexLaw(S.data); S.geo = geo; S.people = people; // รวมข้อกฎหมายที่แอดมินแก้ (content-laws)
     applyBrand();
     hooks.api = backend;
   } catch (e) {

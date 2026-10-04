@@ -130,6 +130,11 @@ app.get('/api/articles/:slug', (req, res) => {
 
 // ข้อมูลเว็บไซต์ที่แอดมินแก้ได้ (ช่องทางติดต่อ ฯลฯ) — โหมดไฟล์ในเครื่อง: อ่านสาธารณะ เขียนต้องเป็นแอดมิน
 const SITE_FILE = path.join(DATA_DIR, 'site.json');
+// เนื้อหาที่แอดมินจัดการ (บทความ/ข้อกฎหมายที่แก้/หน้าข้อความ) เก็บเป็นไฟล์ data/content/<key>.json (เหมือนแถว content-<key> ใน law_data)
+const CONTENT_DIR = path.join(DATA_DIR, 'content');
+const contentKey = (k) => (/^[a-z][a-z0-9-]{0,30}$/.test(k) ? k : null);
+app.get('/api/content/:key', (req, res) => { const k = contentKey(req.params.key); if (!k) return res.status(400).json({ error: 'key' }); try { res.json(JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, k + '.json'), 'utf8'))); } catch { res.json({}); } });
+app.put('/api/content/:key', adminAuth, (req, res) => { const k = contentKey(req.params.key); if (!k) return res.status(400).json({ error: 'key' }); fs.mkdirSync(CONTENT_DIR, { recursive: true }); fs.writeFileSync(path.join(CONTENT_DIR, k + '.json'), JSON.stringify(req.body && typeof req.body === 'object' ? req.body : {}, null, 2), 'utf8'); res.json({ ok: true }); });
 app.get('/api/site', (req, res) => { try { res.json(JSON.parse(fs.readFileSync(SITE_FILE, 'utf8'))); } catch { res.json({}); } });
 app.put('/api/site', adminAuth, (req, res) => { fs.writeFileSync(SITE_FILE, JSON.stringify(req.body && typeof req.body === 'object' ? req.body : {}, null, 2), 'utf8'); res.json({ ok: true }); });
 

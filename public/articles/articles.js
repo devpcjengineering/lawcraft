@@ -1,6 +1,8 @@
 // หน้าบทความ: รายการ (/articles/) และหน้าอ่าน (/articles/?a=<slug>)
 import config from '/site/config.js';
 import { morphInto } from '/js/morph.js';
+import { loadContent } from '/site/content.js';
+import { mergeIndex, pickArticle, normArticle, needsResolve, reuseStaticRefs, resolveRefs } from './merge.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -33,6 +35,12 @@ async function getJson(url) {
 const getIndex = () => getJson('/articles-data/index.json');
 const getArticle = (slug) => getJson(`/articles-data/${encodeURIComponent(slug)}.json`);
 
+// ชั้นที่แอดมินสร้าง/แก้ (ผ่านหน้า "จัดการเนื้อหา") — โหลดครั้งเดียวต่อการเปิดหน้า ไม่เคยโยน (ไม่มี = {})
+let livep;
+const getLive = () => (livep ||= loadContent('articles').catch(() => ({})));
+let navId = 0; // เพิ่มทุกครั้งที่เปลี่ยนหน้า ใช้ทิ้งผลของงานเก่าที่เสร็จช้า
+const safeUrl = (u) => (/^https?:\/\//i.test(String(u || '')) ? u : '#');
+
 function setMeta(title, desc) {
   document.title = title;
   const m = $('meta[name=description]');
@@ -44,12 +52,17 @@ const refsHtml = (a) => (a.refs?.length ? `<span class="ar-refs">${a.refs.map((r
 const CAT_ORDER = ['ภาพรวม', 'พยานหลักฐาน', 'ซื้อขายออนไลน์', 'หมิ่นประมาท', 'คุกคาม', 'ภาพส่วนตัว', 'สิทธิเยียวยา'];
 
 async function showList() {
+  const my = navId;
   setMeta(BASE_TITLE, BASE_DESC);
   main.innerHTML = '<div class="wrap"><div class="ar-skel" aria-busy="true"><i></i><i></i><i></i></div></div>';
-  let list;
-  try { list = await getIndex(); } catch { return fail(); }
+  let list, sIdx = null;
+  try { sIdx = await getIndex(); } catch { /* ไฟล์ตั้งต้นโหลดไม่ได้ → ลองใช้เฉพาะบทความที่แอดมินสร้าง */ }
+  if (my !== navId) return;
+  if (sIdx) list = sIdx;
+  else { list = mergeIndex([], await getLive()); if (my !== navId) return; if (!list.length) return fail(); }
   const rank = (c) => { const i = CAT_ORDER.indexOf(c); return i < 0 ? 99 : i; };
-  const cats = [...new Set(list.map((a) => a.category))].sort((a, b) => rank(a) - rank(b));
+  const catsOf = (l) => [...new Set(l.map((a) => a.category))].sort((a, b) => rank(a) - rank(b));
+  let cats = catsOf(list);
   let cat = '', q = '';
   main.innerHTML = `<div class="wrap">
     <header class="ar-hero">
@@ -85,6 +98,17 @@ async function showList() {
   chipBox.addEventListener('click', (e) => { const b = e.target.closest('[data-c]'); if (!b) return; cat = b.dataset.c; drawChips(); draw(true); });
   $('#arq').addEventListener('input', (e) => { q = e.target.value; draw(); });
   prefetchOnHover($('#argrid'));
+  // ข้อมูลสดจากหลังบ้านมาถึงทีหลัง: ถ้ารายการต่างจากที่ build ไว้ ค่อยแก้เฉพาะส่วนต่าง (ไม่ต่างก็ไม่แตะหน้า)
+  if (sIdx) {
+    getLive().then((lv) => {
+      if (my !== navId) return;
+      const merged = mergeIndex(sIdx, lv);
+      if (JSON.stringify(merged) === JSON.stringify(list)) return;
+      list = merged; cats = catsOf(list);
+      if (cat && !cats.includes(cat)) cat = '';
+      drawChips(); draw();
+    });
+  }
 }
 
 // ---------- หน้าอ่าน ----------
@@ -123,11 +147,41 @@ function precedentsHtml(a) {
     <p class="fine">สรุปหลักด้วยถ้อยคำของเว็บไซต์ ไม่ใช่ข้อความเต็มของคำพิพากษา — ควรตรวจกับฉบับเต็มก่อนอ้างในศาล</p></section>`;
 }
 
+// แสดงบทความจากข้อมูลตั้งต้นทันที แล้วค่อยผสานข้อมูลสดจากหลังบ้าน (บทความที่แอดมินสร้าง/แก้/ซ่อน) เมื่อมาถึง
 async function showArticle(slug) {
+  const my = navId;
   main.innerHTML = '<div class="wrap"><div class="ar-skel" aria-busy="true"><i></i><i></i><i></i></div></div>';
-  let a, list = [];
-  try { [a, list] = await Promise.all([getArticle(slug), getIndex().catch(() => [])]); } catch { return notFound(); }
+  const [sa, sIdx] = await Promise.all([getArticle(slug).catch(() => null), getIndex().catch(() => null)]);
+  if (my !== navId) return;
+  let shown = null; // ลายเซ็นของสิ่งที่แสดงอยู่ (ใช้ตัดสินว่าข้อมูลสดต่างไหม)
+  if (sa) {
+    const a0 = normArticle(sa), l0 = sIdx || [];
+    renderArticle(a0, l0, slug, false);
+    shown = JSON.stringify([a0, l0]);
+  }
+  const applyLive = async () => {
+    const lv = await getLive();
+    if (my !== navId) return;
+    let a = pickArticle(sa, lv, slug);
+    if (!a) { if (shown || !sa) notFound(); return; }
+    if (needsResolve(a, sa)) {
+      // บทความที่แอดมินแก้รายการมาตรา/ฎีกา: หาข้อมูลเต็มจากฐานกฎหมายสาธารณะ (ถ้าโหลดไม่ได้ก็แสดงไปโดยไม่มีส่วนนั้น)
+      try { const { loadLawData } = await import('/js/public-data.js'); a = { ...a, ...resolveRefs(a, await loadLawData()) }; } catch { a = { ...a, related: [], precedents: [] }; }
+      if (my !== navId) return;
+    } else a = reuseStaticRefs(a, sa);
+    const l = mergeIndex(sIdx || [], lv);
+    const sig = JSON.stringify([a, l]);
+    if (sig === shown) return;
+    renderArticle(a, l, slug, !!shown);
+    shown = sig;
+  };
+  if (sa) { applyLive().catch(() => {}); return; } // หน้าขึ้นแล้ว ไม่ต้องรอ
+  await applyLive().catch(() => notFound());
+}
+
+function renderArticle(a, list, slug, update) {
   setMeta(`${a.title} · Law Craft`, a.summary);
+  const tocOpen = update ? $('.ar-toc details')?.open : null;
 
   const toc = [
     ...a.sections.map((s) => [s.id, s.heading]),
@@ -141,7 +195,7 @@ async function showArticle(slug) {
   const i = list.findIndex((x) => x.slug === slug);
   const prev = i > 0 ? list[i - 1] : null, next = i >= 0 && i < list.length - 1 ? list[i + 1] : null;
 
-  main.innerHTML = `<div class="wrap ar-read">
+  const html = `<div class="wrap ar-read">
     <p class="ar-crumb"><a href="/articles/" data-list>← บทความทั้งหมด</a></p>
     <header class="ar-head">
       <span class="ar-cat">${esc(a.category)}</span>
@@ -161,7 +215,7 @@ async function showArticle(slug) {
         ${relatedHtml(a)}
         ${precedentsHtml(a)}
         ${a.faq?.length ? `<section id="r-faq" class="ar-sec"><h2>คำถามที่พบบ่อย</h2>${a.faq.map((f) => `<details class="ar-faq"><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}</section>` : ''}
-        ${a.sources?.length ? `<section id="r-src" class="ar-sec"><h2>แหล่งอ้างอิง</h2><ul class="ar-sources">${a.sources.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.label)} ↗</a>${s.verified ? '' : ' <span class="ar-flag warn inline">ยังไม่ได้ตรวจเปิดอ่าน</span>'}</li>`).join('')}</ul></section>` : ''}
+        ${a.sources?.length ? `<section id="r-src" class="ar-sec"><h2>แหล่งอ้างอิง</h2><ul class="ar-sources">${a.sources.map((s) => `<li><a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">${esc(s.label)} ↗</a>${s.verified ? '' : ' <span class="ar-flag warn inline">ยังไม่ได้ตรวจเปิดอ่าน</span>'}</li>`).join('')}</ul></section>` : ''}
         <aside class="ar-disclaimer" role="note"><b>ข้อมูลทั่วไป ไม่ใช่คำปรึกษากฎหมาย</b><p>บทความนี้เขียนเพื่อให้ความรู้เบื้องต้น แต่ละคดีมีข้อเท็จจริงและกำหนดเวลาแตกต่างกัน กฎหมายและแนวคำพิพากษาอาจเปลี่ยนแปลง ควรตรวจสอบตัวบทฉบับปัจจุบันและปรึกษาทนายความหรือพนักงานสอบสวนก่อนตัดสินใจดำเนินการ</p></aside>
         <div class="ar-cta"><div><b>พร้อมร่างคำฟ้องแล้วหรือยัง</b><p>กรอกข้อมูลครั้งเดียว ระบบจัดทำคำฟ้อง คำขอท้ายฟ้อง และเอกสารประกอบตามแบบพิมพ์ศาล</p></div><a class="btn-pill primary" href="/admin/">เข้าสู่ระบบร่างคำฟ้อง</a></div>
         <nav class="ar-pn" aria-label="บทความอื่น">
@@ -170,9 +224,13 @@ async function showArticle(slug) {
         </nav>
       </article>
     </div></div>`;
+  // อัปเดตจากข้อมูลสด = แก้เฉพาะส่วนต่าง (ตำแหน่งเลื่อน/ช่องติ๊กไม่หลุดถ้าเนื้อหาส่วนนั้นไม่เปลี่ยน)
+  if (update) morphInto(main, html, { mark: false }); else main.innerHTML = html;
   structuredData(a);
   tocSpy();
-  if (matchMedia('(max-width: 900px)').matches) $('.ar-toc details')?.removeAttribute('open');
+  const det = $('.ar-toc details');
+  if (update && tocOpen != null) det.open = tocOpen;
+  else if (matchMedia('(max-width: 900px)').matches) det?.removeAttribute('open');
 }
 
 function structuredData(a) {
@@ -207,6 +265,7 @@ function fail() {
 
 // ---------- เส้นทาง ----------
 function route(scroll = true) {
+  navId++;
   const slug = new URLSearchParams(location.search).get('a');
   (slug ? showArticle(slug) : showList()).then(() => {
     if (!scroll) return;

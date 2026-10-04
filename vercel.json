@@ -4,6 +4,7 @@
   "installCommand": "echo \"no dependencies needed for the static build\"",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "rewrites": [{ "source": "/sitemap.xml", "destination": "/api/sitemap" }],
   "headers": [
     {
       "source": "/(.*)",

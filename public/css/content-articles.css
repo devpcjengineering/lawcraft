@@ -1,0 +1,39 @@
+/* แท็บ "บทความ" ในหน้าจัดการเนื้อหา (โหลดโดย js/content-articles.js) — ใช้ร่วมกับคลาส .ct-* ใน app.css */
+/* .f ใน app.css ตั้ง grid-column: span 6 (ใช้ในฟอร์มคดี) — ในแท็บนี้ใช้คอลัมน์เดียว */
+.ct-editor .f, .cta-new .f { grid-column: auto; }
+.cta-side { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.cta-q { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; padding: 9px 12px; border: 1px solid var(--line, #c9ced6); border-radius: 10px; background: #fff; }
+.cta-bd { display: flex; flex-wrap: wrap; gap: 4px 0; margin-top: 4px; }
+.ct-badge.cta-ok { background: #e3f5e8; color: #1b6b35; }
+.cta-new { background: #fff; }
+.cta-new .f { display: grid; gap: 4px; font-size: 14px; }
+.cta-new input { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line, #c9ced6); border-radius: 8px; }
+.cta-err { color: #b3261e; }
+.cta-slug { color: var(--muted); font-weight: 400; word-break: break-all; }
+.cta-head { background: #fff; position: static; }
+.cta-head .ct-bh > div:first-child { min-width: 0; }
+#cta-ed { min-width: 0; display: grid; gap: 14px; align-content: start; }
+.ct-editor .f > span { font-weight: 600; color: var(--navy); }
+.ct-editor input[type=number], .ct-editor input[type=date] { width: 100%; font: inherit; padding: 8px 10px; border: 1px solid var(--line, #c9ced6); border-radius: 8px; background: #fff; box-sizing: border-box; }
+.ct-editor input[type=text], .ct-editor input:not([type]), .ct-editor input[type=number], .ct-editor input[type=date], .ct-editor textarea, .ct-editor select { font-size: 16px; }
+.ct-editor .ct-block { background: #fafbfc; }
+.ct-editor .cta-li2, .ct-editor .cta-sec { background: #fff; }
+.cta-li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+.cta-chk { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+.cta-chk input { margin-top: 4px; }
+.cta-table { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 8px 10px; border: 1px dashed var(--line, #c9ced6); border-radius: 8px; }
+.cta-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cta-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 4px 3px 10px; border-radius: 99px; background: #eef1f6; color: var(--navy); font-size: 13px; }
+.cta-chip small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 28ch; }
+.cta-chip.bad { background: #fde8e6; color: #b3261e; }
+.cta-chip button { border: 0; background: transparent; cursor: pointer; font: inherit; font-size: 16px; line-height: 1; width: 36px; height: 36px; border-radius: 50%; color: inherit; }
+.cta-chip button:hover { background: rgba(0, 0, 0, .08); }
+.cta-refadd { display: flex; gap: 8px; }
+.cta-refadd input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line, #c9ced6); border-radius: 8px; box-sizing: border-box; }
+.ct-editor button[disabled] { opacity: .4; cursor: not-allowed; }
+.cta-side .ct-item { width: 100%; }
+.cta-side .ct-item b { overflow-wrap: anywhere; }
+@media (max-width: 860px) {
+  .cta-li { grid-template-columns: 1fr; }
+  .ct-actions .btn.sm { min-height: 40px; }
+}

@@ -38,8 +38,8 @@
 .page .court-use { text-align: right; text-decoration: underline; margin-bottom: 2mm; }
 .page .subtitle { text-align: center; font-weight: 700; margin: -2mm 0 2mm; }
 .page .court { text-align: center; margin: var(--ct-b, 3mm) 0 var(--ct-a, 6mm); transform: translateX(var(--ct-x, 0mm)); }
-.page .between { display: grid; grid-template-columns: 24mm 7mm 1fr; align-items: stretch; margin: var(--bt-b, 4mm) 0 var(--bt-a, 5mm); }
-.page .bt-lab { font-weight: 700; align-self: center; }
+.page .between { display: grid; grid-template-columns: 17mm 7mm 1fr; align-items: stretch; margin: var(--bt-b, 4mm) 0 var(--bt-a, 5mm); }
+.page .bt-lab { font-weight: 700; align-self: center; text-align: right; padding-right: 2mm; }
 /* ปีกกา: กล่องปีกกาเว้นขอบบน/ล่างเท่าครึ่งความสูงบรรทัดชื่อ (--bt-half) → ปลายบนอยู่กึ่งกลางบรรทัดโจทก์ ปลายล่างอยู่กึ่งกลางบรรทัดจำเลย
    ปลายแหลมกลางอยู่กึ่งกลางกล่องพอดี และ "ระหว่าง" (align-self:center) ก็อยู่กึ่งกลางเดียวกัน */
 .page .between { --bt-half: calc(var(--fs, 16pt) * var(--lh, 1.32) / 2 + 1px); }
