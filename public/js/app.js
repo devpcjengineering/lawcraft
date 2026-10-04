@@ -381,18 +381,30 @@ function renderPreview() {
   }
   // ตัวเลือกเอกสารเดียว (แทนแท็บเรียงยาว): ลูกศรก่อนหน้า/ถัดไป + เมนูเลือก + ตัวนับ
   const idx = Math.max(0, docs.findIndex((d) => d.id === S.ui.pvDoc));
-  $('#pv-bar').innerHTML = `<div class="pv-nav">
+  const bar = $('#pv-bar');
+  const barHtml = `<div class="pv-nav">
     <button type="button" class="pv-arrow" data-act="pvPrev" aria-label="เอกสารก่อนหน้า" ${docs.length < 2 ? 'disabled' : ''}>‹</button>
     <label class="pv-select"><select data-onchange="pvSelect" aria-label="เลือกเอกสารที่แสดงในตัวอย่าง">${docs.map((d) => `<option value="${esc(d.id)}" ${d.id === S.ui.pvDoc ? 'selected' : ''}>${esc(d.title)}</option>`).join('')}</select></label>
     <button type="button" class="pv-arrow" data-act="pvNext" aria-label="เอกสารถัดไป" ${docs.length < 2 ? 'disabled' : ''}>›</button>
     <span class="pv-count" aria-hidden="true">${idx + 1}/${docs.length}</span></div>`;
+  // สร้างแถบเลือกเอกสารใหม่เฉพาะเมื่อเนื้อหาเปลี่ยน (ไม่ให้เมนูที่เปิดอยู่ปิด/เด้งทุกครั้งที่พิมพ์)
+  if (bar.dataset.sig !== barHtml) { bar.innerHTML = barHtml; bar.dataset.sig = barHtml; }
   const doc = docs.find((d) => d.id === S.ui.pvDoc);
   const inner = $('#pv-inner');
+  const sc = $('#pv-scroll');
+  // จำตำแหน่งเลื่อนไว้: แก้ไขเอกสารเดิม → คงที่เดิมไม่เด้ง; เปลี่ยนไปเอกสารอื่น → เริ่มบนสุด
+  const same = inner.dataset.doc === doc.id;
+  const keepTop = sc.scrollTop, keepLeft = sc.scrollLeft;
+  const oldZoom = parseFloat(inner.style.zoom) || 1;
+  const avail = sc.clientWidth - 24;
+  const zoom = Math.min(1, avail / 794);
+  inner.style.zoom = zoom; // ตั้งก่อนใส่เนื้อหา เพื่อไม่ให้ความสูงสะดุด
+  inner.style.margin = '0 12px';
   inner.innerHTML = docHtml(doc, S.data.layout);
   inner.classList.toggle('pv-guides', !!S.ui.guides);
-  const avail = $('#pv-scroll').clientWidth - 24;
-  inner.style.zoom = Math.min(1, avail / 794);
-  inner.style.margin = '0 12px';
+  inner.dataset.doc = doc.id;
+  if (same) { sc.scrollTop = keepTop * (zoom / oldZoom); sc.scrollLeft = keepLeft; }
+  else { sc.scrollTop = 0; sc.scrollLeft = 0; }
 }
 actions.pvDoc = (el) => { S.ui.pvDoc = el.dataset.id; renderPreview(); };
 actions.pvSelect = (el) => { S.ui.pvDoc = el.value; renderPreview(); };
