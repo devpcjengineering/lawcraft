@@ -76,7 +76,7 @@ app.get('/api/cases', (req, res) => {
   const list = fs.readdirSync(CASES_DIR).filter((f) => f.endsWith('.json') && !f.startsWith('_')).map((f) => {
     try {
       const c = JSON.parse(fs.readFileSync(path.join(CASES_DIR, f), 'utf8'));
-      return { id: c.id, title: c.title || caseTitle(c), type: c.type, court: c.court, updatedAt: c.updatedAt };
+      return { id: c.id, title: caseTitle(c), caseNoBlack: c.caseNoBlack || '', caseNoRed: c.caseNoRed || '', caseYear: c.caseYear || '', type: c.type, court: c.court, updatedAt: c.updatedAt };
     } catch { return null; }
   }).filter(Boolean).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
   res.json(list);

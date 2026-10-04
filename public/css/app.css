@@ -399,6 +399,12 @@ dialog.modal[open] { animation: pop .22s cubic-bezier(.2, .9, .3, 1.2); }
 .boot-logo-wrap { position: relative; width: 64px; height: 64px; display: grid; place-items: center; margin: 0 auto; }
 .boot-logo-wrap img { width: 36px; height: 36px; opacity: 0.8; }
 .boot-logo-wrap .spinner { position: absolute; inset: 0; width: 100%; height: 100%; border-width: 4px; border-color: #e5e5ea; border-top-color: var(--blue); box-sizing: border-box; will-change: transform; }
+.boot p { margin: 0; text-align: center; }
+.boot-logo-wrap img { animation: ld-pulse 1.6s ease-in-out infinite; }
+.ld { display: inline-block; overflow: hidden; vertical-align: bottom; width: 0; animation: ld-dots 1.2s steps(4, end) infinite; }
+@keyframes ld-dots { to { width: 1.1em; } }
+@keyframes ld-pulse { 0%, 100% { transform: scale(1); opacity: .8; } 50% { transform: scale(1.12); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .boot-logo-wrap img { animation: none; } .ld { animation: none; width: 1.1em; } }
 .spinner { width: 32px; height: 32px; border-radius: 50%; border: 3px solid #d6d6dc; border-top-color: var(--blue); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 [hidden] { display: none !important; }
@@ -922,3 +928,16 @@ a, button, select, input, textarea, label, summary { touch-action: manipulation;
 .ct-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 @media (max-width: 860px) { .contentpage { padding: 16px 16px 56px; } .ct-split { grid-template-columns: 1fr; } .ct-row2 { grid-template-columns: 1fr; } .ct-list { max-height: 40vh; } }
 .ct-editor .f { grid-column: auto; }
+
+/* ===== การ์ดหน้าแรกหลังบ้านเท่ากันทุกใบ (ความสูง ตำแหน่งตัวอักษร ปุ่ม) ===== */
+.home > .cards:first-of-type, .cards:has(.case-item) { grid-auto-rows: 1fr; }
+.newcase { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 6px; min-height: 150px; box-sizing: border-box; }
+.newcase h3 { margin: 0; line-height: 1.35; }
+.newcase .hint { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.case-item { box-sizing: border-box; min-height: 190px; }
+.case-item h3 { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; min-height: 2.7em; }
+.case-item .meta { min-height: 2.9em; }
+.case-item .row { margin-top: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.case-item .row .btn, .case-item .row .btn.primary { width: 100%; min-width: 0; justify-content: center; padding: 0 6px; }
+
+.case-item .row .btn.danger { background: var(--err-bg); color: var(--err); border-color: transparent; }

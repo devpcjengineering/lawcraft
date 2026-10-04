@@ -93,13 +93,13 @@ export const supabaseBackend = {
   },
 
   async listCases() {
-    const cols = 'id,title,type,court,updated_at';
+    const cols = 'id,title,type,court,updated_at,caseNoBlack:data->>caseNoBlack,caseNoRed:data->>caseNoRed,caseYear:data->>caseYear';
     let res = await sb.from('cases').select(`${cols},user_id,owner_email`).order('updated_at', { ascending: false });
     // ฐานข้อมูลที่ยังไม่ได้รัน migration 20261005000000_user_cases.sql ยังไม่มีคอลัมน์เจ้าของ → ถอยไปอ่านแบบเดิม
     if (res.error && (res.error.code === '42703' || /user_id|owner_email/.test(res.error.message || ''))) {
       res = await sb.from('cases').select(cols).order('updated_at', { ascending: false });
     }
-    return must(res).map((r) => ({ id: r.id, title: r.title, type: r.type, court: r.court, updatedAt: r.updated_at, userId: r.user_id || '', ownerEmail: r.owner_email || '' }));
+    return must(res).map((r) => ({ id: r.id, title: r.title, caseNoBlack: r.caseNoBlack || '', caseNoRed: r.caseNoRed || '', caseYear: r.caseYear || '', type: r.type, court: r.court, updatedAt: r.updated_at, userId: r.user_id || '', ownerEmail: r.owner_email || '' }));
   },
   async getCase(id) {
     const row = must(await sb.from('cases').select('data').eq('id', id).maybeSingle());

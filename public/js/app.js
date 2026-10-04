@@ -2,7 +2,7 @@
 import { S, esc, actions, hooks, setPath } from './store.js';
 import { NAV, TABS } from './tabs.js';
 import { provinceList, refreshGeo, idStateHtml } from './ui.js';
-import { newCase, indexLaw, caseTitle, validateCase, newParty, uid, applyServiceAuto } from '/shared/model.js';
+import { newCase, indexLaw, caseTitle, caseLabel, validateCase, newParty, uid, applyServiceAuto } from '/shared/model.js';
 import { buildDocuments } from '/shared/docs.js';
 import { resolveLayout, layoutCssVars } from '/shared/layout.js';
 import { docsHtml, docHtml } from './render-html.js';
@@ -137,9 +137,13 @@ actions.claimAdmin = async () => {
 };
 
 // ตัวโหลด: โลโก้ในวงแหวนหมุน — ขึ้นเมื่อรอเกิน 150 มิลลิวินาที (โหลดเร็วไม่กะพริบ)
-const bootHtml = (msg) => `<div class="boot"><div class="boot-logo-wrap"><img src="/logo.svg" alt="" aria-hidden="true"><div class="spinner" aria-hidden="true"></div></div><p>${msg}</p></div>`;
+const bootHtml = (msg) => `<div class="boot"><div class="boot-logo-wrap"><img src="/logo.svg" alt="" aria-hidden="true"><div class="spinner" aria-hidden="true"></div></div><p>${msg}<span class="ld" aria-hidden="true">...</span></p></div>`;
+function showBoot(msg) {
+  const p = app.firstElementChild?.classList.contains('boot') && app.children.length === 1 ? app.querySelector('.boot > p') : null;
+  if (p) p.firstChild.nodeValue = msg; else app.innerHTML = bootHtml(msg);
+}
 async function withLoader(promise, msg) {
-  const t = setTimeout(() => { app.innerHTML = bootHtml(msg); }, 150);
+  const t = setTimeout(() => showBoot(msg), 150);
   try { return await promise; } finally { clearTimeout(t); }
 }
 
@@ -147,7 +151,7 @@ async function withLoader(promise, msg) {
 async function showHome() {
   S.c = null; S.bookMode = false;
   let list = [];
-  try { list = authUi.filterCases(await withLoader(backend.listCases(), 'กำลังโหลดรายการคดี…')); } catch (e) { if (e.status === 401) return showLogin(); }
+  try { list = authUi.filterCases(await withLoader(backend.listCases(), 'กำลังโหลดรายการคดี')); } catch (e) { if (e.status === 401) return showLogin(); }
   app.innerHTML = `
   <header class="topbar"><div class="brand" data-act="goHome"><svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span><span class="brand-sub">ระบบร่างคำฟ้อง</span></div><span class="grow"></span>
     ${authUi.userBar()}
@@ -168,7 +172,7 @@ Indictment</h1>
     <h2 class="section-title">คดีที่บันทึกไว้ (${list.length})</h2>${authUi.caseToolbar()}
     ${list.length ? `<div class="cards">${list.map((x) => `<div class="card case-item">
         <div><span class="pill ${x.type === 'civil' ? 'civil' : 'crim'}">${x.type === 'civil' ? 'แพ่ง' : 'อาญา'}</span></div>
-        <h3>${esc(x.title || 'คดีใหม่')}</h3>${authUi.ownerLine(x)}
+        <h3>${esc(caseLabel(x))}</h3>${authUi.ownerLine(x)}
         <div class="meta">${esc(x.court || 'ยังไม่ได้เลือกศาล')} · แก้ไขล่าสุด ${new Date(x.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}</div>
         <div class="row"><button class="btn primary sm" data-act="openCase" data-id="${esc(x.id)}">เปิด</button>
           <button class="btn sm" data-act="dupCase" data-id="${esc(x.id)}" title="คัดลอกคู่ความ ทนาย และข้อมูลทั้งหมดไปเป็นคดีใหม่">ทำสำเนา</button>
@@ -231,7 +235,7 @@ actions.newCase = (el) => {
 };
 actions.openCase = async (el) => {
   let c;
-  try { c = await withLoader(backend.getCase(el.dataset.id), 'กำลังเปิดคดี…'); } catch (e) { hooks.toast('เปิดคดีไม่สำเร็จ'); return showHome(); }
+  try { c = await withLoader(backend.getCase(el.dataset.id), 'กำลังเปิดคดี'); } catch (e) { hooks.toast('เปิดคดีไม่สำเร็จ'); return showHome(); }
   openCase(c);
 };
 actions.dupCase = async (el) => {
@@ -601,7 +605,7 @@ document.addEventListener('click', (e) => {
 
 // ---------------- เริ่มต้น ----------------
 async function startApp() {
-  app.innerHTML = '<div class="boot"><div class="boot-logo-wrap"><img src="/logo.svg" alt="" aria-hidden="true"><div class="spinner" aria-hidden="true"></div></div><p>กำลังโหลดข้อมูลกฎหมาย…</p></div>';
+  showBoot('กำลังโหลดข้อมูลกฎหมาย');
   if (!(await authUi.gate())) return; // ตั้ง S.role (admin | user | guest) หรือแสดงหน้าเข้าสู่ระบบ/ตั้งแอดมิน
   try {
     const { data, geo, people } = await backend.loadAll();

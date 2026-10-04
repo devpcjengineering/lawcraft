@@ -37,7 +37,7 @@ async function openTab(i) {
   curIdx = i; cur = mods[i];
   document.querySelectorAll('.ct-tab').forEach((b, j) => { b.setAttribute('aria-selected', String(j === i)); b.classList.toggle('on', j === i); });
   const box = $('#ct-body');
-  box.innerHTML = '<div class="boot"><div class="boot-logo-wrap"><img src="/logo.svg" alt="" aria-hidden="true"><div class="spinner" aria-hidden="true"></div></div><p>กำลังโหลด…</p></div>';
+  box.innerHTML = '<div class="boot"><div class="boot-logo-wrap"><img src="/logo.svg" alt="" aria-hidden="true"><div class="spinner" aria-hidden="true"></div></div><p>กำลังโหลด<span class="ld" aria-hidden="true">...</span></p></div>';
   setState('');
   try { await cur.mount(box, ctx()); } catch (e) { box.innerHTML = `<p class="empty">โหลดไม่สำเร็จ: ${esc(e.message || e)}</p>`; }
 }

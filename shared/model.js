@@ -247,10 +247,18 @@ export function validateCase(c, idx) {
   return out;
 }
 
+/** ชื่อคดีที่แสดงในรายการ/หัวหน้า: ใช้ "หมายเลขคำฟ้อง" แทนชื่อคู่ความ (ไม่เปิดเผยชื่อบุคคลบนหน้ารวม)
+ *  = เลขคดีดำ/แดงที่ศาลให้ (ถ้ามี) ไม่เช่นนั้นเลขอ้างอิงของระบบ (อักษร 8 ตัวแรกของรหัสคดี) */
+export function caseLabel(c) {
+  const black = String(c?.caseNoBlack || '').trim(), red = String(c?.caseNoRed || '').trim(), yr = String(c?.caseYear || '').trim();
+  const withYr = (n) => (yr && !n.includes('/') ? `${n}/${yr}` : n);
+  if (black) return `คดีหมายเลขดำที่ ${withYr(black)}`;
+  if (red) return `คดีหมายเลขแดงที่ ${withYr(red)}`;
+  return `หมายเลขคำฟ้อง ${String(c?.id || '').slice(0, 8).toUpperCase() || '—'}`;
+}
+
 export function caseTitle(c) {
-  const p = plaintiffs(c)[0], d = defendants(c)[0];
-  const pn = p ? partyName(p) : '', dn = d ? partyName(d) : '';
-  return pn || dn ? `${pn || '…'} ฟ้อง ${dn || '…'}` : 'คดีใหม่';
+  return caseLabel(c);
 }
 
 /**
