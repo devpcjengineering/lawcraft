@@ -136,11 +136,18 @@ actions.claimAdmin = async () => {
   } catch (e) { $('#claimErr').textContent = e.message; }
 };
 
+// ตัวโหลด: โลโก้ในวงแหวนหมุน — ขึ้นเมื่อรอเกิน 150 มิลลิวินาที (โหลดเร็วไม่กะพริบ)
+const bootHtml = (msg) => `<div class="boot"><div class="boot-logo-wrap"><img src="/logo.svg" alt="" aria-hidden="true"><div class="spinner" aria-hidden="true"></div></div><p>${msg}</p></div>`;
+async function withLoader(promise, msg) {
+  const t = setTimeout(() => { app.innerHTML = bootHtml(msg); }, 150);
+  try { return await promise; } finally { clearTimeout(t); }
+}
+
 // ---------------- หน้าแรก (รายการคดี) ----------------
 async function showHome() {
   S.c = null; S.bookMode = false;
   let list = [];
-  try { list = authUi.filterCases(await backend.listCases()); } catch (e) { if (e.status === 401) return showLogin(); }
+  try { list = authUi.filterCases(await withLoader(backend.listCases(), 'กำลังโหลดรายการคดี…')); } catch (e) { if (e.status === 401) return showLogin(); }
   app.innerHTML = `
   <header class="topbar"><div class="brand" data-act="goHome"><svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span><span class="brand-sub">ระบบร่างคำฟ้อง</span></div><span class="grow"></span>
     ${authUi.userBar()}
@@ -222,7 +229,11 @@ actions.newCase = (el) => {
   S.c = c; S.tab = 'case'; S.ui.pvDoc = ''; alerted.clear(); hooks.changed(); showWorkspace();
   notify({ type: 'success', title: 'สร้างคดีใหม่แล้ว', message: 'ระบบบันทึกอัตโนมัติทุกครั้งที่แก้ไข เริ่มจากกรอกศาลและคู่ความ' });
 };
-actions.openCase = async (el) => openCase(await backend.getCase(el.dataset.id));
+actions.openCase = async (el) => {
+  let c;
+  try { c = await withLoader(backend.getCase(el.dataset.id), 'กำลังเปิดคดี…'); } catch (e) { hooks.toast('เปิดคดีไม่สำเร็จ'); return showHome(); }
+  openCase(c);
+};
 actions.dupCase = async (el) => {
   const c = await backend.getCase(el.dataset.id);
   c.id = uid(); c.caseNoBlack = ''; c.caseNoRed = ''; c.createdAt = new Date().toISOString();
