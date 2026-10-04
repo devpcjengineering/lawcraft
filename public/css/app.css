@@ -7,7 +7,7 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 html { overflow-y: scroll; scrollbar-gutter: stable; }
-body { font-family: 'Noto Sans Thai', 'Sarabun', -apple-system, 'Segoe UI', system-ui, sans-serif; font-size: 16px; line-height: 1.5; color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; }
+body { font-family: var(--font); font-size: 16px; line-height: 1.6; text-rendering: optimizeLegibility; color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font: inherit; color: inherit; }
 code { background: var(--surface-3); border-radius: 4px; padding: 0 5px; font-size: .92em; }
 a { color: var(--blue); }

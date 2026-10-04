@@ -7,6 +7,27 @@ export const SLUG_RE = /^[a-z0-9][a-z0-9-]{2,60}$/;
 
 const isObj = (x) => x && typeof x === 'object' && !Array.isArray(x);
 
+// ---------- สถานะการตรวจ (reviewStatus) ----------
+// ค่าที่เก็บในบทความ (canonical) มี 3 แบบเท่านั้น; ค่าเก่า/ข้อความอิสระแปลงด้วย reviewKind/reviewCanon
+export const REVIEW = [
+  { kind: 'draft', value: 'ร่าง', label: 'ร่าง', note: 'ฉบับร่าง ยังไม่ผ่านการตรวจ' },
+  { kind: 'checked', value: 'ตรวจแล้ว', label: 'ตรวจแล้ว', note: 'ตรวจแล้ว' },
+  { kind: 'lawyer', value: 'ตรวจแล้วโดยนักกฎหมาย', label: 'ตรวจแล้วโดยนักกฎหมาย', note: 'ตรวจแล้วโดยนักกฎหมาย' },
+];
+/** 'draft' | 'checked' | 'lawyer' — ขึ้นต้น "ร่าง" หรือข้อความที่ไม่รู้จัก/ว่าง = draft */
+export function reviewKind(status) {
+  const s = String(status ?? '').trim();
+  if (!s || /^ร่าง/.test(s)) return 'draft';
+  if (s === 'ตรวจแล้วโดยนักกฎหมาย') return 'lawyer';
+  if (s === 'ตรวจแล้ว') return 'checked';
+  if (/^ตรวจแล้ว/.test(s) && /นักกฎหมาย|ทนาย/.test(s) && !/ไม่ผ่าน|ยังไม่/.test(s)) return 'lawyer';
+  if (/^ตรวจแล้ว/.test(s) && !/ไม่ผ่าน|ยังไม่/.test(s)) return 'checked';
+  return 'draft';
+}
+export const reviewInfo = (status) => REVIEW.find((r) => r.kind === reviewKind(status));
+/** ค่าที่เก็บจริง (ตรงกับตัวเลือกใน dropdown) */
+export const reviewCanon = (status) => reviewInfo(status).value;
+
 /** ทำให้ข้อมูลจากหลังบ้านมีรูปแบบแน่นอน (ไม่เคยโยน) */
 export function normLive(live) {
   const o = isObj(live) ? live : {};
@@ -26,6 +47,7 @@ export function toIndexEntry(a, staticEntry) {
     slug: a.slug, title: a.title || '', subtitle: a.subtitle || '', category: a.category || '', tags: Array.isArray(a.tags) ? a.tags : [],
     readMinutes: a.readMinutes || 1, updated: a.updated || '', summary: a.summary || '',
     refs: Array.isArray(a.refs) ? a.refs : (staticEntry?.refs || []),
+    reviewStatus: a.reviewStatus || '',
   };
 }
 

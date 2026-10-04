@@ -21,8 +21,8 @@ export function packArticles() {
     }));
     articles[a.slug] = { ...a, related, precedents };
   }
-  const index = all.map(({ slug, title, subtitle, category, tags, readMinutes, updated, summary }) => ({
-    slug, title, subtitle, category, tags, readMinutes, updated, summary,
+  const index = all.map(({ slug, title, subtitle, category, tags, readMinutes, updated, summary, reviewStatus }) => ({
+    slug, title, subtitle, category, tags, readMinutes, updated, summary, reviewStatus: reviewStatus || '',
     refs: articles[slug].related.slice(0, 4).map((r) => `${r.law} ม.${r.section}`),
   }));
   return { index, articles };

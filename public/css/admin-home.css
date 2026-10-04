@@ -5,7 +5,6 @@
    ============================================================ */
 
 /* ---------- ชั้นฐาน (โครงจัดวางที่ย้ายมาจาก app.css) ---------- */
-.owner-line { overflow: hidden; }
 dialog.modal { border: 0; padding: 0; background: transparent; width: 100%; color: var(--ink); }
 dialog.modal, dialog.modal:focus, dialog.modal:focus-visible, dialog.modal form { outline: none; border: 0; }
 dialog.modal .modal-card :focus:not(:focus-visible) { outline: none; }
@@ -88,7 +87,7 @@ dialog.modal .modal-card :focus:not(:focus-visible) { outline: none; }
 :is(.sitepage, .contentpage) .panel > .hint { margin: 0 0 16px; }
 
 /* ---------- หน้าแรก ---------- */
-.home { max-width: 1120px; padding: 48px 24px 80px; }
+.home { max-width: 1120px; margin-inline: auto; padding: 48px var(--gut) 80px; }
 .home-hero h1 { font-size: 36px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; margin: 0 0 12px; color: var(--ink); white-space: normal; }
 .home .lead { font-size: 16px; line-height: 1.7; max-width: 66ch; margin: 0; color: var(--muted); }
 .home-sec { margin-top: 40px; }
@@ -120,10 +119,12 @@ dialog.modal .modal-card :focus:not(:focus-visible) { outline: none; }
 }
 /* การ์ดคดี: ทุกใบสูงเท่ากัน ปุ่ม 3 ปุ่มกว้างเท่ากัน */
 .case-item { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
-.ci-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; min-width: 0; }
+.ci-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-height: 24px; min-width: 0; }
 .ci-top .pill { flex: none; }
-.owner-line { display: flex; align-items: center; gap: 6px; min-width: 0; margin: 0; font-size: 13px; color: var(--muted); }
-.owner-line span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* เจ้าของคดี: อีเมลเต็มอยู่บรรทัดของตัวเอง ไม่ตัดด้วย … */
+.owner-line { display: flex; align-items: flex-start; gap: 6px; flex: 1 1 100%; order: 2; min-width: 0; margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.owner-line .ico { flex: none; margin-top: 2px; }
+.owner-line span { min-width: 0; overflow-wrap: anywhere; }
 .case-item h3 { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .case-item .meta { display: grid; gap: 6px; min-height: 0; font-size: 14px; color: var(--muted); line-height: 1.5; }
 .case-item .meta > span { display: flex; align-items: flex-start; gap: 8px; }
@@ -215,7 +216,7 @@ dialog.modal::backdrop { background: rgba(16, 24, 40, .42); -webkit-backdrop-fil
 .nt-bact { min-height: 32px; background: rgba(0, 0, 0, .07); }
 
 /* ---------- สมุดรายชื่อ / กล่องข้อความ (หน้า 2 คอลัมน์) ---------- */
-.bookpage { max-width: 1200px; padding: 32px 24px 80px; gap: 24px; grid-template-columns: 360px minmax(0, 1fr); }
+.bookpage { max-width: 1200px; padding: 32px var(--gut) 80px; gap: 24px; grid-template-columns: 360px minmax(0, 1fr); }
 .bk-side { position: sticky; top: 76px; gap: 12px; padding: 16px; max-height: calc(100vh - 100px); grid-template-rows: auto auto auto minmax(0, 1fr); }
 .bk-add { gap: 8px; }
 .bk-add .btn { flex: 1 1 auto; gap: 6px; padding: 0 10px; }
@@ -249,7 +250,7 @@ dialog.modal::backdrop { background: rgba(16, 24, 40, .42); -webkit-backdrop-fil
 .ib-badge { background: var(--err); }
 
 /* ---------- จัดการเว็บไซต์ ---------- */
-.sitepage { max-width: 880px; padding: 32px 24px 80px; gap: 16px; }
+.sitepage { max-width: 880px; padding: 32px var(--gut) 80px; gap: 16px; }
 .sp-head { align-items: flex-end; gap: 12px 24px; margin-bottom: 8px; }
 .sp-head h1, .contentpage .sp-head h1 { font-size: 28px; font-weight: 700; letter-spacing: -.015em; line-height: 1.25; margin: 0 0 6px; color: var(--ink); }
 .sp-head .hint { margin: 0; font-size: 14.5px; line-height: 1.6; max-width: 72ch; }
@@ -267,7 +268,7 @@ dialog.modal::backdrop { background: rgba(16, 24, 40, .42); -webkit-backdrop-fil
 .sitepage .empty { padding: 20px; }
 
 /* ---------- จัดการเนื้อหา (แท็บ + 3 โมดูล) ---------- */
-.contentpage { max-width: 1200px; padding: 32px 24px 80px; gap: 20px; }
+.contentpage { max-width: 1200px; padding: 32px var(--gut) 80px; gap: 20px; }
 .ct-tabs { position: sticky; top: 52px; z-index: 8; gap: 4px; padding: 8px 0 0; margin: 0 0 4px; background: color-mix(in srgb, var(--bg) 92%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid var(--ah-edge); }
 .ct-tab { position: relative; padding: 10px 16px 12px; font-size: 15px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; border-radius: 8px 8px 0 0; transition: color .15s, background-color .15s, border-color .15s; }
 .ct-tab:hover { color: var(--ink); background: rgba(16, 24, 40, .04); }
@@ -395,6 +396,8 @@ dialog.modal::backdrop { background: rgba(16, 24, 40, .42); -webkit-backdrop-fil
   .nt-bact { min-height: 44px; }
   .nt-banner { padding: 10px max(16px, env(safe-area-inset-left)); }
 }
+/* แท็บเล็ต: เมนู 3 ใบเรียงแถวเดียว ไม่ให้เหลือใบเดียวตกบรรทัด */
+@media (min-width: 761px) and (max-width: 1000px) { .home .cards:not(:has(.case-item)) { grid-template-columns: repeat(3, minmax(0, 1fr)); } .home .act-card { padding: 18px 16px; } }
 @media (pointer: coarse) and (min-width: 761px) and (max-width: 1023px) {
   .ct-tab { min-height: 44px; }
 }

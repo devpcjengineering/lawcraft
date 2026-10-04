@@ -32,8 +32,16 @@
 .ar-head h1 { font-size: clamp(28px, 4.6vw, 46px); line-height: 1.34; margin: 12px 0 10px; }
 .ar-sub { margin: 0; font-size: clamp(17px, 2vw, 20px); color: var(--ink-2); }
 .ar-head .ar-meta { margin: 14px 0 0; padding: 0; }
-.ar-review { display: inline-block; margin: 10px 0 0; font-size: 13px; padding: 3px 12px; border-radius: 99px; background: color-mix(in srgb, #ff9f0a 16%, transparent); color: #a15c00; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme=light]) .ar-review { color: #ffb340; } }
+.ar-review { margin: 12px 0 0; }
+/* ป้ายสถานะการตรวจ: ร่าง = เหลือง · ตรวจแล้ว = เขียว · ตรวจแล้วโดยนักกฎหมาย = ฟ้า */
+.ar-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.ar-rv { --rv: #a15c00; display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600; line-height: 1.5; padding: 2px 10px 2px 8px; border-radius: 99px; color: var(--rv); background: color-mix(in srgb, var(--rv) 13%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--rv) 22%, transparent) inset; }
+.ar-rv svg { flex: none; }
+.ar-rv.full { font-size: 14px; padding: 4px 14px 4px 11px; gap: 7px; }
+.ar-rv.checked { --rv: var(--ok); }
+.ar-rv.lawyer { --rv: var(--link); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme=light]) .ar-rv.draft { --rv: #ffb340; } }
+:root[data-theme=dark] .ar-rv.draft { --rv: #ffb340; }
 
 .ar-cols { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 44px; align-items: start; }
 .ar-toc { position: sticky; top: 64px; font-size: 14px; max-height: calc(100vh - 84px); overflow: auto; }

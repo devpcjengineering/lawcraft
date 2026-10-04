@@ -2,7 +2,7 @@
 import config from '/site/config.js';
 import { morphInto } from '/js/morph.js';
 import { loadContent } from '/site/content.js';
-import { mergeIndex, pickArticle, normArticle, needsResolve, reuseStaticRefs, resolveRefs } from './merge.js';
+import { mergeIndex, pickArticle, normArticle, needsResolve, reuseStaticRefs, resolveRefs, reviewKind, reviewInfo } from './merge.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -48,6 +48,17 @@ function setMeta(title, desc) {
 }
 
 // ---------- รายการ ----------
+// ป้ายสถานะการตรวจ: ร่าง = เหลือง · ตรวจแล้ว = เขียว · ตรวจแล้วโดยนักกฎหมาย = ฟ้า (full = ข้อความเต็มในหน้าอ่าน, ไม่ใช่ = ป้ายเล็กในการ์ด)
+const RV_ICO = {
+  draft: '<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="m14.5 7.5 3 3"/>',
+  checked: '<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.6 2.6L16 9.5"/>',
+  lawyer: '<path d="M12 3 5 6v5.5c0 4.4 3 8 7 9.5 4-1.5 7-5.1 7-9.5V6l-7-3z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
+};
+const rvHtml = (status, full = false) => {
+  if (!String(status || '').trim()) return '';
+  const k = reviewKind(status), info = reviewInfo(status);
+  return `<span class="ar-rv ${k}${full ? ' full' : ''}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${RV_ICO[k]}</svg>${esc(full ? info.note : info.label)}</span>`;
+};
 const refsHtml = (a) => (a.refs?.length ? `<span class="ar-refs">${a.refs.map((r) => `<i>${esc(r)}</i>`).join('')}</span>` : '');
 const CAT_ORDER = ['ภาพรวม', 'พยานหลักฐาน', 'ซื้อขายออนไลน์', 'หมิ่นประมาท', 'คุกคาม', 'ภาพส่วนตัว', 'สิทธิเยียวยา'];
 
@@ -85,7 +96,7 @@ async function showList() {
     const rows = list.filter((a) => (!cat || a.category === cat) && (!n || [a.title, a.subtitle, a.summary, ...(a.tags || [])].join(' ').toLowerCase().includes(n)));
     $('#arcount').textContent = rows.length ? `${rows.length} บทความ` : 'ไม่พบบทความที่ตรงกับคำค้น';
     const gridHtml = rows.map((a, i) => `<a class="ar-card" href="/articles/?a=${esc(a.slug)}" data-slug="${esc(a.slug)}" style="--i:${Math.min(i, 8)}">
-      <span class="ar-cat">${esc(a.category)}</span>
+      <span class="ar-top"><span class="ar-cat">${esc(a.category)}</span>${rvHtml(a.reviewStatus)}</span>
       <h2>${esc(a.title)}</h2>
       <p>${esc(a.subtitle)}</p>
       ${refsHtml(a)}
@@ -202,7 +213,7 @@ function renderArticle(a, list, slug, update) {
       <h1>${esc(a.title)}</h1>
       <p class="ar-sub">${esc(a.subtitle)}</p>
       <p class="ar-meta">อ่านประมาณ ${esc(a.readMinutes)} นาที · ปรับปรุงล่าสุด ${esc(thDate(a.updated))}</p>
-      ${a.reviewStatus ? `<p class="ar-review">${esc(a.reviewStatus)}</p>` : ''}
+      ${String(a.reviewStatus || '').trim() ? `<p class="ar-review">${rvHtml(a.reviewStatus, true)}</p>` : ''}
     </header>
     <div class="ar-cols">
       <nav class="ar-toc" aria-label="สารบัญ"><details open><summary>สารบัญ</summary><ol>${toc.map(([id, h]) => `<li><a href="#${esc(id)}">${esc(h)}</a></li>`).join('')}</ol></details></nav>

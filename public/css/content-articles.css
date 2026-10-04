@@ -1,15 +1,135 @@
-/* แท็บ "บทความ" ในหน้าจัดการเนื้อหา (js/content-articles.js) — เฉพาะโครงจัดวางของแท็บนี้ ส่วนสี/ช่องกรอก/ปุ่มอยู่ใน admin-home.css */
-.ct-editor .f, .cta-new .f { grid-column: auto; }
-.cta-side { min-width: 0; }
-.cta-bd { display: flex; flex-wrap: wrap; gap: 4px 0; margin-top: 4px; }
+/* แท็บ "บทความ" ในหน้าจัดการเนื้อหา (js/content-articles.js) — โครงจัดวางของแท็บนี้ ส่วนสี/ช่องกรอก/ปุ่มพื้นฐานอยู่ใน admin-base.css / admin-home.css
+   2 ระดับ: รายการ (.cta-lv) ↔ หน้าแก้ไข (.cta-ev) — ตอนแก้ไขจะซ่อนหัวเรื่อง/แท็บของหน้าจัดการเนื้อหา แล้วใช้แถบหัวติดบน (.cta-bar) แทน */
+.cta-app { min-width: 0; }
+.cta-app [hidden] { display: none !important; }
+
+/* ---------- สถานะการตรวจ: ร่าง = เหลืองอำพัน · ตรวจแล้ว = เขียว · ตรวจแล้วโดยนักกฎหมาย = ฟ้า ---------- */
+.cta-rv, .cta-rvf { --rv-fg: var(--warn); --rv-bg: var(--warn-bg); --rv-edge: #ecc888; }
+.cta-rv[data-rv=checked], .cta-rvf[data-rv=checked] { --rv-fg: var(--ok); --rv-bg: var(--ok-bg); --rv-edge: #9fd3b4; }
+.cta-rv[data-rv=lawyer], .cta-rvf[data-rv=lawyer] { --rv-fg: #0b57b3; --rv-bg: var(--blue-soft); --rv-edge: #9cc7f2; }
+.cta-rv { display: inline-flex; align-items: center; gap: 5px; min-height: 22px; padding: 0 10px 0 7px; border-radius: 99px; background: var(--rv-bg); color: var(--rv-fg); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.cta-rv .ico { flex: none; }
+
+/* ---------- หน้ารายการ ---------- */
+.cta-tools { display: grid; gap: 12px; }
+.cta-tools-top { display: flex; gap: 12px; align-items: center; }
+.cta-q { flex: 1 1 auto; min-width: 0; }
+.cta-newbtn { flex: none; }
+.cta-fchips { display: flex; flex-wrap: wrap; gap: 8px; }
+.cta-fc { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 8px 0 14px; border: 1px solid var(--ah-edge-2); border-radius: 99px; background: #fff; color: #374151; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color .15s, border-color .15s, color .15s; }
+.cta-fc i { font-style: normal; font-size: 12.5px; font-weight: 600; min-width: 24px; padding: 0 7px; border-radius: 99px; background: var(--surface-3); color: var(--muted); text-align: center; line-height: 22px; }
+.cta-fc:hover { border-color: #b9c6e0; }
+.cta-fc:focus-visible { outline: none; box-shadow: var(--ah-ring); }
+.cta-fc[aria-pressed=true] { background: var(--blue-soft); border-color: rgba(0, 113, 227, .55); color: #0b57b3; }
+.cta-fc[aria-pressed=true] i { background: #fff; color: #0b57b3; }
+.cta-tools > .hint { margin: 0; }
+#cta-create { margin-top: 12px; }
+#cta-create:empty { display: none; }
+.cta-new { max-width: 640px; }
 .cta-new .f { display: grid; gap: 4px; font-size: 14px; }
-.cta-slug { color: var(--muted); font-weight: 400; word-break: break-all; }
-.cta-head .ct-bh > div:first-child { min-width: 0; }
-#cta-ed { min-width: 0; display: grid; gap: 16px; align-content: start; }
+.cta-err { color: var(--err); }
+
+.cta-list { display: grid; gap: 12px; margin-top: 16px; }
+.cta-list .empty { margin: 24px 0; text-align: center; }
+.cta-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 8px 20px; align-items: start; padding: 18px 20px; background: #fff; border: 1px solid var(--ah-edge); border-radius: 14px; box-shadow: var(--ah-lift); transition: border-color .15s, box-shadow .15s; }
+.cta-row:hover { border-color: #b9c6e0; }
+.cta-row.on { border-color: rgba(0, 113, 227, .55); box-shadow: 0 0 0 3px rgba(0, 113, 227, .1); }
+.cta-no { padding-top: 2px; font-size: 15px; font-weight: 700; color: #9aa0ab; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.cta-main { min-width: 0; }
+.cta-main h3 { margin: 0; font-size: inherit; font-weight: inherit; }
+.cta-title { display: block; width: 100%; padding: 0; border: 0; background: transparent; font: inherit; font-size: 17px; font-weight: 700; line-height: 1.5; text-align: left; color: var(--ink); cursor: pointer; overflow-wrap: anywhere; border-radius: 6px; }
+.cta-title:hover { color: var(--blue); }
+.cta-title:focus-visible { outline: none; box-shadow: var(--ah-ring); }
+.cta-row.is-off .cta-title, .cta-row.is-off .cta-sub { color: #7b8190; }
+.cta-sub { margin: 4px 0 0; font-size: 14.5px; line-height: 1.6; color: #4b5563; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.cta-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.cta-cat { display: inline-flex; align-items: center; min-height: 22px; padding: 0 10px; border-radius: 99px; background: var(--blue-soft); color: #0b57b3; font-weight: 600; }
+.cta-tag { display: inline-flex; align-items: center; min-height: 22px; padding: 0 9px; border-radius: 99px; border: 1px solid var(--ah-edge-2); color: #4b5563; }
+.cta-tag.more { border-style: dashed; color: var(--muted); }
+.cta-dot { display: inline-flex; align-items: center; gap: 5px; }
+.cta-dot .ico { color: #9aa0ab; }
+.cta-slug { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; color: #8a90a0; background: none; padding: 0; overflow-wrap: anywhere; word-break: break-all; }
+.cta-side { display: grid; gap: 12px; justify-items: end; align-content: start; }
+.cta-bd { display: flex; flex-wrap: wrap; gap: 6px 4px; justify-content: flex-end; align-items: center; }
+.cta-bd .ct-badge { margin-right: 0; }
+.cta-acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
+.cta-ib { display: inline-grid; place-items: center; width: var(--ctl-h-sm); height: var(--ctl-h-sm); padding: 0; border: 1px solid var(--ctl-edge); border-radius: 9px; background: #fff; color: #4b5563; font-size: 18px; text-decoration: none; cursor: pointer; transition: background-color .15s, border-color .15s, color .15s; }
+.cta-ib:hover:not(:disabled) { background: var(--surface-3); color: var(--ink); border-color: var(--ctl-edge-h); }
+.cta-ib:focus-visible { outline: none; box-shadow: var(--ah-ring); }
+.cta-ib:disabled { opacity: .38; cursor: not-allowed; }
+.cta-ib .ico { width: 18px; height: 18px; }
+
+/* ---------- หน้าแก้ไข: ซ่อนหัวเรื่อง/แท็บของหน้าจัดการเนื้อหา ---------- */
+.contentpage.cta-editing .sp-head, .contentpage.cta-editing .ct-tabs { display: none; }
+.contentpage.cta-editing { padding-top: 16px; }
+
+.cta-bar { position: sticky; top: var(--cta-top, 56px); z-index: 9; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; grid-template-areas: "back title state sw view"; align-items: center; gap: 8px 14px; margin: 0 auto 20px; max-width: 860px; padding: 10px 14px; background: rgba(255, 255, 255, .94); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid var(--ah-edge); border-radius: 14px; box-shadow: var(--sh-md); }
+.cta-back { grid-area: back; }
+.cta-bar-t { grid-area: title; min-width: 0; display: grid; gap: 4px; }
+.cta-bar-t b { min-width: 0; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cta-bar-t small { color: var(--muted); font-size: 12.5px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cta-bar-bd { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; min-width: 0; }
+.cta-bar-bd .ct-badge { margin-right: 0; }
+.cta-state { grid-area: state; max-width: 22ch; overflow: hidden; text-overflow: ellipsis; }
+.cta-view { grid-area: view; }
+.cta-sw { grid-area: sw; display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 14px 0 5px; border: 1px solid var(--ctl-edge); border-radius: 99px; background: #fff; color: #4b5563; font: inherit; font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: background-color .15s, border-color .15s, color .15s; }
+.cta-sw-k { position: relative; flex: none; width: 34px; height: 22px; border-radius: 99px; background: #c4c8d2; transition: background-color .15s; }
+.cta-sw-k::after { content: ''; position: absolute; left: 2px; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(16, 24, 40, .25); transition: transform .15s; }
+.cta-sw[aria-checked=true] { background: var(--ok-bg); border-color: #9fd3b4; color: var(--ok); }
+.cta-sw[aria-checked=true] .cta-sw-k { background: #34a853; }
+.cta-sw[aria-checked=true] .cta-sw-k::after { transform: translateX(12px); }
+.cta-sw:focus-visible { outline: none; box-shadow: var(--ah-ring); }
+
+.cta-col { max-width: 860px; width: 100%; margin: 0 auto; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.cta-note { padding: 12px 16px; border-radius: 12px; background: var(--warn-bg); color: var(--warn); font-size: 14.5px; line-height: 1.6; }
+.cta-foot { text-align: center; margin: 4px 0 40px; }
+
+/* ---------- หมวดที่พับได้ ---------- */
+.cta-d { background: #fff; border: 1px solid var(--ah-edge); border-radius: 14px; box-shadow: var(--ah-lift); min-width: 0; }
+.cta-d > summary, .cta-h > summary { display: flex; align-items: center; gap: 12px; list-style: none; cursor: pointer; border-radius: inherit; }
+.cta-d > summary::-webkit-details-marker, .cta-h > summary::-webkit-details-marker { display: none; }
+.cta-d > summary { min-height: 60px; padding: 12px 18px; }
+.cta-d > summary:hover, .cta-h > summary:hover { background: var(--surface-2); }
+.cta-d > summary:focus-visible, .cta-h > summary:focus-visible { outline: none; box-shadow: var(--ah-ring); }
+.cta-d-i { flex: none; display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--surface-3); color: #4b5563; font-size: 19px; transition: background-color .15s, color .15s; }
+.cta-d[open] > summary .cta-d-i { background: var(--blue-soft); color: var(--blue); }
+.cta-d-t { flex: 1 1 auto; min-width: 0; display: grid; gap: 1px; }
+.cta-d-t b { font-size: 16px; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+.cta-d-t small { font-size: 13px; line-height: 1.4; color: var(--muted); }
+.cta-d-c { flex: none; font-size: 20px; color: #8a90a0; transition: transform .2s; }
+details[open] > summary > .cta-d-c { transform: rotate(180deg); }
+.cta-d-b { display: grid; gap: 14px; padding: 16px 18px 20px; border-top: 1px solid var(--hair); min-width: 0; }
+.ct-editor .cta-d-b .ct-block { background: var(--surface-2); }
+.cta-d-b .f { min-width: 0; }
+.cta-sub-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--hair); }
+.cta-sub-h b { font-size: 14.5px; font-weight: 700; color: #374151; }
+.cta-sub-h .hint { margin: 0; }
+.cta-big { font-size: 18px; font-weight: 600; min-height: 48px; }
+
+/* หัวข้อย่อยในเนื้อหา */
+.cta-hs { display: grid; gap: 10px; }
+.cta-h { border: 1px solid var(--ah-edge); border-radius: 12px; background: #fff; min-width: 0; }
+.cta-h > summary { min-height: 52px; padding: 8px 14px; }
+.cta-h-n { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--surface-3); color: #4b5563; font-size: 13.5px; font-weight: 700; }
+.cta-h[open] > summary .cta-h-n { background: var(--blue); color: #fff; }
+.cta-h > .cta-d-b { padding: 14px 14px 16px; }
+.cta-sec-acts { padding-top: 4px; }
+
+/* สถานะการตรวจ (dropdown จริง) */
+.cta-rvf > span:first-child small { color: var(--muted); font-weight: 400; }
+.cta-rvsel { position: relative; display: block; }
+.cta-rvico { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; color: var(--rv-fg); pointer-events: none; z-index: 1; }
+.cta-rvsel select { padding-left: 42px; font-weight: 600; background-color: var(--rv-bg); color: var(--rv-fg); border-color: var(--rv-edge); }
+.cta-rvsel select option { color: var(--ink); background: #fff; font-weight: 400; }
+.cta-rvf:hover .cta-rvsel select:not(:focus-visible) { border-color: var(--rv-fg); }
+.cta-date input { max-width: 240px; }
+
+/* รายการย่อย / ชิปมาตรา */
 .cta-li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; }
 .cta-chk { align-items: flex-start; font-size: 14px; }
 .cta-chk input { margin-top: 2px; }
 .cta-table { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 8px 10px; border: 1px dashed var(--line, #c9ced6); }
+.cta-refbox { display: grid; gap: 10px; }
 .cta-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .cta-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; border-radius: 99px; }
 .cta-chip small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 28ch; }
@@ -17,9 +137,58 @@
 .cta-chip button:hover { background: rgba(0, 0, 0, .08); }
 .cta-refadd { display: flex; gap: 8px; }
 .cta-refadd input { flex: 1; min-width: 0; }
-.cta-side .ct-item { width: 100%; }
-.cta-side .ct-item b { overflow-wrap: anywhere; }
+
+/* ---------- จอแคบ ---------- */
+@media (max-width: 1040px) {
+  .cta-row { grid-template-columns: 36px minmax(0, 1fr); gap: 8px 14px; }
+  .cta-side { grid-column: 1 / -1; justify-items: stretch; gap: 10px; padding-top: 12px; border-top: 1px solid var(--hair); }
+  .cta-bd, .cta-acts { justify-content: flex-start; }
+  .cta-acts .btn { margin-right: 0; }
+  .cta-acts .cta-ib:nth-of-type(1) { margin-left: auto; }
+}
 @media (max-width: 860px) {
+  .cta-tools-top { flex-wrap: wrap; }
+  .cta-q { flex-basis: 100%; }
+  .cta-newbtn { flex: 1 1 100%; justify-content: center; min-height: 48px; }
+  .cta-fchips { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+  .cta-fchips::-webkit-scrollbar { display: none; }
+  .cta-fc { min-height: 44px; flex: none; white-space: nowrap; }
+  .cta-ib { width: 44px; height: 44px; }
+  .cta-acts .btn.sm { min-height: 44px; }
+  .cta-acts .cta-ib:nth-of-type(1) { margin-left: 0; }
+  .cta-row { padding: 16px 14px; }
+  .cta-title { font-size: 16.5px; }
   .cta-li { grid-template-columns: 1fr; }
   .cta-chip button { width: 44px; height: 44px; }
+  .cta-col .btn.sm { min-height: 44px; }
+  .cta-refadd .btn { min-height: 44px; }
+  .cta-d > summary { min-height: 64px; padding: 12px 14px; }
+  .cta-d-b { padding: 14px 14px 18px; }
+  .cta-h > summary { min-height: 56px; }
+  .cta-sw { min-height: 44px; }
+  .contentpage.cta-editing { padding-top: 10px; }
+}
+@media (max-width: 560px) {
+  .cta-acts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .cta-acts > .btn { grid-column: span 2; justify-content: center; }
+  .cta-acts > .cta-ib { width: 100%; }
+}
+@media (max-width: 760px) {
+  .cta-bar-t b { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.35; }
+  .cta-bar { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "back title sw view" "back state sw view"; gap: 0 10px; padding: 8px 10px; margin-bottom: 14px; }
+  .cta-bar-bd { display: none; }
+  .cta-bar-t small { display: none; }
+  .cta-bar .cta-back, .cta-bar .cta-view { min-height: 44px; }
+  .cta-back span, .cta-view span { display: none; }
+  .cta-back, .cta-view { min-width: 44px; padding: 0; justify-content: center; }
+  .cta-state { max-width: none; font-size: 12.5px; }
+  .cta-state:empty { display: block; min-height: 1px; }
+  .cta-state:empty::before { display: none; }
+}
+@media (max-width: 420px) {
+  .cta-sw { padding-right: 10px; gap: 6px; font-size: 13.5px; }
+  .cta-bar { gap: 0 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cta-sw-k, .cta-sw-k::after, .cta-d-c, .cta-fc, .cta-row { transition: none; }
 }

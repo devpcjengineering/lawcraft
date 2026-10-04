@@ -4,7 +4,7 @@
 .nt.in { transform: none; opacity: 1; }
 .nt.out { transform: translateX(24px); opacity: 0; transition: transform .22s ease-in, opacity .2s; }
 .nt-ico { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 800; color: #fff; background: #0071e3; margin-top: 1px; }
-.nt-success .nt-ico { background: #1f7a4d; } .nt-error .nt-ico { background: #d93025; } .nt-warn .nt-ico { background: #e08a00; font-size: 11px; } .nt-info .nt-ico { background: #0071e3; font-style: italic; font-family: Georgia, serif; }
+.nt-success .nt-ico { background: #1f7a4d; } .nt-error .nt-ico { background: #d93025; } .nt-warn .nt-ico { background: #e08a00; font-size: 11px; } .nt-info .nt-ico { background: #0071e3; }
 .nt-body b { display: block; font-size: 15px; line-height: 1.35; color: #1d1d1f; }
 .nt-body p { margin: 2px 0 0; font-size: 14px; line-height: 1.45; color: #4a4a52; overflow-wrap: anywhere; }
 .nt-act { margin-top: 8px; border: 0; background: #eef4fd; color: #0057b8; font-weight: 600; font-size: 13.5px; padding: 4px 12px; border-radius: 99px; cursor: pointer; }

@@ -106,9 +106,15 @@ actions.casesScope = (el) => { S.ui.onlyMine = el.dataset.scope === 'mine'; ctx.
 /** ปุ่มมุมขวาบน: ใครล็อกอินอยู่ + บทบาท + ออกจากระบบ (โหมดไฟล์ในเครื่องไม่มีบัญชี → ไม่แสดง) */
 export function userBar() {
   if (!ctx.getBackend().needsLogin) return '';
-  return `${connHtml()}${S.email ? `<span class="who" title="${esc(S.email)}">${esc(S.email)}</span>` : ''}`
+  return `<div class="ubar">${connHtml()}${S.email ? `<span class="who" title="${esc(S.email)}">${emailHtml(S.email)}</span>` : ''}`
     + `${isAdmin() ? '<span class="role-badge">ผู้ดูแลระบบ</span>' : ''}`
-    + `<button class="btn" data-act="signOut" aria-label="ออกจากระบบ" title="ออกจากระบบ"><span class="tb-i" aria-hidden="true">${icon('logout')}</span><span class="tb-t">ออกจากระบบ</span></button>`;
+    + `<button class="btn" data-act="signOut" aria-label="ออกจากระบบ" title="ออกจากระบบ"><span class="tb-i" aria-hidden="true">${icon('logout')}</span><span class="tb-t">ออกจากระบบ</span></button></div>`;
+}
+/** อีเมลเต็ม ไม่ตัดด้วย … — แทรกจุดตัดบรรทัดก่อน @ (และหลังจุด/ขีดในโดเมน) ให้ขึ้นบรรทัดใหม่ได้อย่างอ่านง่ายเมื่อที่แคบ */
+export function emailHtml(email) {
+  const e = String(email || '');
+  const i = e.indexOf('@');
+  return i < 0 ? esc(e) : `${esc(e.slice(0, i))}<wbr>${esc(e.slice(i))}`;
 }
 
 /** แอดมิน: ตัวกรอง “ทั้งหมด / เฉพาะคดีของฉัน” เหนือรายการคดี */
@@ -125,7 +131,7 @@ export function filterCases(list) {
 /** แอดมิน: บรรทัดเล็ก ๆ สีเทาบอกเจ้าของคดี */
 export function ownerLine(x) {
   if (!isAdmin() || !S.uid) return '';
-  return `<div class="owner-line" title="เจ้าของคดี">${icon('user')}<span>เจ้าของ: ${esc(x.ownerEmail || 'ไม่ระบุ (ข้อมูลเดิม)')}${x.userId && x.userId === S.uid ? ' (ฉัน)' : ''}</span></div>`;
+  return `<div class="owner-line" title="เจ้าของคดี">${icon('user')}<span>เจ้าของ: ${x.ownerEmail ? emailHtml(x.ownerEmail) : esc('ไม่ระบุ (ข้อมูลเดิม)')}${x.userId && x.userId === S.uid ? ' (ฉัน)' : ''}</span></div>`;
 }
 /** หลังวาดหน้าแรก: ผู้ที่ไม่ใช่แอดมินไม่เห็นการ์ด/หมวดจัดการเว็บไซต์ (กล่องข้อความปรึกษา ฯลฯ) */
 export function afterHome(root = document) {
