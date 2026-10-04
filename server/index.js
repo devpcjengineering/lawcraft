@@ -6,6 +6,7 @@ import { buildDocuments } from '../shared/docs.js';
 import { renderDocx } from './render-docx.js';
 import { caseTitle } from '../shared/model.js';
 import { loadData, loadArticles, DATA_DIR } from './load-data.js';
+import { packArticles } from './articles-pack.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -122,6 +123,15 @@ app.get('/api/articles', (req, res) => {
 });
 app.get('/api/articles/:slug', (req, res) => {
   const a = getArticles().find((x) => x.slug === req.params.slug);
+  return a ? res.json(a) : res.status(404).json({ error: 'ไม่พบบทความ' });
+});
+
+// ไฟล์ข้อมูลบทความที่หน้าเว็บอ่าน (ตรงกับ dist/articles-data/ ของเว็บสถิต)
+app.get('/articles-data/:file', (req, res) => {
+  const pack = packArticles();
+  const f = req.params.file;
+  if (f === 'index.json') return res.json(pack.index);
+  const a = pack.articles[f.replace(/\.json$/, '')];
   return a ? res.json(a) : res.status(404).json({ error: 'ไม่พบบทความ' });
 });
 

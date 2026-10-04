@@ -478,3 +478,16 @@ async function initJurisdiction() {
 renderRules();
 renderResult();
 initJurisdiction();
+
+// ---- บทความแนะนำ (การ์ดบนหน้าแรก) ----
+(async () => {
+  const box = $('#artTeaser');
+  if (!box) return;
+  try {
+    const list = await (await fetch('/articles-data/index.json')).json();
+    box.innerHTML = list.slice(0, 6).map((a, i) => `<a class="ar-card" href="/articles/?a=${esc(a.slug)}" style="--i:${i}">
+      <span class="ar-cat">${esc(a.category)}</span><h3>${esc(a.title)}</h3><p>${esc(a.subtitle)}</p>
+      <span class="ar-meta">อ่าน ${esc(a.readMinutes)} นาที</span></a>`).join('');
+  } catch { box.closest('section').hidden = true; }
+  box.removeAttribute('aria-busy');
+})();

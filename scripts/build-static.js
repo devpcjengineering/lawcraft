@@ -15,6 +15,16 @@ cp('public', '.');
 cp('shared', 'shared');
 if (fs.existsSync(path.join(root, 'templates'))) cp('templates', 'templates');
 
+// บทความ: ไฟล์ JSON ต่อบทความ (รวมมาตรา/ฎีกาที่อ้างถึง) + รายการ
+{
+  const { packArticles } = await import('../server/articles-pack.js');
+  const pack = packArticles();
+  const out = path.join(dist, 'articles-data');
+  fs.mkdirSync(out, { recursive: true });
+  fs.writeFileSync(path.join(out, 'index.json'), JSON.stringify(pack.index));
+  for (const [slug, a] of Object.entries(pack.articles)) fs.writeFileSync(path.join(out, `${slug}.json`), JSON.stringify(a));
+}
+
 // ตรวจก่อนปล่อย: ต้องตั้ง Supabase ใน config.js ไม่เช่นนั้นเว็บจะพยายามเรียก /api (ซึ่งไม่มีในโหมดสถิต)
 const cfg = fs.readFileSync(path.join(dist, 'js', 'config.js'), 'utf8');
 const hasSb = /url:\s*'https:\/\/[^']+'/.test(cfg) && /anonKey:\s*'[^']{20,}'/.test(cfg);

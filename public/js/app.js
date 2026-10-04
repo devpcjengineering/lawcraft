@@ -547,6 +547,18 @@ async function startApp() {
   if (h.get('case')) {
     try { openCase(await backend.getCase(h.get('case')), h.get('tab') || 'case'); return; } catch (err) { console.error('เปิดคดีไม่สำเร็จ', err); }
   }
+  // ลิงก์จากบทความ: /admin/#newcase=criminal|civil&charge=<itemId> → เปิดคดีใหม่พร้อมข้อหาที่เลือก
+  const nt = h.get('newcase');
+  if (nt === 'criminal' || nt === 'civil') {
+    const c = newCase(nt);
+    if (nt === 'civil') c.docs = { ...c.docs, summons: false };
+    const itemId = h.get('charge');
+    if (itemId && S.data.items.some((x) => x.id === itemId)) c.charges.push({ itemId, related: [] });
+    S.c = c; S.tab = 'case'; S.ui.pvDoc = ''; alerted.clear(); hooks.changed(); showWorkspace();
+    history.replaceState(null, '', location.pathname);
+    notify({ type: 'success', title: 'สร้างคดีใหม่แล้ว', message: itemId ? 'เลือกข้อหาจากบทความให้แล้ว เริ่มจากกรอกศาลและคู่ความ' : 'เริ่มจากกรอกศาลและคู่ความ' });
+    return;
+  }
   showHome();
 }
 
