@@ -6,6 +6,7 @@ import { personFields } from './tabs.js';
 import { newCase, newParty, uid, partyName } from '/shared/model.js';
 import { confirmBox } from './modal.js';
 import { morphInto } from './morph.js';
+import { isAdmin } from './auth-ui.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const KIND_TXT = { party: 'บุคคลธรรมดา', juristic: 'นิติบุคคล', counsel: 'ทนายความ' };
@@ -16,7 +17,7 @@ const metaOf = (rec) => {
   const d = rec.data || {};
   const id = String(d.idCard || '').replace(/\D/g, '');
   return [KIND_TXT[typeOf(rec)], rec.kind === 'counsel' && d.license && `ใบอนุญาต ${d.license}`, id.length === 13 && `x-xxxx-xxxxx-${id.slice(10, 12)}-${id[12]}`,
-    d.address?.province && 'จ.' + d.address.province, d.phone].filter(Boolean).map(esc).join(' · ');
+    d.address?.province && 'จ.' + d.address.province, d.phone, isAdmin() && rec.owner_email && `เจ้าของ ${rec.owner_email}`].filter(Boolean).map(esc).join(' · ');
 };
 
 /** สร้างคดีจำลองจากรายการที่เลือก (ใช้เฉพาะเป็นที่ผูกฟอร์ม ไม่ถูกบันทึกเป็นคดี) */

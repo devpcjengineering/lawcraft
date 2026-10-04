@@ -57,9 +57,8 @@ export function mountFooter() {
   el.innerHTML = `<div class="wrap">
     <div class="sf-grid">
       <section class="sf-brand" aria-label="เกี่ยวกับสำนักงาน">
-        <a class="sf-logo" href="/" aria-label="${esc(name)}">${MARK}<span>Law <b>Craft</b></span></a>
-        <p class="sf-name">${esc(name)}</p>
-        <p class="sf-desc">ฐานความรู้กฎหมายไทย เครื่องมือค้นหามาตรา ตรวจเขตอำนาจศาล และบริการร่างคำฟ้องตามแบบพิมพ์ศาลยุติธรรม สำหรับผู้เสียหายและผู้ที่ต้องการเข้าใจทางเลือกของตนเอง</p>
+        <a class="sf-logo" href="/" aria-label="${esc(name)}">${MARK}<span class="logo-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span></a>
+        <p class="sf-desc">ฐานความรู้กฎหมายไทย เครื่องมือค้นหามาตรา ตรวจเขตอำนาจศาล และบริการร่างคำฟ้องตามแบบพิมพ์ศาลยุติธรรม สำหรับผู้เสียหายและผู้ที่ต้องการเข้าใจทางเลือกของตนเอง พร้อมรับฟ้องคดี ทั้งคดีอาญาที่ราษฎรเป็นโจทก์ คดีแพ่ง และคดีออนไลน์ ตั้งแต่ปรึกษาเบื้องต้น ตรวจเขตอำนาจศาล ไปจนถึงจัดเตรียมคำฟ้องและเอกสารยื่นศาล</p>
         <a class="btn-pill primary sm sf-cta" href="/contact/">ติดต่อปรึกษากฎหมาย</a>
       </section>
       <nav class="sf-col" aria-label="ลิงก์ด่วน">
@@ -76,9 +75,9 @@ export function mountFooter() {
       </section>
     </div>
     <div class="sf-bottom">
-      <p class="sf-copy">© ${new Date().getFullYear()} ${esc(name)}</p>
+      <p class="sf-copy"><span>© ${new Date().getFullYear()}</span><span class="sf-copy-name"><span>สำนักงานกฎหมาย ลอว์คราฟต์</span><span>Law Craft Legal Consultants</span></span></p>
       <p class="sf-legal">ข้อมูลในเว็บไซต์นี้เป็นข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมาย และอาจไม่ทันต่อการแก้ไขกฎหมายล่าสุด ควรตรวจสอบตัวบทฉบับปัจจุบันและปรึกษาทนายความก่อนดำเนินคดี แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม สำนักงานศาลยุติธรรม</p>
-      <p class="sf-links"><a href="/privacy/">นโยบายความเป็นส่วนตัว</a><a href="/admin/" class="sf-admin">เข้าสู่ระบบหลังบ้าน</a></p>
+      <p class="sf-links"><a href="/privacy/">นโยบายความเป็นส่วนตัว</a><a href="/admin/" class="sf-admin">เข้าสู่ระบบร่างคำฟ้อง</a></p>
     </div>
   </div>`;
   structuredData();

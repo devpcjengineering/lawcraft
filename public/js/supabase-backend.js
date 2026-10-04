@@ -88,7 +88,7 @@ export const supabaseBackend = {
   async loadAll() {
     const { data, geo } = await loadLaw();
     // RLS: ผู้ใช้ทั่วไปได้เฉพาะรายชื่อของตน, แอดมินได้ทั้งหมด
-    const people = must(await sb.from('people').select('id,kind,label,data'));
+    const people = must(await sb.from('people').select('id,kind,label,data,owner_email,user_id'));
     return { data, geo, people };
   },
 

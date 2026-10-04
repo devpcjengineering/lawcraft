@@ -29,7 +29,7 @@
 .ar-crumb { margin: 8px 0 0; font-size: 14.5px; }
 .ar-crumb a { color: var(--link); }
 .ar-head { padding: 22px 0 28px; max-width: 760px; }
-.ar-head h1 { font-size: clamp(28px, 4.6vw, 46px); line-height: 1.25; margin: 12px 0 10px; }
+.ar-head h1 { font-size: clamp(28px, 4.6vw, 46px); line-height: 1.34; margin: 12px 0 10px; }
 .ar-sub { margin: 0; font-size: clamp(17px, 2vw, 20px); color: var(--ink-2); }
 .ar-head .ar-meta { margin: 14px 0 0; padding: 0; }
 .ar-review { display: inline-block; margin: 10px 0 0; font-size: 13px; padding: 3px 12px; border-radius: 99px; background: color-mix(in srgb, #ff9f0a 16%, transparent); color: #a15c00; }
