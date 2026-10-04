@@ -1,0 +1,20 @@
+{
+  "name": "court-doc-builder",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Law Craft — เว็บบริการกฎหมาย + หลังบ้านร่างคำฟ้อง",
+  "scripts": {
+    "start": "node server/index.js",
+    "build": "node scripts/build-static.js",
+    "test": "node test/smoke.mjs",
+    "build:edge": "node server/build-edge.js"
+  },
+  "dependencies": {
+    "docx": "^9.8.1",
+    "express": "^5.2.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

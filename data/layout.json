@@ -1,0 +1,19 @@
+{
+  "all": {
+    "court.before": 0,
+    "court.after": 0,
+    "between.before": 0,
+    "between.after": 3.5,
+    "court.dx": 13,
+    "caseNo.dy": 6,
+    "emblem.dy": -7
+  },
+  "forms": {
+    "witness": {
+      "caseNo.dy": -0.5
+    },
+    "summons": {
+      "caseNo.dy": 0.5
+    }
+  }
+}

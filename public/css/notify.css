@@ -1,0 +1,84 @@
+/* ระบบแจ้งเตือน: toast / banner / ป้ายสถานะ (ไฟล์นี้แยกจาก app.css) */
+.nt-stack { position: fixed; right: 18px; bottom: 18px; z-index: 80; display: flex; flex-direction: column-reverse; gap: 10px; width: min(380px, calc(100vw - 28px)); pointer-events: none; }
+.nt { position: relative; overflow: hidden; pointer-events: auto; display: grid; grid-template-columns: 28px 1fr 24px; gap: 10px; align-items: start; padding: 12px 12px 14px 14px; border-radius: 14px; background: rgba(255,255,255,.96); backdrop-filter: blur(14px); box-shadow: 0 10px 34px rgba(20,25,40,.2), 0 0 0 1px rgba(20,25,40,.07); transform: translateY(14px) scale(.97); opacity: 0; transition: transform .26s cubic-bezier(.2,.9,.3,1.15), opacity .22s; }
+.nt.in { transform: none; opacity: 1; }
+.nt.out { transform: translateX(24px); opacity: 0; transition: transform .22s ease-in, opacity .2s; }
+.nt-ico { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 800; color: #fff; background: #0071e3; margin-top: 1px; }
+.nt-success .nt-ico { background: #1f7a4d; } .nt-error .nt-ico { background: #d93025; } .nt-warn .nt-ico { background: #e08a00; font-size: 11px; } .nt-info .nt-ico { background: #0071e3; font-style: italic; font-family: Georgia, serif; }
+.nt-body b { display: block; font-size: 15px; line-height: 1.35; color: #1d1d1f; }
+.nt-body p { margin: 2px 0 0; font-size: 14px; line-height: 1.45; color: #4a4a52; overflow-wrap: anywhere; }
+.nt-act { margin-top: 8px; border: 0; background: #eef4fd; color: #0057b8; font-weight: 600; font-size: 13.5px; padding: 4px 12px; border-radius: 99px; cursor: pointer; }
+.nt-act:hover { background: #dbe9fb; }
+.nt-x { border: 0; background: transparent; color: #8a8a93; cursor: pointer; font-size: 13px; border-radius: 6px; width: 24px; height: 24px; line-height: 1; }
+.nt-x:hover { background: #ececf0; color: #333; }
+.nt-bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: currentColor; opacity: .5; transform-origin: left; animation: nt-bar linear forwards; color: #0071e3; }
+.nt-success .nt-bar { color: #1f7a4d; } .nt-error .nt-bar { color: #d93025; } .nt-warn .nt-bar { color: #e08a00; }
+.nt.paused .nt-bar { animation-play-state: paused; }
+@keyframes nt-bar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* แบนเนอร์ค้างใต้แถบบน */
+.nt-banners { position: sticky; top: 52px; z-index: 19; }
+.nt-banner { display: flex; align-items: center; gap: 10px; padding: 8px 20px; font-size: 14.5px; border-bottom: 1px solid rgba(0,0,0,.08); }
+.nt-banner .nt-ico { width: 22px; height: 22px; font-size: 12px; flex: none; }
+.nt-bmsg { flex: 1; min-width: 0; }
+.nt-b-error { background: #fdecea; color: #7a1710; } .nt-b-error .nt-ico { background: #d93025; }
+.nt-b-warn { background: #fff4de; color: #6b4300; } .nt-b-warn .nt-ico { background: #e08a00; }
+.nt-b-info { background: #e8f1fd; color: #0b3d7a; } .nt-b-info .nt-ico { background: #0071e3; }
+.nt-bact { border: 0; background: rgba(0,0,0,.08); color: inherit; font-weight: 600; padding: 4px 14px; border-radius: 99px; cursor: pointer; font-size: 13.5px; }
+.nt-bact:hover { background: rgba(0,0,0,.14); }
+
+/* ป้ายสถานะความพร้อมที่แถบบน */
+.ready-chip { border: 1px solid #fff4; background: #fff1; color: #fff; border-radius: 99px; padding: 4px 12px 4px 8px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; font-size: 13.5px; font-weight: 500; transition: background .15s; }
+.ready-chip:hover { background: #fff2; }
+.ready-chip i { width: 10px; height: 10px; border-radius: 50%; background: #9aa0a6; display: inline-block; }
+.ready-chip.ok i { background: #34c759; } .ready-chip.warn i { background: #ffb020; } .ready-chip.err i { background: #ff5a4d; }
+.ready-chip.err i { animation: nt-pulse 1.8s ease-in-out infinite; }
+@keyframes nt-pulse { 50% { box-shadow: 0 0 0 5px rgba(255,90,77,.25); } }
+.save-state { display: inline-flex; align-items: center; gap: 6px; }
+.save-state::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #9aa0a6; }
+.save-state[data-tone=ok]::before { background: #34c759; } .save-state[data-tone=err]::before { background: #ff5a4d; } .save-state[data-tone=busy]::before { background: #ffb020; animation: nt-pulse2 1s infinite; }
+@keyframes nt-pulse2 { 50% { opacity: .35; } }
+
+/* popup (modal.js) เพิ่มเติม */
+dialog.modal .modal-card { animation: nt-pop .26s cubic-bezier(.2,.9,.3,1.2); }
+@keyframes nt-pop { from { transform: translateY(12px) scale(.96); opacity: 0; } }
+.modal-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.modal-list li { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: #f5f5f7; font-size: 14.5px; }
+.modal-list li .st { width: 20px; text-align: center; font-weight: 700; }
+.modal-list li.ok .st { color: #1f7a4d; } .modal-list li.todo .st { color: #e08a00; } .modal-list li.err .st { color: #d93025; }
+.modal-list li .go { margin-left: auto; font-size: 13px; color: #0057b8; background: none; border: 0; cursor: pointer; text-decoration: underline; }
+
+@media (max-width: 560px) { .nt-stack { right: 10px; left: 10px; width: auto; bottom: 10px; } }
+@media (prefers-reduced-motion: reduce) { .nt, .nt.in, .nt.out, dialog.modal .modal-card { transition: none; animation: none; } .nt-bar, .ready-chip.err i, .save-state[data-tone=busy]::before { animation: none; } }
+@media print { .nt-stack, .nt-banners { display: none; } }
+
+/* ขนาดโลโก้ปรับได้ (ตั้งค่าที่หน้า ตำแหน่งตัวหนังสือ & ตราครุฑ) */
+.brand-mark { height: var(--brand-h, 28px) !important; }
+.topbar { min-height: 52px; }
+
+/* ตัวเลือกเอกสารในแผงตัวอย่าง (แทนแท็บเรียงยาว) */
+.pv-bar { overflow: visible !important; padding: 10px 12px !important; }
+.pv-nav { display: flex; align-items: center; gap: 8px; width: 100%; }
+.pv-arrow { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 0; background: #fff; box-shadow: 0 0 0 1px var(--line, #d9d9de) inset; cursor: pointer; font-size: 20px; line-height: 1; color: #333; transition: background .15s, transform .1s; }
+.pv-arrow:hover:not(:disabled) { background: #eef4fd; }
+.pv-arrow:active:not(:disabled) { transform: scale(.93); }
+.pv-arrow:disabled { opacity: .35; cursor: default; }
+.pv-select { flex: 1; min-width: 0; position: relative; }
+.pv-select select { width: 100%; appearance: none; -webkit-appearance: none; border: 0; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%2386868b' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='m1 1 4 4 4-4'/%3E%3C/svg%3E") no-repeat right 14px center; box-shadow: 0 0 0 1px var(--line, #d9d9de) inset; border-radius: 99px; padding: 7px 34px 7px 16px; font-size: 14.5px; font-weight: 600; min-height: 34px; text-overflow: ellipsis; cursor: pointer; }
+.pv-select select:hover { box-shadow: 0 0 0 1px #aaa inset; }
+.pv-count { flex: none; font-size: 13px; color: var(--muted, #667085); min-width: 2.6em; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* แบรนด์ Law Craft: ตราชั่งสีตามธีม (ตราครุฑใช้เฉพาะในเอกสาร) */
+.brand-mark { filter: none !important; color: #fff; width: auto; }
+.brand { gap: 9px; display: flex; align-items: center; }
+.brand-text { font-weight: 500; letter-spacing: -.01em; }
+.brand-text b { font-weight: 700; background: linear-gradient(92deg, #5ab0ff, #b794ff 60%, #ff7ab8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.brand-sub { font-size: 13px; font-weight: 400; opacity: .72; padding-left: 10px; margin-left: 2px; border-left: 1px solid rgba(255,255,255,.28); }
+.login-mark { color: #1d1d1f; height: 56px !important; margin: 0 auto 4px; }
+@media (max-width: 560px) { .brand-sub { display: none; } }
+
+/* ปุ่ม Login ด้วย Google */
+.g-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 10px 14px; border-radius: 10px; background: #fff; color: #1f1f1f; border: 1px solid #dadce0; font-weight: 500; font-size: 15px; cursor: pointer; transition: background .15s, box-shadow .15s; }
+.g-btn:hover { background: #f8f9fa; box-shadow: 0 1px 3px rgba(60,64,67,.25); }
+.or { display: flex; align-items: center; gap: 10px; color: #8a8a93; font-size: 13px; margin: 2px 0; }
+.or::before, .or::after { content: ''; flex: 1; height: 1px; background: #e2e2e7; }

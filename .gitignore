@@ -1,0 +1,32 @@
+# ข้อมูลของผู้ใช้ — ห้ามเข้า repo (ข้อมูลคู่ความเป็นข้อมูลส่วนบุคคล)
+cases/
+
+# ติดตั้ง/ผลลัพธ์ build
+node_modules/
+dist/
+
+# ความลับ — ห้าม commit เด็ดขาด
+.env
+.env.*
+*.pem
+supabase/.temp/
+supabase/.branches/
+
+# ไฟล์ที่สร้างอัตโนมัติ: เตรียมก่อน deploy ด้วย `node server/build-edge.js`
+supabase/functions/docx/shared/
+supabase/functions/docx/render-docx.js
+supabase/functions/docx/emblem.js
+supabase/functions/docx/brace-fallback.js
+
+# ผลทดสอบ/ไฟล์ชั่วคราว
+test/out/
+*.log
+
+# ไฟล์อ้างอิงในเครื่อง (เนื้อหาของเว็บอื่น / ภาพต้นฉบับ) — ไม่นำขึ้น repo
+d654.html
+Thaigaruda.png
+
+# ระบบปฏิบัติการ/เครื่องมือ
+.DS_Store
+Thumbs.db
+.vercel/
