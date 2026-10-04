@@ -465,7 +465,7 @@ export function serviceMotionText(c, data) {
   const out = [];
   const hd = c.hearing?.date ? isoToThaiLong(c.hearing.date) : '';
   const crim = c.type !== 'civil';
-  const dayTxt = hd || (crim ? '{{วันนัดไต่สวนมูลฟ้อง}}' : '{{วันนัดพิจารณา}}');
+  const dayTxt = hd || '........ เดือน ................ พ.ศ. ........';  // ไม่ระบุวันนัด → เว้นว่างให้เขียนเติมเอง
   out.push(`โจทก์ได้ยื่นฟ้อง${groupName(c, 'defendant') || dfWord} เป็นจำเลยต่อศาลนี้${crim ? `ในความผิดฐาน${names || '...'}${secs ? ' ตาม' + secs : ''}` : (names ? ` เรื่อง${names}` : '')} และศาลนัด${crim ? 'ไต่สวนมูลฟ้อง' : 'พิจารณา'}ในวันที่ ${dayTxt}`);
   if (mode.includes('cross')) {
     const dom = df.length > 1
