@@ -44,3 +44,14 @@ dialog::backdrop { animation: vt-in .26s ease both; }
 #app > .home, #app > .work, #app > .bookpage, #app > .login, #app > .boot { animation: page-fade .36s ease both; }
 @keyframes page-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { #app > .home, #app > .work, #app > .bookpage, #app > .login, #app > .boot { animation: none; } }
+/* .enter animation */
+.enter > * { animation: sm-open .32s cubic-bezier(.2, .8, .2, 1) both; }
+.enter > *:nth-child(1) { animation-delay: 0s; }
+.enter > *:nth-child(2) { animation-delay: 0.04s; }
+.enter > *:nth-child(3) { animation-delay: 0.08s; }
+.enter > *:nth-child(4) { animation-delay: 0.12s; }
+.enter > *:nth-child(5) { animation-delay: 0.16s; }
+.enter > *:nth-child(6) { animation-delay: 0.20s; }
+.enter > *:nth-child(7) { animation-delay: 0.24s; }
+.enter > *:nth-child(n+8) { animation-delay: 0.28s; }
+@media (prefers-reduced-motion: reduce) { .enter > * { animation: none; } }

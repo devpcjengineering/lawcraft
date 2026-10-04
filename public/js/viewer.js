@@ -1,6 +1,7 @@
 // ตัวดูเอกสารในหน้า (ไม่ดาวน์โหลดลงเครื่อง): แสดงเอกสารเป็นหน้า A4 ให้ตรวจก่อน แล้วค่อยกด “พิมพ์ / บันทึกเป็น PDF”
 // ใช้ได้ 2 แบบ: เอกสารที่ระบบสร้าง (html) และไฟล์ PDF แบบพิมพ์ศาล (src)
 import { esc } from './store.js';
+import { icon } from './icons.js';
 
 let overlay = null, lastFocus = null;
 
@@ -28,12 +29,12 @@ export function openViewer(o) {
   overlay.setAttribute('aria-modal', 'true');
   overlay.setAttribute('aria-label', o.title);
   overlay.innerHTML = `<div class="viewer-bar">
-      <button type="button" class="btn ghost" data-v="close">← กลับไปแก้ไข</button>
-      <div class="viewer-title">${esc(o.title)}</div>
-      ${o.html ? '<button type="button" class="btn primary" data-v="print">พิมพ์ / บันทึกเป็น PDF</button>' : ''}
+      <button type="button" class="btn vw-back" data-v="close">${icon('arrowLeft')}<span>กลับไปแก้ไข</span></button>
+      <div class="viewer-title"><span class="vw-ico" aria-hidden="true">${icon('file')}</span><span class="vw-t">${esc(o.title)}</span></div>
+      ${o.html ? `<button type="button" class="btn primary vw-print" data-v="print">${icon('print')}<span class="vw-l">พิมพ์ / บันทึกเป็น PDF</span><span class="vw-s">พิมพ์ / PDF</span></button>` : ''}
     </div>
-    ${o.html && o.hint !== '' ? `<div class="viewer-hint">${esc(o.hint || 'กด “พิมพ์ / บันทึกเป็น PDF” แล้วเลือก “บันทึกเป็น PDF” ตั้งกระดาษ A4 ขนาด 100% และปิด “ส่วนหัวและท้ายกระดาษ”')}</div>` : ''}
-    <div class="viewer-body"><div class="viewer-load" aria-hidden="true"><div class="boot-logo-wrap"><div class="spinner"></div></div></div><iframe class="viewer-frame" title="${esc(o.title)}"></iframe></div>`;
+    ${o.html && o.hint !== '' ? `<div class="viewer-hint">${icon('info')}<span>${esc(o.hint || 'กด “พิมพ์ / บันทึกเป็น PDF” แล้วเลือก “บันทึกเป็น PDF” ตั้งกระดาษ A4 ขนาด 100% และปิด “ส่วนหัวและท้ายกระดาษ”')}</span></div>` : ''}
+    <div class="viewer-body"><div class="viewer-load" aria-hidden="true"><div class="vw-spin"><div class="spinner"></div><span>กำลังเปิดเอกสาร</span></div></div><iframe class="viewer-frame" title="${esc(o.title)}"></iframe></div>`;
   document.body.appendChild(overlay);
   document.body.classList.add('viewer-open');
   const frame = overlay.querySelector('iframe');
@@ -56,7 +57,7 @@ export function openViewer(o) {
   const ro = new ResizeObserver(fit); ro.observe(frame);
   if (o.html) {
     frame.srcdoc = `<!doctype html><html lang="th"><head><meta charset="utf-8"><title>${esc(o.title)}</title><base href="${location.origin}/"><link rel="stylesheet" href="css/doc.css">
-      <style>html{background:#d9d9de}body{margin:0;padding:14px 0 28px}@media print{html{background:#fff}body{padding:0;zoom:1!important}}</style></head><body>${o.html}</body></html>`;
+      <style>html{background:#e3e4e9}body{margin:0;padding:14px 0 28px}@media print{html{background:#fff}body{padding:0;zoom:1!important}}</style></head><body>${o.html}</body></html>`;
   } else {
     frame.src = o.src;
   }

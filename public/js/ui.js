@@ -1,6 +1,7 @@
 // ตัวช่วยสร้างฟอร์ม
 import { S, esc, getPath } from './store.js';
 import { THAI_MONTHS, PREFIXES, validCitizenId } from '/shared/thai.js';
+import { icon } from './icons.js';
 
 /** มือถือ: เลือกแป้นพิมพ์ให้ตรงชนิดข้อมูลจากชื่อเส้นทาง (โทรศัพท์/โทรสาร = แป้นตัวเลข, อีเมล = แป้นอีเมล) */
 const kbHint = (p) => (/\.(phone|fax)$/.test(p) ? 'tel' : /\.email$/.test(p) ? 'email' : '');
@@ -31,7 +32,7 @@ export function idStateHtml(v) {
   const d = String(v || '').replace(/\D/g, '');
   if (!d.length) return '';
   if (d.length < 13) return `<span class="idok warn">กรอกแล้ว ${d.length}/13 หลัก</span>`;
-  return validCitizenId(v) ? '<span class="idok ok">✓ เลขถูกต้อง</span>' : '<span class="idok bad">⚠ เลขไม่ถูกต้อง (ไม่ผ่านการตรวจหลักสุดท้าย) กรุณาตรวจอีกครั้ง</span>';
+  return validCitizenId(v) ? `<span class="idok ok">${icon('check', { size: 14, stroke: 2.5 })}เลขถูกต้อง</span>` : `<span class="idok bad">${icon('alert', { size: 14 })}เลขไม่ถูกต้อง (ไม่ผ่านการตรวจหลักสุดท้าย) กรุณาตรวจอีกครั้ง</span>`;
 }
 /** ช่องเลขประจำตัวประชาชน 13 หลัก: จัดรูปแบบอัตโนมัติ + ตรวจเลขถูกต้องทันที */
 export function idField(label, path, o = {}) {
@@ -51,7 +52,7 @@ export function select(label, path, options, o = {}) {
 
 export function check(label, path, o = {}) {
   const v = getPath(S.c, path);
-  return `<label class="chk"><input type="checkbox" data-bind="${esc(path)}" data-type="bool" ${o.rerender ? 'data-rerender="1"' : ''} ${v ? 'checked' : ''}><span>${label}</span></label>`;
+  return `<label class="chk${o.sw ? ' sw' : ''}"><input type="checkbox"${o.sw ? ' role="switch"' : ''} data-bind="${esc(path)}" data-type="bool" ${o.rerender ? 'data-rerender="1"' : ''} ${v ? 'checked' : ''}><span>${label}</span></label>`;
 }
 
 export function seg(path, options, o = {}) {

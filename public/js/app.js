@@ -21,6 +21,8 @@ import { showInbox } from './inbox.js';
 import { confirmBox, alertBox, issuesBox, modal } from './modal.js';
 import { notify, banner, clearBanner, mountBanners, inferType } from './notify.js';
 import * as authUi from './auth-ui.js';
+import { brandHtml, tbBtn } from './chrome.js';
+import { icon as ico2 } from './icons.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const app = document.getElementById('app');
@@ -45,7 +47,7 @@ async function doSave() {
     await backend.saveCase(S.c);
     savePending = false;
     if (saveFailed) { saveFailed = false; clearBanner('save'); notify({ type: 'success', title: 'บันทึกสำเร็จแล้ว', message: 'ข้อมูลล่าสุดถูกเก็บเรียบร้อย', id: 'save-ok' }); }
-    setSaveState('บันทึกแล้ว ✓', 'ok');
+    setSaveState('บันทึกแล้ว', 'ok');
   } catch (e) {
     saveFailed = true;
     setSaveState('บันทึกไม่สำเร็จ', 'err');
@@ -120,13 +122,14 @@ function showLogin(msg = '') { return authUi.showLogin(msg); }
 /** หน้ายืนยันตั้งบัญชีที่ล็อกอินอยู่เป็นผู้ดูแลระบบคนแรก */
 function showClaim(email) {
   app.innerHTML = `<div class="login"><div class="login-card">
+    <span class="login-badge">${ico2('shield')}</span>
     <h1>ตั้งผู้ดูแลระบบคนแรก</h1>
     <p class="hint">ระบบยังไม่มีผู้ดูแล คุณล็อกอินด้วยบัญชี Google:</p>
-    <p style="text-align:center;font-weight:600;font-size:17px;margin:2px 0">${esc(email)}</p>
+    <p class="login-email">${esc(email)}</p>
     <p class="hint">ต้องการตั้งบัญชีนี้เป็นผู้ดูแลระบบ (เข้าข้อมูลคดีและตั้งค่าได้ทั้งหมด) หรือไม่? หลังตั้งแล้ว คนอื่นจะเข้าไม่ได้จนกว่าจะถูกเพิ่ม ถ้าไม่ใช่บัญชีของคุณ ให้ออกจากระบบ</p>
     <div class="login-err" role="alert" id="claimErr"></div>
-    <button class="btn primary" style="width:100%;justify-content:center" data-act="claimAdmin">ยืนยัน ตั้งเป็นผู้ดูแลระบบ</button>
-    <button class="btn" style="width:100%;justify-content:center" data-act="signOut">ไม่ใช่บัญชีของฉัน — ออกจากระบบ</button>
+    <button class="btn primary block" data-act="claimAdmin">ยืนยัน ตั้งเป็นผู้ดูแลระบบ</button>
+    <button class="btn block" data-act="signOut">ไม่ใช่บัญชีของฉัน — ออกจากระบบ</button>
   </div></div>`;
 }
 actions.claimAdmin = async () => {
@@ -154,33 +157,36 @@ async function showHome() {
   S.c = null; S.bookMode = false;
   let list = [];
   try { list = authUi.filterCases(await withLoader(backend.listCases(), 'กำลังโหลดรายการคดี')); } catch (e) { if (e.status === 401) return showLogin(); }
+  const act = (cls, data, ico, title, hint, extra = '') => `<button type="button" class="card newcase act-card ${cls}" ${data}><span class="ac-ico">${ico}</span><span class="ac-body"><span class="ac-t">${title}${extra}</span><span class="hint">${hint}</span></span><span class="ac-go" aria-hidden="true">${ico2('arrowRight')}</span></button>`;
   app.innerHTML = `
-  <header class="topbar"><div class="brand" data-act="goHome"><svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span><span class="brand-sub">ระบบร่างคำฟ้อง</span></div><span class="grow"></span>
+  <header class="topbar">${brandHtml('ระบบร่างคำฟ้อง')}<span class="grow"></span>
     ${authUi.userBar()}
-    <a class="btn ghost" href="/" aria-label="กลับไปเว็บไซต์"><span class="tb-i" aria-hidden="true">←</span><span class="tb-t"> เว็บไซต์</span></a></header>
+    ${tbBtn({ ico: 'globe', text: 'เว็บไซต์', href: '/', label: 'กลับไปเว็บไซต์' })}</header>
   <main class="home">
-    <h1>My 
-Indictment</h1>
-    <p class="lead">กรอกข้อมูลคู่ความและข้อเท็จจริงครั้งเดียว ระบบสร้างคำฟ้อง คำขอท้ายฟ้อง คำร้อง บัญชีพยาน หมายนัดไต่สวนมูลฟ้อง ตามแบบพิมพ์ศาลยุติธรรมให้ครบชุด เปิดคดีเดิมแล้วทำสำเนาเพื่อใช้ข้อมูลซ้ำได้</p>
+    <section class="home-hero"><h1>My Indictment</h1>
+    <p class="lead">กรอกข้อมูลคู่ความและข้อเท็จจริงครั้งเดียว ระบบสร้างคำฟ้อง คำขอท้ายฟ้อง คำร้อง บัญชีพยาน หมายนัดไต่สวนมูลฟ้อง ตามแบบพิมพ์ศาลยุติธรรมให้ครบชุด เปิดคดีเดิมแล้วทำสำเนาเพื่อใช้ข้อมูลซ้ำได้</p></section>
+    <section class="home-sec" aria-labelledby="hs-work"><h2 class="section-title" id="hs-work">เริ่มงาน</h2>
     <div class="cards">
-      <button class="card newcase" data-act="newCase" data-type="criminal"><h3>＋ คดีอาญา</h3><span class="hint">ราษฎรเป็นโจทก์ฟ้องเอง (ป.วิ.อ. มาตรา 28(2)) — คำฟ้อง คำขอท้ายฟ้อง คำร้องส่งหมาย บัญชีพยาน หมายนัดไต่สวนมูลฟ้อง</span></button>
-      <button class="card newcase" data-act="newCase" data-type="civil"><h3>＋ คดีแพ่ง</h3><span class="hint">คำฟ้องแพ่ง คำขอท้ายฟ้อง ทุนทรัพย์และค่าขึ้นศาล มูลหนี้ตาม ป.พ.พ.</span></button>
-      <button class="card newcase" data-act="openBook"><h3>☰ สมุดรายชื่อ</h3><span class="hint">เพิ่ม/แก้ไขบุคคล นิติบุคคล และทนายความไว้ล่วงหน้า แล้วกดเลือกเป็นโจทก์ จำเลย หรือทนายในคดีใดก็ได้</span></button>
-      <button class="card newcase" data-act="openSite"><h3>🌐 จัดการเว็บไซต์</h3><span class="hint">แก้ช่องทางติดต่อ เวลาทำการ ประกาศบนหัวเว็บ ข้อมูลสำนักงาน และข้อความท้ายเว็บ — เฉพาะผู้ดูแลระบบ</span></button>
-      <button class="card newcase" data-act="openContent"><h3>📝 จัดการเนื้อหา</h3><span class="hint">เขียน/แก้บทความ ข้อกฎหมาย (มาตรา โทษ อายุความ) และข้อความบนเว็บไซต์ เช่น นโยบายความเป็นส่วนตัว — เฉพาะผู้ดูแลระบบ</span></button>
-      <button class="card newcase" data-act="openInbox"><h3>✉ กล่องข้อความปรึกษา <span class="ib-badge" data-inbox-badge hidden></span></h3><span class="hint">ข้อความที่ผู้เยี่ยมชมส่งจากหน้า “ติดต่อปรึกษากฎหมาย” ของเว็บไซต์ — ตรวจสอบ ติดต่อกลับ และทำเครื่องหมายว่าจัดการแล้ว</span></button>
-      <label class="card newcase" style="cursor:pointer"><h3>⬆ นำเข้าข้อมูลคดี (.json)</h3><span class="hint">ไฟล์ที่ส่งออกจากระบบนี้</span><input type="file" id="importFile" accept=".json,application/json" hidden></label>
-    </div>
-    <h2 class="section-title">คดีที่บันทึกไว้ (${list.length})</h2>${authUi.caseToolbar()}
+      ${act('is-new', 'data-act="newCase" data-type="criminal"', ico2('gavel'), 'คดีอาญา', 'ราษฎรเป็นโจทก์ฟ้องเอง (ป.วิ.อ. มาตรา 28(2)) — คำฟ้อง คำขอท้ายฟ้อง คำร้องส่งหมาย บัญชีพยาน หมายนัดไต่สวนมูลฟ้อง')}
+      ${act('is-new', 'data-act="newCase" data-type="civil"', ico2('scale'), 'คดีแพ่ง', 'คำฟ้องแพ่ง คำขอท้ายฟ้อง ทุนทรัพย์และค่าขึ้นศาล มูลหนี้ตาม ป.พ.พ.')}
+      ${act('', 'data-act="openBook"', ico2('users'), 'สมุดรายชื่อ', 'เพิ่ม/แก้ไขบุคคล นิติบุคคล และทนายความไว้ล่วงหน้า แล้วกดเลือกเป็นโจทก์ จำเลย หรือทนายในคดีใดก็ได้')}
+    </div></section>
+    <section class="home-sec" data-admin-only aria-labelledby="hs-site"><h2 class="section-title" id="hs-site">จัดการเว็บไซต์ <span class="sec-note">เฉพาะผู้ดูแลระบบ</span></h2>
+    <div class="cards">
+      ${act('', 'data-act="openInbox"', ico2('inbox'), 'กล่องข้อความปรึกษา', 'ข้อความที่ผู้เยี่ยมชมส่งจากหน้า “ติดต่อปรึกษากฎหมาย” ของเว็บไซต์ — ตรวจสอบ ติดต่อกลับ และทำเครื่องหมายว่าจัดการแล้ว', ' <span class="ib-badge" data-inbox-badge hidden></span>')}
+      ${act('', 'data-act="openContent"', ico2('newspaper'), 'จัดการเนื้อหา', 'เขียน/แก้บทความ ข้อกฎหมาย (มาตรา โทษ อายุความ) และข้อความบนเว็บไซต์ เช่น นโยบายความเป็นส่วนตัว')}
+      ${act('', 'data-act="openSite"', ico2('globe'), 'จัดการเว็บไซต์', 'แก้ช่องทางติดต่อ เวลาทำการ ประกาศบนหัวเว็บ ข้อมูลสำนักงาน และข้อความท้ายเว็บ')}
+    </div></section>
+    <section class="home-sec" aria-labelledby="hs-cases"><div class="sec-bar"><h2 class="section-title" id="hs-cases">คดีที่บันทึกไว้ <span class="sec-count">${list.length}</span></h2><div class="sec-tools">${authUi.caseToolbar()}<label class="btn sm import-btn" title="เลือกไฟล์ที่ส่งออกจากระบบนี้ เพื่อเปิดต่อหรือย้ายข้อมูลคดีมาไว้ที่นี่">${ico2('upload')}นำเข้าข้อมูลคดี (.json)<input type="file" id="importFile" accept=".json,application/json" class="vh"></label></div></div>
     ${list.length ? `<div class="cards">${list.map((x) => `<div class="card case-item">
-        <div><span class="pill ${x.type === 'civil' ? 'civil' : 'crim'}">${x.type === 'civil' ? 'แพ่ง' : 'อาญา'}</span></div>
-        <h3>${esc(caseLabel(x))}</h3>${authUi.ownerLine(x)}
-        <div class="meta">${esc(x.court || 'ยังไม่ได้เลือกศาล')} · แก้ไขล่าสุด ${new Date(x.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}</div>
+        <div class="ci-top"><span class="pill ${x.type === 'civil' ? 'civil' : 'crim'}">${x.type === 'civil' ? 'แพ่ง' : 'อาญา'}</span>${authUi.ownerLine(x)}</div>
+        <h3>${esc(caseLabel(x))}</h3>
+        <div class="meta"><span class="m-court">${ico2('building')}<span>${esc(x.court || 'ยังไม่ได้เลือกศาล')}</span></span><span class="m-time">${ico2('clock')}<span>แก้ไขล่าสุด ${new Date(x.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}</span></span></div>
         <div class="row"><button class="btn primary sm" data-act="openCase" data-id="${esc(x.id)}">เปิด</button>
           <button class="btn sm" data-act="dupCase" data-id="${esc(x.id)}" title="คัดลอกคู่ความ ทนาย และข้อมูลทั้งหมดไปเป็นคดีใหม่">ทำสำเนา</button>
           <button class="btn sm danger" data-act="delCase" data-id="${esc(x.id)}">ลบ</button></div></div>`).join('')}</div>`
-      : '<div class="empty">ยังไม่มีคดี — เริ่มจากกดปุ่ม “คดีอาญา” หรือ “คดีแพ่ง” ด้านบน</div>'}
-    <p class="hint" style="margin-top:28px">แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม (สำนักงานศาลยุติธรรม) · ข้อมูลกฎหมายเป็นเครื่องมือช่วยร่าง ผู้ใช้ต้องตรวจสอบความถูกต้องก่อนยื่นต่อศาลทุกครั้ง</p>
+      : `<div class="empty-state"><span class="es-ico">${ico2('folder')}</span><b>ยังไม่มีคดีที่บันทึกไว้</b><p>เริ่มจากกดปุ่ม “คดีอาญา” หรือ “คดีแพ่ง” ด้านบน ระบบจะบันทึกให้อัตโนมัติทุกครั้งที่แก้ไข</p></div>`}</section>
+    <p class="home-foot">${ico2('info')}<span>แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม (สำนักงานศาลยุติธรรม) · ข้อมูลกฎหมายเป็นเครื่องมือช่วยร่าง ผู้ใช้ต้องตรวจสอบความถูกต้องก่อนยื่นต่อศาลทุกครั้ง</span></p>
   </main>`;
   mountBanners($('.topbar'));
   authUi.afterHome(app);
@@ -283,12 +289,12 @@ function syncPreviewDoc() {
 // ---------------- พื้นที่ทำงาน ----------------
 function showWorkspace() {
   app.innerHTML = `
-  <header class="topbar"><div class="brand" data-act="goHome"><svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span><span class="brand-sub">ระบบร่างคำฟ้อง</span></div>
+  <header class="topbar">${brandHtml('ระบบร่างคำฟ้อง')}
     <span class="case-name">${esc(S.c.title || caseTitle(S.c))}</span><span class="grow"></span>
     <button class="ready-chip" id="ready-chip" data-act="showReadiness" type="button"></button>
     <span class="save-state" id="save-state" data-tone="">${esc(saveState)}</span>
-    <button class="btn ghost" data-act="togglePreview" aria-label="ตัวอย่างเอกสาร"><span class="tb-i" aria-hidden="true">👁</span><span class="tb-t"> ตัวอย่างเอกสาร</span></button>
-    <button class="btn ghost" data-act="goHome" aria-label="คดีทั้งหมด"><span class="tb-i" aria-hidden="true">☰</span><span class="tb-t">คดีทั้งหมด</span></button>${authUi.userBar()}</header>
+    ${tbBtn({ ico: 'eye', text: 'ตัวอย่างเอกสาร', act: 'togglePreview' })}
+    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome' })}${authUi.userBar()}</header>
   <div class="work" id="work"><nav class="steps" id="steps" aria-label="เมนูเอกสารและขั้นตอน"></nav><main class="main" id="main"></main>
     <aside class="preview" id="preview"><div class="pv-bar" id="pv-bar"></div><div class="pv-scroll" id="pv-scroll"><div class="pv-inner" id="pv-inner"></div></div></aside></div>`;
   renderShell();
@@ -310,10 +316,10 @@ function renderSteps() {
       const cnt = t.count ? t.count() : 0;
       const lock = isLocked(t.key, S.c);
       return `<button class="nav-item ${S.tab === t.key ? 'on' : ''} ${lock ? 'locked' : ''}" data-act="goTab" data-tab="${t.key}" ${S.tab === t.key ? 'aria-current="page"' : ''} ${lock ? 'aria-disabled="true" title="กรอกหน้าก่อนหน้าให้ครบก่อน"' : ''}>
-        <span class="nav-ico">${t.num ?? t.icon ?? '•'}</span><span class="nav-label">${esc(t.label)}</span>
+        <span class="nav-ico">${ico2(t.ico || 'file')}</span><span class="nav-label">${esc(t.label)}</span>
         ${cnt ? `<span class="nav-count">${cnt}</span>` : ''}
         ${t.key === 'export' && errors ? `<span class="badge">${errors}</span>` : ''}
-        ${lock ? '<span class="lock" aria-hidden="true">🔒</span>' : (st ? `<span class="dot ${st}" title="${STATUS_TXT[st]}" role="img" aria-label="${STATUS_TXT[st]}"></span>` : '')}</button>`;
+        ${lock ? `<span class="lock" aria-hidden="true">${ico2('lock', { size: 14 })}</span>` : (st ? `<span class="dot ${st}" title="${STATUS_TXT[st]}" role="img" aria-label="${STATUS_TXT[st]}">${st === 'ok' ? ico2('check', { size: 11, stroke: 3 }) : ''}</span>` : '')}</button>`;
     }).join('')}</div>`;
   }).join('');
   morphInto(el, stepsHtml, { mark: false });
@@ -330,17 +336,17 @@ function updateReady() {
   const e = iss.filter((i) => i.level === 'error').length, w = iss.filter((i) => i.level === 'warn').length;
   chip.className = 'ready-chip ' + (e ? 'err' : w ? 'warn' : 'ok');
   const chipTxt = e ? `ต้องแก้ ${e} จุด` : w ? `ควรตรวจ ${w} ข้อ` : 'พร้อมยื่น';
-  chip.innerHTML = '<i></i><span class="rc-t">' + chipTxt + '</span>';
-  chip.dataset.n = e || w || ''; chip.setAttribute('aria-label', chipTxt); // มือถือ: แสดงเฉพาะจุดสีกับตัวเลข
+  chip.innerHTML = '<i></i><span class="rc-t">' + chipTxt + '</span><span class="rc-n" aria-hidden="true">' + (e || w || ico2('check', { size: 14, stroke: 3 })) + '</span>';
+  chip.setAttribute('aria-label', chipTxt); // มือถือ: แสดงเฉพาะจุดสีกับตัวเลข (หรือเครื่องหมายถูกเมื่อพร้อม)
   chip.title = 'คลิกเพื่อดูรายการตรวจสอบก่อนยื่น';
 }
 actions.showReadiness = async () => {
   const iss = validateCase(S.c, S.idx);
   const names = { case: 'ข้อมูลคดี', parties: 'คู่ความ', counsel: 'ทนายความ', charges: 'คำฟ้อง', facts: 'คำฟ้อง', complaint: 'คำฟ้อง', prayer: 'คำขอท้ายฟ้อง' };
-  const mark = { error: ['err', '⛔'], warn: ['todo', '▲'], info: ['ok', 'ℹ'] };
+  const mark = { error: 'xCircle', warn: 'alertCircle', info: 'info' };
   const body = iss.length
-    ? `<ul class="modal-list">${iss.map((i) => `<li class="${mark[i.level][0]}"><span class="st">${mark[i.level][1]}</span><span>${esc(i.msg)}</span><button type="button" class="go" data-act="goTabClose" data-tab="${esc(i.tab)}">ไปแก้${names[i.tab] ? ' ' + esc(names[i.tab]) : ''}</button></li>`).join('')}</ul>`
-    : '<p>ตรวจแล้วไม่พบจุดที่ต้องแก้ ✓ พร้อมออกเอกสาร</p>';
+    ? `<ul class="issue-list">${iss.map((i) => `<li class="${esc(i.level)}"><span class="il-ico">${ico2(mark[i.level] || 'info')}</span><span class="il-msg">${esc(i.msg)}</span><button type="button" class="il-go" data-act="goTabClose" data-tab="${esc(i.tab)}">ไปแก้${names[i.tab] ? ' ' + esc(names[i.tab]) : ''}${ico2('chevronRight', { size: 14 })}</button></li>`).join('')}</ul>`
+    : `<p class="ready-ok">${ico2('checkCircle')}<span>ตรวจแล้วไม่พบจุดที่ต้องแก้ พร้อมออกเอกสาร</span></p>`;
   const hasErr = iss.some((i) => i.level === 'error');
   const r = await modal({ title: iss.length ? 'รายการตรวจสอบก่อนยื่น' : 'พร้อมออกเอกสาร', tone: hasErr ? 'warn' : iss.length ? 'info' : 'ok', message: body, buttons: [{ label: 'ปิด', value: null }, { label: 'ไปหน้าออกเอกสาร', value: 'export', primary: true }] });
   if (r === 'export') actions.goTab({ dataset: { tab: 'export' } });
@@ -372,7 +378,7 @@ function renderShell(enter = false) {
   renderMain(enter);
   $('#work').classList.toggle('live', S.tab === 'layout');
   $('#work').classList.toggle('nopreview', !S.ui.pvOn);
-  schedulePreview();
+  schedulePreview(enter);
 }
 hooks.rerender = () => { if (S.bookMode) return hooks.bookRender(); renderSteps(); renderMain(); schedulePreview(); };
 
@@ -427,7 +433,7 @@ function renderPreview() {
   box.style.display = S.ui.pvOn ? '' : 'none';
   if (!S.ui.pvOn) return;
   const docs = previewDocs();
-  if (!docs.length) { $('#pv-bar').innerHTML = ''; $('#pv-inner').innerHTML = '<p class="empty" style="margin:20px">ยังไม่ได้เลือกเอกสาร</p>'; return; }
+  if (!docs.length) { $('#pv-bar').innerHTML = `<div class="pv-nav"><button type="button" class="pv-close" data-act="togglePreview" aria-label="ปิดตัวอย่างเอกสาร">${ico2('x')}</button></div>`; $('#pv-bar').dataset.sig = ''; $('#pv-inner').dataset.doc = ''; $('#pv-inner').innerHTML = `<div class="pv-empty">${ico2('file', { size: 28 })}<b>ยังไม่ได้เลือกเอกสาร</b><span>เลือกเอกสารในชุดที่หน้า “ตรวจสอบ &amp; ออกเอกสาร” เพื่อดูตัวอย่าง</span></div>`; return; }
   if (S.tab === 'layout' && S.ui.lastLayoutForm !== S.ui.layoutForm) {
     S.ui.lastLayoutForm = S.ui.layoutForm;
     const k = LAYOUT_DOCKEY[S.ui.layoutForm];
@@ -455,23 +461,25 @@ function renderPreview() {
   const natH = 1123; // สูง A4 หนึ่งแผ่น (297 มม.)
   // แผงตัวอย่างถูกซ่อนอยู่ (จอแคบ) → ยังไม่คำนวณขนาดพอดี รอตอนเปิดแผง
   if (!sc.clientWidth || !sc.clientHeight) { inner.dataset.doc = doc.id; inner.style.zoom = 0.5; return; }
+  sc.classList.remove('fit'); void sc.offsetWidth; // ล้าง fit และบังคับ layout เพื่อให้วัด clientWidth ได้เท่ากันทุกหน้า (มี scrollbar-gutter เสมอ)
   const availW = sc.clientWidth - 24, availH = sc.clientHeight - 24;
-  const fit = Math.max(0.25, Math.min(1.1, availW / 794, availH / natH));
+  const rawFit = Math.max(0.25, Math.min(1.1, availW / 794, availH / natH));
+  const fit = Math.floor(rawFit * 1000) / 1000;
   const manual = typeof S.ui.pvZoom === 'number';
   const zoom = manual ? S.ui.pvZoom : fit;
   inner.style.zoom = zoom;
   inner.style.margin = '0 12px';
-  sc.classList.toggle('fit', sheets === 1 && (!manual || zoom <= fit + 0.001));
+  // sc.classList.toggle('fit', sheets === 1 && (!manual || zoom <= fit + 0.001));
   const pct = Math.round(zoom * 100);
-  const barHtml = `<div class="pv-nav"><button type="button" class="pv-close" data-act="togglePreview" aria-label="ปิดตัวอย่างเอกสาร">✕</button>
-    <button type="button" class="pv-arrow" data-act="pvPrev" aria-label="เอกสารก่อนหน้า" ${docs.length < 2 ? 'disabled' : ''}>‹</button>
+  const barHtml = `<div class="pv-nav"><button type="button" class="pv-close" data-act="togglePreview" aria-label="ปิดตัวอย่างเอกสาร">${ico2('x')}</button>
+    <div class="pv-pager"><button type="button" class="pv-arrow" data-act="pvPrev" aria-label="เอกสารก่อนหน้า" ${docs.length < 2 ? 'disabled' : ''}>${ico2('chevronLeft')}</button>
     <label class="pv-select"><select data-onchange="pvSelect" aria-label="เลือกเอกสารที่แสดงในตัวอย่าง">${docs.map((d) => `<option value="${esc(d.id)}" ${d.id === S.ui.pvDoc ? 'selected' : ''}>${esc(d.title)}</option>`).join('')}</select></label>
-    <button type="button" class="pv-arrow" data-act="pvNext" aria-label="เอกสารถัดไป" ${docs.length < 2 ? 'disabled' : ''}>›</button>
     <span class="pv-count" aria-hidden="true">${idx + 1}/${docs.length}</span>
-    ${sheets > 1 ? `<span class="pv-pages" title="เอกสารฉบับนี้ยาว ${sheets} แผ่น A4 เลื่อนดูได้">${sheets} แผ่น</span>` : ''}
-    <span class="pv-zoom" role="group" aria-label="ขยายหรือย่อตัวอย่าง"><button type="button" class="pv-arrow" data-act="pvZoom" data-d="-1" aria-label="ย่อ">−</button>
+    <button type="button" class="pv-arrow" data-act="pvNext" aria-label="เอกสารถัดไป" ${docs.length < 2 ? 'disabled' : ''}>${ico2('chevronRight')}</button></div>
+    ${sheets > 1 ? `<span class="pv-pages" title="เอกสารฉบับนี้ยาว ${sheets} แผ่น A4 เลื่อนดูได้">${ico2('layers')}${sheets} แผ่น</span>` : ''}
+    <span class="pv-zoom" role="group" aria-label="ขยายหรือย่อตัวอย่าง"><button type="button" class="pv-arrow" data-act="pvZoom" data-d="-1" aria-label="ย่อ">${ico2('minus')}</button>
       <button type="button" class="pv-pct" data-act="pvZoom" data-d="fit" title="พอดีหน้าจอ" aria-label="ขนาดพอดีหน้าจอ">${manual ? pct + '%' : 'พอดี'}</button>
-      <button type="button" class="pv-arrow" data-act="pvZoom" data-d="1" aria-label="ขยาย">+</button></span></div>`;
+      <button type="button" class="pv-arrow" data-act="pvZoom" data-d="1" aria-label="ขยาย">${ico2('plus')}</button></span></div>`;
   // สร้างแถบใหม่เฉพาะเมื่อเนื้อหาเปลี่ยน (ไม่ให้เมนูที่เปิดอยู่ปิด/เด้งทุกครั้งที่พิมพ์)
   if (bar.dataset.sig !== barHtml) { bar.innerHTML = barHtml; bar.dataset.sig = barHtml; }
   inner.dataset.doc = doc.id;
@@ -506,8 +514,8 @@ function renderDocList() {
   const box = $('#doclist');
   if (!box) return;
   const docs = currentDocs();
-  box.innerHTML = docs.length ? docs.map((d) => `<div class="docrow"><span class="grow">📄 ${esc(d.title)}</span>
-    <button class="btn sm" data-act="printDoc" data-id="${esc(d.id)}">ดู PDF</button></div>`).join('') : '<div class="empty">ยังไม่ได้เลือกเอกสาร</div>';
+  box.innerHTML = docs.length ? docs.map((d, i) => `<div class="docrow"><span class="docrow-ico" aria-hidden="true">${ico2('file')}</span><span class="grow"><span class="docrow-n">${i + 1}</span>${esc(d.title)}</span>
+    <button class="btn sm outline" data-act="printDoc" data-id="${esc(d.id)}">${ico2('print')}<span>ดู PDF</span></button></div>`).join('') : `<div class="empty">${ico2('file', { size: 22 })}<span>ยังไม่ได้เลือกเอกสาร</span></div>`;
 }
 
 /** ตรวจก่อนออกเอกสาร: มีรายการผิดพลาด/เตือน → แสดง popup ให้เลือกกลับไปแก้หรือออกต่อ */
@@ -522,10 +530,16 @@ async function guardExport() {
   return true;
 }
 
-/** ดูเอกสารในหน้า (ไม่ดาวน์โหลด) แล้วพิมพ์/บันทึกเป็น PDF จากตัวดู */
 async function viewDocs(docs, title) {
   await documentFontsReady();
-  openViewer({ title, html: docs.map((d) => paginateHtml(docHtml(d, S.data.layout))).join('') });
+  const html = docs.map((d) => paginateHtml(docHtml(d, S.data.layout))).join('');
+  const win = window.open('', '_blank');
+  if (!win) return alertBox('โปรดอนุญาต Pop-up ของเบราว์เซอร์ แล้วกดอีกครั้งเพื่อเปิดเอกสารในแท็บใหม่', { title: 'เปิดเอกสารไม่ได้', tone: 'warn' });
+  win.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>${esc(title)}</title><base href="${location.origin}/"><link rel="stylesheet" href="css/doc.css">
+      <style>html{background:#d9d9de}body{margin:0;padding:14px 0 28px}@media print{html{background:#fff}body{padding:0;zoom:1!important}}</style></head><body>${html}</body></html>`);
+  win.document.close();
+  // ใช้ setTimeout เพื่อให้โหลดเสร็จก่อนค่อย focus
+  setTimeout(() => { if (win) { win.focus(); win.print(); } }, 500);
 }
 actions.printAll = async () => { if (await guardExport()) viewDocs(currentDocs(), 'ชุดเอกสารทั้งหมด'); };
 actions.printDoc = async (el) => { const d = currentDocs().filter((x) => x.id === el.dataset.id); if (d.length && await guardExport()) viewDocs(d, d[0].title); };
@@ -602,7 +616,14 @@ document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-act]');
   if (!el) return;
   const fn = actions[el.dataset.act];
-  if (fn) { e.preventDefault(); fn(el, e); }
+  if (fn) {
+    e.preventDefault();
+    if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.startViewTransition(() => Promise.resolve(fn(el, e)));
+    } else {
+      fn(el, e);
+    }
+  }
 });
 
 // ---------------- เริ่มต้น ----------------

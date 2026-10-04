@@ -7,6 +7,8 @@ import { confirmBox } from './modal.js';
 import { notify } from './notify.js';
 import { CONTACT_KINDS, contactHref } from '/site/live-config.js';
 import base from '/site/config.js';
+import { brandHtml, tbBtn } from './chrome.js';
+import { icon } from './icons.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const KIND_LABEL = Object.fromEntries(CONTACT_KINDS);
@@ -43,7 +45,7 @@ async function persist() {
   try {
     await hooks.api.saveSite(output());
     try { sessionStorage.removeItem('lawcraft:site:v1'); } catch { /* ข้าม */ }
-    setState('บันทึกแล้ว ✓ — เว็บไซต์อัปเดตภายในไม่กี่วินาที', 'ok');
+    setState('บันทึกแล้ว — เว็บไซต์อัปเดตภายในไม่กี่วินาที', 'ok');
   } catch (e) { setState('บันทึกไม่สำเร็จ: ' + (e.message || e), 'err'); }
 }
 const changed = () => {
@@ -58,9 +60,9 @@ export async function showSiteAdmin(root) {
   hooks.bookChanged = changed; hooks.bookRender = render; // ใช้กลไกเดียวกับหน้าสมุดรายชื่อ (S.bookMode)
   S.bookMode = true; S.c = null; stateTxt = ''; stateTone = '';
   app.innerHTML = `
-  <header class="topbar"><div class="brand" data-act="goHome"><svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span><span class="brand-sub">จัดการเว็บไซต์</span></div><span class="grow"></span>
-    <a class="btn ghost" href="/" target="_blank" rel="noopener"><span class="tb-t">ดูหน้าเว็บ ↗</span></a>
-    <button class="btn ghost" data-act="goHome"><span class="tb-i" aria-hidden="true">←</span><span class="tb-t"> คดีทั้งหมด</span></button></header>
+  <header class="topbar">${brandHtml('จัดการเว็บไซต์')}<span class="grow"></span>
+    ${tbBtn({ ico: 'external', text: 'ดูหน้าเว็บ', href: '/', external: true })}
+    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome' })}</header>
   <main class="sitepage" id="site-main"><div class="boot"><div class="boot-logo-wrap"><div class="spinner" aria-hidden="true"></div></div><p>กำลังโหลดข้อมูลเว็บไซต์…</p></div></main>`;
   let data = {};
   try { data = await hooks.api.loadSite(); } catch (e) { notify({ type: 'warn', title: 'โหลดข้อมูลเว็บไซต์ไม่สำเร็จ', message: e.message || String(e) }); }
@@ -83,15 +85,15 @@ function renderForm() {
         <label class="f"><span>ประเภท</span><select data-bind="site.contacts.${i}.kind" data-rerender="1">${kindOpts(c.kind)}</select></label>
         ${field('ชื่อที่แสดง (ไม่บังคับ)', `site.contacts.${i}.label`, { ph: KIND_LABEL[c.kind] || 'ติดต่อ' })}
         ${field('ค่า', `site.contacts.${i}.value`, { ph: { tel: '02-123-4567', line: '@lawcraft', mail: 'contact@example.com', facebook: 'lawcraft', web: 'www.example.com' }[c.kind] || '' })}
-        <button type="button" class="btn sm danger" data-act="siteDelContact" data-i="${i}" aria-label="ลบช่องทางที่ ${i + 1}">ลบ</button></div>`).join('') || '<p class="empty">ยังไม่มีช่องทางติดต่อ — กด “+ เพิ่มช่องทาง”</p>'}</div>
-      <div class="toolbar" style="margin:12px 0 0"><button type="button" class="btn outline" data-act="siteAddContact">+ เพิ่มช่องทาง</button></div></section>
+        <button type="button" class="btn sm danger" data-act="siteDelContact" data-i="${i}" aria-label="ลบช่องทางที่ ${i + 1}">ลบ</button></div>`).join('') || '<p class="empty">ยังไม่มีช่องทางติดต่อ — กด “เพิ่มช่องทาง”</p>'}</div>
+      <div class="toolbar"><button type="button" class="btn outline" data-act="siteAddContact">${icon('plus')}เพิ่มช่องทาง</button></div></section>
 
     <section class="panel"><h3>เวลาทำการ</h3>
       ${field('ข้อความเวลาทำการ (ขึ้นท้ายเว็บ)', 'site.hours', { type: 'textarea', rows: 2, ph: 'เช่น จันทร์–ศุกร์ 9.00–17.00 น.', cls: 's12' })}</section>
 
     <section class="panel"><h3>ประกาศบนหัวเว็บ</h3>
-      <label class="chk"><input type="checkbox" data-bind="site.announcement.on" data-type="bool" data-rerender="1" ${s.announcement.on ? 'checked' : ''}><span>แสดงแถบประกาศบนทุกหน้าของเว็บ (ผู้เยี่ยมชมปิดได้)</span></label>
-      ${s.announcement.on ? `<div class="grid" style="margin-top:12px">${field('ข้อความประกาศ', 'site.announcement.text', { cls: 's12', ph: 'เช่น สำนักงานหยุดทำการวันที่ …' })}
+      <label class="chk sw"><input type="checkbox" data-bind="site.announcement.on" data-type="bool" data-rerender="1" ${s.announcement.on ? 'checked' : ''}><span>แสดงแถบประกาศบนทุกหน้าของเว็บ (ผู้เยี่ยมชมปิดได้)</span></label>
+      ${s.announcement.on ? `<div class="grid">${field('ข้อความประกาศ', 'site.announcement.text', { cls: 's12', ph: 'เช่น สำนักงานหยุดทำการวันที่ …' })}
         ${field('ลิงก์ (ไม่บังคับ)', 'site.announcement.link', { cls: 's6', ph: '/contact/ หรือ https://…' })}${field('ข้อความลิงก์', 'site.announcement.linkText', { cls: 's6', ph: 'รายละเอียด' })}</div>` : ''}</section>
 
     <section class="panel"><h3>ข้อมูลสำนักงาน</h3><div class="grid">
@@ -111,7 +113,7 @@ actions.siteReset = async () => {
   if (!(await confirmBox('ล้างช่องทางติดต่อ เวลาทำการ ประกาศ และข้อความท้ายเว็บที่ตั้งไว้ทั้งหมด แล้วใช้ค่าเริ่มต้นของเว็บแทน?', { title: 'กลับค่าเริ่มต้น', okText: 'ล้างค่า', danger: true }))) return;
   try { await hooks.api.saveSite({}); } catch (e) { return notify({ type: 'error', title: 'ล้างไม่สำเร็จ', message: e.message || String(e) }); }
   try { sessionStorage.removeItem('lawcraft:site:v1'); } catch { /* ข้าม */ }
-  S.c = { site: normalize({}) }; setState('ล้างแล้ว ✓', 'ok'); renderForm();
+  S.c = { site: normalize({}) }; setState('ล้างแล้ว', 'ok'); renderForm();
 };
 
 export async function leaveSiteAdmin() {

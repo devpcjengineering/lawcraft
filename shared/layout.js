@@ -34,8 +34,8 @@ export const LAYOUT_GROUPS = [
   { title: 'ตราครุฑ', fields: [
     { k: 'emblem.show', label: 'แสดงตราครุฑ', type: 'check' },
     { k: 'emblem.width', label: 'ขนาด (กว้าง)', unit: 'มม.', min: 10, max: 45, step: 0.5 },
-    { k: 'emblem.dx', label: 'เลื่อนซ้าย ← → ขวา', unit: 'มม.', min: -40, max: 40, step: 0.5 },
-    { k: 'emblem.dy', label: 'เลื่อนขึ้น ↑ ↓ ลง', unit: 'มม.', min: -15, max: 40, step: 0.5, hint: 'ในไฟล์ Word เลื่อนลงได้เท่านั้น (ค่าติดลบใช้เฉพาะตัวอย่างและ PDF)' },
+    { k: 'emblem.dx', label: 'เลื่อนซ้าย-ขวา', unit: 'มม.', min: -40, max: 40, step: 0.5 },
+    { k: 'emblem.dy', label: 'เลื่อนขึ้น-ลง', unit: 'มม.', min: -15, max: 40, step: 0.5, hint: 'ในไฟล์ Word เลื่อนลงได้เท่านั้น (ค่าติดลบใช้เฉพาะตัวอย่างและ PDF)' },
   ] },
   { title: 'โลโก้ Law Craft (เว็บไซต์ / หลังบ้าน)', scope: 'all', fields: [
     { k: 'brand.site', label: 'ขนาดโลโก้บนเว็บไซต์ (ความสูง)', unit: 'px', min: 14, max: 56, step: 1 },

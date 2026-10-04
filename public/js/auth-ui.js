@@ -11,6 +11,7 @@ import { S, esc, actions } from './store.js';
 import { banner, clearBanner, notify } from './notify.js';
 import { selectBackend } from './api.js';
 import { connHtml } from './conn.js';
+import { icon } from './icons.js';
 
 /** หน้า (key ใน TABS) ที่เฉพาะแอดมินเข้าได้: ข้อความฟอร์ม, เลย์เอาต์/ตราครุฑ, แบบพิมพ์ศาล (กลุ่ม “ตั้งค่า” ในเมนูซ้าย) */
 export const ADMIN_ONLY = new Set(['formtext', 'layout', 'forms']);
@@ -56,7 +57,7 @@ export async function gate() {
   ss.del(SETUP_KEY);
   if (!ss.get(NOTE_KEY)) {
     ss.set(NOTE_KEY, '1');
-    notify({ type: 'info', title: 'เข้าสู่ระบบแล้ว', message: 'คดีที่คุณสร้างเป็นของบัญชีนี้ — ผู้ใช้อื่นมองไม่เห็น (ผู้ดูแลระบบเปิดดูได้เพื่อช่วยแก้ปัญหา)', duration: 7000 });
+    notify({ type: 'info', title: 'เข้าสู่ระบบแล้ว', message: 'คดีที่คุณสร้างเป็นของบัญชีนี้ — จะถูกรักษาเป็นความลับ', duration: 7000 });
   }
   return true;
 }
@@ -71,20 +72,17 @@ export async function showLogin(msg = '') {
   if (hashHasSetup()) ss.set(SETUP_KEY, '1'); // OAuth ส่งกลับมาโดยไม่มี hash — จำไว้ว่ามาจากลิงก์ตั้งค่า
   const app = ctx.app;
   app.innerHTML = `<div class="login"><form class="login-card" id="loginForm">
-    ${MARK_SVG}<h1>เริ่มร่างคำฟ้องของคุณเอง</h1>
-    <div class="conn-row">${connHtml()}</div>
+    <div class="login-top">${MARK_SVG}<h1>เริ่มร่างคำฟ้องของคุณเอง</h1>
     <p class="hint">เตรียมคำฟ้อง คำร้อง และเอกสารประกอบสำหรับยื่นต่อศาลได้ด้วยตนเอง ใช้ได้ทันที</p>
+    <div class="conn-row">${connHtml()}</div></div>
     <button type="button" class="g-btn" data-act="googleLogin">${G_SVG}เข้าสู่ระบบด้วย Google</button>
     <div class="or"><span>หรือใช้อีเมลและรหัสผ่านที่มีอยู่แล้ว</span></div>
-    <label class="f s12"><span>อีเมล</span><input type="email" name="email" required autocomplete="username"></label>
+    <label class="f s12"><span>อีเมล</span><input type="email" name="email" required autocomplete="username" placeholder="name@example.com"></label>
     <label class="f s12"><span>รหัสผ่าน</span><input type="password" name="password" required autocomplete="current-password"></label>
     <div class="login-err" role="alert">${esc(msg)}</div>
-    <button class="btn primary" style="width:100%;justify-content:center">เข้าสู่ระบบ</button>
-    <div class="login-note">
-      <p><b>ต้องเข้าสู่ระบบก่อนใช้งาน</b> คดีที่บันทึกเป็นของบัญชีคุณ ผู้ใช้คนอื่นมองไม่เห็น แต่ผู้ดูแลระบบสามารถเปิดดูได้เพื่อช่วยแก้ปัญหาการใช้งาน</p>
-    </div>
-    <a class="hint" href="/" style="text-align:center">← กลับเว็บไซต์</a></form></div>`;
-  app.querySelector('#loginForm').addEventListener('submit', async (e) => {
+    <button class="btn primary block">เข้าสู่ระบบ</button>
+    <div class="login-note">${icon('shield')}<p><b>ต้องเข้าสู่ระบบก่อนใช้งาน</b> คดีที่บันทึกเป็นของบัญชีคุณ ผู้ใช้คนอื่นมองไม่เห็น แต่ผู้ดูแลระบบสามารถเปิดดูได้เพื่อช่วยแก้ปัญหาการใช้งาน</p></div>
+    <a class="login-back" href="/">${icon('arrowLeft')}กลับเว็บไซต์</a></form></div>`;  app.querySelector('#loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = new FormData(e.target);
     try { await ctx.getBackend().signIn(f.get('email'), f.get('password')); await ctx.startApp(); }
@@ -110,7 +108,7 @@ export function userBar() {
   if (!ctx.getBackend().needsLogin) return '';
   return `${connHtml()}${S.email ? `<span class="who" title="${esc(S.email)}">${esc(S.email)}</span>` : ''}`
     + `${isAdmin() ? '<span class="role-badge">ผู้ดูแลระบบ</span>' : ''}`
-    + '<button class="btn ghost" data-act="signOut">ออกจากระบบ</button>';
+    + `<button class="btn" data-act="signOut" aria-label="ออกจากระบบ" title="ออกจากระบบ"><span class="tb-i" aria-hidden="true">${icon('logout')}</span><span class="tb-t">ออกจากระบบ</span></button>`;
 }
 
 /** แอดมิน: ตัวกรอง “ทั้งหมด / เฉพาะคดีของฉัน” เหนือรายการคดี */
@@ -127,9 +125,12 @@ export function filterCases(list) {
 /** แอดมิน: บรรทัดเล็ก ๆ สีเทาบอกเจ้าของคดี */
 export function ownerLine(x) {
   if (!isAdmin() || !S.uid) return '';
-  return `<div class="owner-line">เจ้าของ: ${esc(x.ownerEmail || 'ไม่ระบุ (ข้อมูลเดิม)')}${x.userId && x.userId === S.uid ? ' (ฉัน)' : ''}</div>`;
+  return `<div class="owner-line" title="เจ้าของคดี">${icon('user')}<span>เจ้าของ: ${esc(x.ownerEmail || 'ไม่ระบุ (ข้อมูลเดิม)')}${x.userId && x.userId === S.uid ? ' (ฉัน)' : ''}</span></div>`;
 }
-/** หลังวาดหน้าแรก: ผู้ที่ไม่ใช่แอดมินไม่เห็นการ์ดกล่องข้อความปรึกษา */
+/** หลังวาดหน้าแรก: ผู้ที่ไม่ใช่แอดมินไม่เห็นการ์ด/หมวดจัดการเว็บไซต์ (กล่องข้อความปรึกษา ฯลฯ) */
 export function afterHome(root = document) {
-  if (!isAdmin()) root.querySelectorAll('[data-act="openInbox"],[data-act="openSite"],[data-act="openContent"]').forEach((n) => n.remove());
+  if (!isAdmin()) {
+    root.querySelectorAll('[data-act="openInbox"],[data-act="openSite"],[data-act="openContent"]').forEach((n) => n.remove());
+    root.querySelectorAll('[data-admin-only]').forEach((n) => n.remove());
+  }
 }

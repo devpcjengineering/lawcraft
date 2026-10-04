@@ -3,6 +3,7 @@ import { plaintiffs, defendants, partyName, partyLabel } from '/shared/model.js'
 import { validCitizenId } from '/shared/thai.js';
 import { esc } from './store.js';
 import { morphInto } from './morph.js';
+import { icon } from './icons.js';
 
 /** ลำดับหน้าหลัก — optional = ข้ามได้ ไม่บังคับ */
 export const STEPS = [
@@ -79,19 +80,20 @@ export function firstBlocked(key, c) {
 }
 export const isLocked = (key, c) => !!firstBlocked(key, c);
 
-/** แถบ ย้อนกลับ / ถัดไป ท้ายแต่ละหน้า */
+/** แถบ ย้อนกลับ / ถัดไป ท้ายแต่ละหน้า (พร้อมตัวบอกความคืบหน้า “ขั้นที่ n จาก N”) */
 export function wizardNav(key, c) {
   const list = applicable(c);
   const at = list.findIndex((s) => s.key === key);
   if (at < 0) return '';
-  const prev = list[at - 1], next = list[at + 1];
   const miss = stepMissing(key, c);
-  return `<div class="wiz-nav" id="wiz-nav">${wizardInner(prev, next, miss)}</div>`;
+  return `<div class="wiz-nav" id="wiz-nav">${wizardInner(list[at - 1], list[at + 1], miss, at, list.length)}</div>`;
 }
-export function wizardInner(prev, next, miss) {
-  return `${miss.length ? `<div class="wiz-miss" role="status"><b>กรอกให้ครบก่อนไปหน้าถัดไป</b><ul>${miss.slice(0, 8).map((x) => `<li>${esc(x)}</li>`).join('')}${miss.length > 8 ? `<li>…และอีก ${miss.length - 8} รายการ</li>` : ''}</ul></div>` : ''}
-    <div class="wiz-btns">${prev ? `<button type="button" class="btn" data-act="wizGo" data-tab="${prev.key}">← ${esc(prev.label)}</button>` : '<span></span>'}
-      ${next ? `<button type="button" class="btn primary ${miss.length ? 'is-locked' : ''}" data-act="wizNext" data-tab="${next.key}" ${miss.length ? 'aria-disabled="true"' : ''}>${esc(next.label)} →</button>` : ''}</div>`;
+export function wizardInner(prev, next, miss, at = 0, total = 0) {
+  const pct = total ? Math.round(((at + 1) / total) * 100) : 0;
+  return `${miss.length ? `<div class="wiz-miss" role="status"><div class="wiz-miss-h">${icon('alert', { size: 16 })}<b>กรอกให้ครบก่อนไปหน้าถัดไป</b></div><ul>${miss.slice(0, 8).map((x) => `<li>${esc(x)}</li>`).join('')}${miss.length > 8 ? `<li>…และอีก ${miss.length - 8} รายการ</li>` : ''}</ul></div>` : ''}
+    <div class="wiz-btns">${prev ? `<button type="button" class="btn" data-act="wizGo" data-tab="${prev.key}">${icon('arrowLeft', { size: 16 })}<span class="wiz-t">${esc(prev.label)}</span></button>` : '<span></span>'}
+      ${total ? `<div class="wiz-prog" role="progressbar" aria-valuemin="1" aria-valuemax="${total}" aria-valuenow="${at + 1}" aria-label="ความคืบหน้า"><span class="wiz-prog-t">ขั้นที่ ${at + 1} จาก ${total}</span><span class="wiz-prog-bar"><i style="width:${pct}%"></i></span></div>` : ''}
+      ${next ? `<button type="button" class="btn primary ${miss.length ? 'is-locked' : ''}" data-act="wizNext" data-tab="${next.key}" ${miss.length ? 'aria-disabled="true"' : ''}><span class="wiz-t">${esc(next.label)}</span>${icon('arrowRight', { size: 16 })}</button>` : '<span></span>'}</div>`;
 }
 /** อัปเดตแถบตามข้อมูลล่าสุด (เรียกหลังพิมพ์) โดยไม่วาดหน้าใหม่ */
 export function refreshWizard(key, c) {
@@ -100,5 +102,5 @@ export function refreshWizard(key, c) {
   const list = applicable(c);
   const at = list.findIndex((s) => s.key === key);
   if (at < 0) return;
-  morphInto(el, wizardInner(list[at - 1], list[at + 1], stepMissing(key, c)));
+  morphInto(el, wizardInner(list[at - 1], list[at + 1], stepMissing(key, c), at, list.length));
 }

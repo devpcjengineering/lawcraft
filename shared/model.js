@@ -254,7 +254,7 @@ export function caseLabel(c) {
   const withYr = (n) => (yr && !n.includes('/') ? `${n}/${yr}` : n);
   if (black) return `คดีหมายเลขดำที่ ${withYr(black)}`;
   if (red) return `คดีหมายเลขแดงที่ ${withYr(red)}`;
-  return `หมายเลขคำฟ้อง ${String(c?.id || '').slice(0, 8).toUpperCase() || '—'}`;
+  return `คำฟ้อง ${String(c?.id || '').slice(0, 8).toUpperCase() || '—'}`;
 }
 
 export function caseTitle(c) {

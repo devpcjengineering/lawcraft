@@ -7,6 +7,8 @@ import { newCase, newParty, uid, partyName } from '/shared/model.js';
 import { confirmBox } from './modal.js';
 import { morphInto } from './morph.js';
 import { isAdmin } from './auth-ui.js';
+import { brandHtml, tbBtn } from './chrome.js';
+import { icon } from './icons.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const KIND_TXT = { party: 'บุคคลธรรมดา', juristic: 'นิติบุคคล', counsel: 'ทนายความ' };
@@ -64,7 +66,7 @@ async function persist() {
     const h = $('.bk-head h2'); if (h) h.textContent = 'แก้ไข' + KIND_TXT[typeOf(rec)];
     const b = $('.bk-head [data-act=bookCancel]'); if (b) { b.dataset.act = 'bookDel'; b.textContent = 'ลบ'; b.classList.add('danger'); }
   }
-  setState('บันทึกแล้ว ✓', 'ok');
+  setState('บันทึกแล้ว', 'ok');
   renderList();
 }
 
@@ -83,14 +85,14 @@ export function showBook(root, selectId) {
   S.c = null;
   sel = null; q = ''; filter = 'all'; stateTxt = ''; stateTone = '';
   app.innerHTML = `
-  <header class="topbar"><div class="brand" data-act="goHome"><svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span><span class="brand-sub">สมุดรายชื่อ</span></div><span class="grow"></span>
-    <button class="btn ghost" data-act="goHome" aria-label="คดีทั้งหมด"><span class="tb-i" aria-hidden="true">←</span><span class="tb-t"> คดีทั้งหมด</span></button></header>
+  <header class="topbar">${brandHtml('สมุดรายชื่อ')}<span class="grow"></span>
+    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome' })}</header>
   <main class="bookpage">
     <aside class="bk-side" aria-label="รายชื่อ">
       <div class="bk-add">
-        <button class="btn primary sm" data-act="bookNew" data-k="party">+ บุคคล</button>
-        <button class="btn sm" data-act="bookNew" data-k="juristic">+ นิติบุคคล</button>
-        <button class="btn sm" data-act="bookNew" data-k="counsel">+ ทนายความ</button>
+        <button class="btn primary sm" data-act="bookNew" data-k="party">${icon('plus')}บุคคล</button>
+        <button class="btn sm" data-act="bookNew" data-k="juristic">${icon('plus')}นิติบุคคล</button>
+        <button class="btn sm" data-act="bookNew" data-k="counsel">${icon('plus')}ทนายความ</button>
       </div>
       <input type="search" id="bk-q" data-oninput="bookSearch" placeholder="ค้นหาชื่อ / เลขบัตร / จังหวัด" aria-label="ค้นหาในสมุดรายชื่อ">
       <div class="seg-mini" role="group" aria-label="กรองประเภท">${[['all', 'ทั้งหมด'], ['party', 'บุคคล'], ['juristic', 'นิติบุคคล'], ['counsel', 'ทนาย']].map(([k, t]) => `<button type="button" data-act="bookFilter" data-k="${k}" aria-pressed="${k === filter}">${t}</button>`).join('')}</div>
@@ -114,7 +116,7 @@ function renderList() {
     .sort((a, b) => a.label.localeCompare(b.label, 'th'));
   const draft = sel?.isNew ? `<button class="bk-row on" type="button"><b>${esc(readBackLabel() || 'รายการใหม่')}</b><small>ยังไม่ได้บันทึก — กรอกชื่อ</small></button>` : '';
   morphInto(box, draft + (rows.map((x) => `<button type="button" class="bk-row ${sel?.rec.id === x.id ? 'on' : ''}" data-act="bookPick" data-id="${esc(x.id)}"><b>${esc(x.label)}</b><small>${metaOf(x)}</small></button>`).join('')
-    || (draft ? '' : `<div class="empty">${S.people.length ? 'ไม่พบรายการ' : 'ยังไม่มีรายการ — กด “+ บุคคล” เพื่อเพิ่มรายแรก'}</div>`)), { mark: false });
+    || (draft ? '' : `<div class="empty">${S.people.length ? 'ไม่พบรายการ' : 'ยังไม่มีรายการ — กด “บุคคล” เพื่อเพิ่มรายแรก'}</div>`)), { mark: false });
 }
 const readBackLabel = () => { try { return readBack().label; } catch { return ''; } };
 
@@ -122,8 +124,8 @@ function renderEditor() {
   const box = $('#bk-edit');
   if (!box) return;
   if (!sel) {
-    box.innerHTML = `<div class="bk-empty"><h2>สมุดรายชื่อ</h2><p>บันทึกข้อมูลบุคคลและทนายความไว้ครั้งเดียว แล้วกดเลือกเป็นโจทก์ จำเลย หรือทนายความในคดีใดก็ได้ — เพิ่มได้ตรงนี้เลย ไม่ต้องเปิดคดีก่อน</p>
-      <p class="hint">เลือกรายการทางซ้ายเพื่อแก้ไข หรือกดปุ่ม “+ บุคคล / + นิติบุคคล / + ทนายความ”</p></div>`;
+    box.innerHTML = `<div class="bk-empty"><span class="es-ico">${icon('users')}</span><h2>สมุดรายชื่อ</h2><p>บันทึกข้อมูลบุคคลและทนายความไว้ครั้งเดียว แล้วกดเลือกเป็นโจทก์ จำเลย หรือทนายความในคดีใดก็ได้ — เพิ่มได้ตรงนี้เลย ไม่ต้องเปิดคดีก่อน</p>
+      <p class="hint">เลือกรายการทางซ้ายเพื่อแก้ไข หรือกดปุ่ม “บุคคล / นิติบุคคล / ทนายความ” ด้านบน</p></div>`;
     return;
   }
   const isC = sel.rec.kind === 'counsel';

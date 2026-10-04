@@ -1,4 +1,5 @@
 // กล่องป๊อปอัปแทน alert/confirm ของเบราว์เซอร์ — ใช้ <dialog> รองรับคีย์บอร์ด (Esc = ยกเลิก, โฟกัสปุ่มหลัก)
+import { icon as svg } from './icons.js';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 let dlg;
@@ -17,7 +18,7 @@ function ensure() {
  */
 export function modal({ title = '', message = '', tone = 'info', buttons = [{ label: 'ตกลง', value: true, primary: true }] }) {
   const d = ensure();
-  const icon = { info: 'ℹ', warn: '⚠', danger: '⛔', ok: '✓' }[tone] || 'ℹ';
+  const icon = svg({ info: 'info', warn: 'alert', danger: 'alert', ok: 'checkCircle' }[tone] || 'info', { stroke: 1.9 });
   d.innerHTML = `<form method="dialog" class="modal-card ${tone}">
     <div class="modal-ico" aria-hidden="true">${icon}</div>
     <h3 id="modal-title">${esc(title)}</h3>
@@ -53,7 +54,7 @@ export function alertBox(message, { title = 'แจ้งให้ทราบ',
 /** รายการปัญหาก่อนออกเอกสาร: คืน 'fix' (ไปแก้) | 'go' (ออกต่อ) */
 export async function issuesBox(issues, { allowContinue = true } = {}) {
   const errs = issues.filter((i) => i.level === 'error'), warns = issues.filter((i) => i.level === 'warn');
-  const row = (i) => `<li class="${i.level}"><span>${{ error: '⛔', warn: '⚠', info: 'ℹ' }[i.level]}</span><span>${esc(i.msg)}</span></li>`;
+  const row = (i) => `<li class="${i.level}"><span class="il-ico">${svg({ error: 'xCircle', warn: 'alert', info: 'info' }[i.level] || 'info')}</span><span>${esc(i.msg)}</span></li>`;
   const html = `<p>${errs.length ? `พบ <b>${errs.length}</b> จุดที่ควรแก้ก่อนยื่น` : ''}${errs.length && warns.length ? ' และ ' : ''}${warns.length ? `<b>${warns.length}</b> ข้อควรตรวจสอบ` : ''}</p>
     <ul class="issue-list">${[...errs, ...warns].slice(0, 8).map(row).join('')}</ul>${errs.length + warns.length > 8 ? `<p class="hint">…และอีก ${errs.length + warns.length - 8} รายการ ดูทั้งหมดในหน้า “ตรวจสอบ & ออกเอกสาร”</p>` : ''}`;
   const r = await modal({

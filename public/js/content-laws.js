@@ -3,6 +3,7 @@
 //   { items:{[id]:{ฟิลด์ที่แก้}}, added:[ข้อกฎหมายเต็ม], removed:[id], precedents:{edited:{[คีย์]:{…}}, added:[…], removed:[คีย์]} }
 // สัญญาโมดูลแท็บ: export default { id, label, hint, mount(box, ctx), unmount() } (ดู content-admin.js)
 import { applyLawEdits, diffItem, diffPrecedent, precedentKeys, cleanItemPatch, cleanPrecPatch } from '/shared/content-merge.js';
+import { icon } from './icons.js';
 
 const PAGE = 150;      // แถวต่อหน้าในรายการ
 const SAVE_MS = 700;   // หน่วงก่อนบันทึกอัตโนมัติ
@@ -120,7 +121,7 @@ async function flush() {
 
 /* ---------- ส่วนประกอบ UI ---------- */
 const listBlock = (name, rows, label, hint, opts = {}) => `<div class="ct-block ctl-list-block" data-block="${name}">
-  <div class="ct-bh"><b>${label}</b><button type="button" class="btn sm outline" data-lw-add="${name}">+ เพิ่ม</button></div>
+  <div class="ct-bh"><b>${label}</b><button type="button" class="btn sm outline" data-lw-add="${name}">${icon('plus')}เพิ่ม</button></div>
   ${hint ? `<p class="hint">${hint}</p>` : ''}
   <div class="ctl-rows" data-rows="${name}">${rowsHtml(name, rows, opts)}</div></div>`;
 
@@ -129,24 +130,24 @@ function rowsHtml(name, arr, opts = {}) {
   if (name === 'relatedSections') {
     return arr.map((r, i) => `<div class="ctl-row ctl-rel"><input type="text" data-rel="ref" data-i="${i}" value="${E(r.ref)}" placeholder="อ้างมาตรา เช่น ป.อ. มาตรา 83" aria-label="มาตราที่เกี่ยวข้อง">
       <input type="text" data-rel="why" data-i="${i}" value="${E(r.why)}" placeholder="เหตุที่เกี่ยวข้อง" aria-label="เหตุที่เกี่ยวข้อง">
-      <button type="button" class="btn sm danger icon" data-lw-del="${name}:${i}" aria-label="ลบแถวนี้" title="ลบแถวนี้">✕</button></div>`).join('');
+      <button type="button" class="btn sm danger icon" data-lw-del="${name}:${i}" aria-label="ลบแถวนี้" title="ลบแถวนี้">${icon('x')}</button></div>`).join('');
   }
   const long = !!opts.long;
   return arr.map((t, i) => `<div class="ctl-row"><span class="ctl-no">${i + 1}</span>
     ${long ? `<textarea rows="${Math.min(10, Math.max(3, Math.ceil(String(t).length / 70)))}" data-list="${name}" data-i="${i}" aria-label="ข้อที่ ${i + 1}">${E(t)}</textarea>`
       : `<input type="text" data-list="${name}" data-i="${i}" value="${E(t)}" aria-label="ข้อที่ ${i + 1}">`}
-    <button type="button" class="btn sm danger icon" data-lw-del="${name}:${i}" aria-label="ลบข้อนี้" title="ลบข้อนี้">✕</button>
+    <button type="button" class="btn sm danger icon" data-lw-del="${name}:${i}" aria-label="ลบข้อนี้" title="ลบข้อนี้">${icon('x')}</button>
     ${opts.ph ? `<span class="ctl-warn" data-warn-for="${name}:${i}">${phWarn(t)}</span>` : ''}</div>`).join('');
 }
 function phWarn(t) {
   const o = (String(t).match(/\{\{/g) || []).length, cl = (String(t).match(/\}\}/g) || []).length;
-  return o !== cl ? '⚠ วงเล็บ {{ }} ไม่ครบคู่' : '';
+  return o !== cl ? 'วงเล็บ {{ }} ไม่ครบคู่' : '';
 }
 
 /* ---------- มุมมองข้อกฎหมาย ---------- */
 function shell() {
   root.innerHTML = `<div class="ctl">
-    <div class="ctl-notice" role="note"><b>⚠ ข้อมูลกฎหมายเป็นเรื่องความถูกต้อง — ตรวจกับแหล่งทางการก่อนเผยแพร่</b>
+    <div class="ctl-notice" role="note"><b>${icon('alert')} ข้อมูลกฎหมายเป็นเรื่องความถูกต้อง — ตรวจกับแหล่งทางการก่อนเผยแพร่</b>
       <span>ตัวบท มาตรา และอัตราโทษต้องตรงกับราชกิจจานุเบกษา/สำนักงานคณะกรรมการกฤษฎีกา ห้ามเดาหรือแต่งข้อความกฎหมายเอง · รายการที่เพิ่มหรือแก้เนื้อหาจะถูกตั้งเป็น "ยังไม่ตรวจ" จนกว่าจะติ๊กว่าตรวจกับแหล่งอ้างอิงแล้ว · การแก้ไขมีผลกับหน้าเว็บและตัวช่วยร่างคำฟ้อง ข้อมูลต้นฉบับไม่ถูกเขียนทับ (ย้อนกลับได้)</span></div>
     <div class="ctl-views" role="tablist" aria-label="ประเภทข้อมูล">
       <button type="button" class="btn sm ${st.view === 'items' ? 'primary' : 'outline'}" role="tab" aria-selected="${st.view === 'items'}" data-lw-view="items">ข้อกฎหมาย</button>
@@ -166,7 +167,7 @@ function itemsView() {
             <select id="ctl-law" aria-label="กรองตามกฎหมาย"><option value="">ทุกกฎหมาย</option>${laws.map((l) => `<option value="${E(l.id)}"${st.law === l.id ? ' selected' : ''}>${E(l.short || l.name || l.id)}</option>`).join('')}</select>
             <select id="ctl-kind" aria-label="กรองตามประเภท"><option value="">อาญา+แพ่ง</option><option value="criminal"${st.kind === 'criminal' ? ' selected' : ''}>อาญา</option><option value="civil"${st.kind === 'civil' ? ' selected' : ''}>แพ่ง</option></select></div>
           <select id="ctl-status" aria-label="กรองตามสถานะ">${[['', 'ทุกสถานะ'], ['edited', 'แก้ไขแล้ว'], ['added', 'เพิ่มใหม่'], ['unverified', 'ยังไม่ตรวจ'], ['removed', 'ลบ']].map(([v, t]) => `<option value="${v}"${st.status === v ? ' selected' : ''}>${t}</option>`).join('')}</select>
-          <button type="button" class="btn sm primary" data-lw-new="item">+ เพิ่มข้อกฎหมายใหม่</button>
+          <button type="button" class="btn sm primary" data-lw-new="item">${icon('plus')}เพิ่มข้อกฎหมายใหม่</button>
         </div>
         <div class="ctl-count hint" id="ctl-count" aria-live="polite"></div>
         <div class="ct-list ctl-listbox" id="ctl-list"></div>
@@ -351,7 +352,7 @@ function precView() {
         <div class="ctl-filters">
           <input type="search" id="ctl-pq" placeholder="ค้นหา เลขฎีกา หัวข้อ หรือข้อสรุป" value="${E(st.pq)}" aria-label="ค้นหาฎีกา">
           <select id="ctl-pstatus" aria-label="กรองตามสถานะ">${[['', 'ทุกสถานะ'], ['edited', 'แก้ไขแล้ว'], ['added', 'เพิ่มใหม่'], ['unverified', 'ยังไม่ตรวจ'], ['removed', 'ลบ']].map(([v, t]) => `<option value="${v}"${st.pstatus === v ? ' selected' : ''}>${t}</option>`).join('')}</select>
-          <button type="button" class="btn sm primary" data-lw-new="prec">+ เพิ่มฎีกาใหม่</button>
+          <button type="button" class="btn sm primary" data-lw-new="prec">${icon('plus')}เพิ่มฎีกาใหม่</button>
         </div>
         <div class="ctl-count hint" id="ctl-count" aria-live="polite"></div>
         <div class="ct-list ctl-listbox" id="ctl-list"></div>

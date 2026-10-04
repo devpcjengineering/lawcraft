@@ -10,6 +10,7 @@
 // - privacy.sections: กด "แก้ไขหัวข้อต่าง ๆ" เพื่อคัดลอกหัวข้อเดิมเป็นข้อความล้วนแล้วแก้/เพิ่ม/ลบ/สลับลำดับ; ชุดนี้จะแทนที่เนื้อหาเดิมทั้งหมด
 // - บันทึกอัตโนมัติ (debounce 700 ms) · unmount() บันทึกที่ค้างให้เสร็จก่อนปิดแท็บ
 import { PAGES, cleanSections, readText, stripNo, MAX_TEXT, MAX_SECTIONS, CONTENT_KEY } from '/site/live-pages-schema.js';
+import { icon } from './icons.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 let st = null; // สถานะของแท็บที่เปิดอยู่
@@ -100,7 +101,7 @@ function persist() {
   const s = st; if (!s) return Promise.resolve();
   s.chain = s.chain.then(async () => {
     s.ctx.setState('กำลังบันทึก…', 'busy');
-    try { await s.ctx.save(CONTENT_KEY, output()); s.ctx.setState('บันทึกแล้ว ✓', 'ok'); }
+    try { await s.ctx.save(CONTENT_KEY, output()); s.ctx.setState('บันทึกแล้ว', 'ok'); }
     catch (e) { s.ctx.setState('บันทึกไม่สำเร็จ: ' + (e.message || e), 'err'); }
   });
   return s.chain;
@@ -133,8 +134,8 @@ function secHtml(s, i, n) {
   return `<div class="ct-block cp-sec" data-i="${i}">
     <div class="ct-bh"><b>ข้อ ${i + 1}</b>
       <span class="ct-actions">
-        <button type="button" class="btn sm ghost" data-cp="secUp" data-i="${i}" aria-label="เลื่อนข้อ ${i + 1} ขึ้น" ${i === 0 ? 'disabled' : ''}>↑</button>
-        <button type="button" class="btn sm ghost" data-cp="secDown" data-i="${i}" aria-label="เลื่อนข้อ ${i + 1} ลง" ${i === n - 1 ? 'disabled' : ''}>↓</button>
+        <button type="button" class="btn sm ghost" data-cp="secUp" data-i="${i}" aria-label="เลื่อนข้อ ${i + 1} ขึ้น" ${i === 0 ? 'disabled' : ''}>${icon('arrowUp')}</button>
+        <button type="button" class="btn sm ghost" data-cp="secDown" data-i="${i}" aria-label="เลื่อนข้อ ${i + 1} ลง" ${i === n - 1 ? 'disabled' : ''}>${icon('arrowDown')}</button>
         <button type="button" class="btn sm danger" data-cp="secDel" data-i="${i}" aria-label="ลบข้อ ${i + 1}">ลบ</button></span></div>
     <div class="ct-editor">
       <label class="f"><span>หัวข้อ (ไม่ต้องใส่เลขข้อ ระบบใส่ให้)</span><input type="text" maxlength="200" data-cp-sec="heading" data-i="${i}" value="${esc(s.heading)}"></label>
@@ -153,7 +154,7 @@ function secsInner() {
   }
   return `${secs.map((s, i) => secHtml(s, i, secs.length)).join('')}
     <div class="ct-actions">
-      <button type="button" class="btn outline" data-cp="secAdd" ${secs.length >= MAX_SECTIONS ? 'disabled' : ''}>+ เพิ่มหัวข้อ</button>
+      <button type="button" class="btn outline" data-cp="secAdd" ${secs.length >= MAX_SECTIONS ? 'disabled' : ''}>${icon('plus')}เพิ่มหัวข้อ</button>
       <button type="button" class="btn ghost danger" data-cp="secReset">ใช้ข้อความเดิมทั้งหมด (ล้างหัวข้อที่แก้)</button></div>`;
 }
 
@@ -164,7 +165,7 @@ function pageHtml(p) {
     <summary><span class="cp-title">${esc(p.label)}</span><span class="ct-badge cp-count ${n ? '' : 'off'}">${n ? `แก้ไว้ ${n} รายการ` : 'ใช้ข้อความเดิม'}</span></summary>
     <div class="cp-body ct-editor">
       <div class="ct-actions">
-        <a class="btn sm outline" href="${esc(p.url)}" target="_blank" rel="noopener">ดูหน้า ↗</a>
+        <a class="btn sm outline" href="${esc(p.url)}" target="_blank" rel="noopener">ดูหน้า${icon('external')}</a>
         <button type="button" class="btn sm ghost danger" data-cp="resetPage" data-page="${p.id}">ใช้ข้อความเดิมทั้งหมดของหน้านี้</button></div>
       ${p.id === 'site' ? '<p class="hint">ข้อความนี้แสดงท้ายเว็บ (ใต้ © …) ในหน้าที่ใช้ท้ายเว็บมาตรฐาน — เว้นว่าง = ใช้ข้อความมาตรฐาน</p>' : ''}
       ${p.fields.map((f) => fieldHtml(p, f)).join('')}

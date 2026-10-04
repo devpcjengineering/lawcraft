@@ -5,6 +5,7 @@
 // กันเขียนทับกัน: ทุกครั้งที่บันทึกจะโหลดค่าล่าสุดจากหลังบ้านก่อน แล้วใช้ "การแก้ที่ค้างอยู่" ซ้ำลงไป (ไม่เขียนทับของคนอื่น)
 // ตรรกะรวมกับบทความตั้งต้นอยู่ใน /articles/merge.js (ใช้ร่วมกับหน้าเว็บสาธารณะ)
 import { SLUG_RE, normLive, isHidden, mergeIndex, refsFor } from '../articles/merge.js';
+import { icon } from './icons.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clone = (x) => JSON.parse(JSON.stringify(x));
@@ -48,7 +49,7 @@ async function doFlush() {
     await ctx.save('articles', out);
     state = remote;
     pending.forEach((fn) => fn(state)); // การแก้ที่เกิดระหว่างรอบันทึก
-    ctx.setState('บันทึกแล้ว ✓', 'ok');
+    ctx.setState('บันทึกแล้ว', 'ok');
   } catch (e) {
     for (const [k, fn] of ops) if (!pending.has(k)) pending.set(k, fn); // เก็บไว้ลองใหม่
     ctx.setState('บันทึกไม่สำเร็จ: ' + (e?.message || e), 'err');
@@ -176,11 +177,11 @@ const mini = (a, p, i, extra = '') => `<button type="button" class="btn sm outli
 
 function listBlock(p, title, hint, rowsHtml, addLabel) {
   return `<div class="ct-block"><div class="ct-bh"><b>${title}</b></div>${hint ? `<p class="hint">${hint}</p>` : ''}${rowsHtml || '<p class="hint">ยังไม่มีรายการ</p>'}
-    <div class="ct-actions"><button type="button" class="btn sm outline" data-a="add" data-p="${p}">+ ${addLabel}</button></div></div>`;
+    <div class="ct-actions"><button type="button" class="btn sm outline" data-a="add" data-p="${p}">${icon('plus')}${addLabel}</button></div></div>`;
 }
 
 function refChips(p, list, map, listId, ph) {
-  const chips = list.map((id, i) => `<span class="cta-chip${map && !map.has(id) ? ' bad' : ''}" title="${esc(map?.get(id) || 'ไม่พบในฐานข้อมูล')}">${esc(id)}${map?.get(id) ? ` <small>${esc(map.get(id))}</small>` : ''}<button type="button" data-a="rm" data-p="${p}" data-i="${i}" aria-label="เอาออก ${esc(id)}">×</button></span>`).join('');
+  const chips = list.map((id, i) => `<span class="cta-chip${map && !map.has(id) ? ' bad' : ''}" title="${esc(map?.get(id) || 'ไม่พบในฐานข้อมูล')}">${esc(id)}${map?.get(id) ? ` <small>${esc(map.get(id))}</small>` : ''}<button type="button" data-a="rm" data-p="${p}" data-i="${i}" aria-label="เอาออก ${esc(id)}">${icon('x', { size: 14, stroke: 2.2 })}</button></span>`).join('');
   return `<div class="cta-chips">${chips || '<span class="hint">ยังไม่มี</span>'}</div>
     <div class="cta-refadd"><input type="text" data-ref="${p}" list="${listId}" placeholder="${ph}" autocomplete="off"><button type="button" class="btn sm outline" data-a="addRef" data-p="${p}">เพิ่ม</button></div>`;
 }
@@ -190,7 +191,7 @@ function sectionBlock(s, i, n) {
   const paras = arr(s.paragraphs).join('\n\n');
   const hasT = s.table && arr(s.table.head).length;
   return `<div class="ct-block cta-sec" data-sec="${i}">
-    <div class="ct-bh"><b>หัวข้อที่ ${i + 1}</b><div class="ct-actions">${mini('mv', 'sections', i, 'data-d="-1"' + (i === 0 ? ' disabled' : ''))}↑</button>${mini('mv', 'sections', i, 'data-d="1"' + (i === n - 1 ? ' disabled' : ''))}↓</button>${mini('rm', 'sections', i, 'data-confirm="1"').replace('outline', 'danger')}ลบ</button></div></div>
+    <div class="ct-bh"><b>หัวข้อที่ ${i + 1}</b><div class="ct-actions">${mini('mv', 'sections', i, 'data-d="-1"' + (i === 0 ? ' disabled' : ''))}${icon('arrowUp')}</button>${mini('mv', 'sections', i, 'data-d="1"' + (i === n - 1 ? ' disabled' : ''))}${icon('arrowDown')}</button>${mini('rm', 'sections', i, 'data-confirm="1"').replace('outline', 'danger')}ลบ</button></div></div>
     ${field('หัวข้อ', inp(`${p}.heading`, s.heading))}
     ${field('เนื้อหา (เว้นบรรทัดว่าง 1 บรรทัด = ขึ้นย่อหน้าใหม่)', area(`${p}.paragraphs`, paras, rowsFor(paras, 5, 18), 'paras'))}
     ${field('รายการย่อย (บรรทัดละ 1 ข้อ — ไม่บังคับ)', area(`${p}.bullets`, arr(s.bullets).join('\n'), rowsFor(arr(s.bullets).join('\n'), 2, 8), 'lines'))}
@@ -208,17 +209,17 @@ function editorHtml() {
   const order = rows().map((r) => r.slug), pos = order.indexOf(slug);
   const cats = [...new Set(rows().map((r) => r.category).filter(Boolean))];
   const kp = m.keyPoints.map((k, i) => `<div class="cta-li">${area(`keyPoints.${i}`, k, rowsFor(k, 2, 8))}${mini('rm', 'keyPoints', i)}ลบ</button></div>`).join('');
-  const steps = m.steps.map((s, i) => `<div class="ct-block cta-li2"><div class="ct-bh"><b>ขั้นตอนที่ ${i + 1}</b><div class="ct-actions">${mini('mv', 'steps', i, 'data-d="-1"' + (i === 0 ? ' disabled' : ''))}↑</button>${mini('mv', 'steps', i, 'data-d="1"' + (i === m.steps.length - 1 ? ' disabled' : ''))}↓</button>${mini('rm', 'steps', i)}ลบ</button></div></div>
+  const steps = m.steps.map((s, i) => `<div class="ct-block cta-li2"><div class="ct-bh"><b>ขั้นตอนที่ ${i + 1}</b><div class="ct-actions">${mini('mv', 'steps', i, 'data-d="-1"' + (i === 0 ? ' disabled' : ''))}${icon('arrowUp')}</button>${mini('mv', 'steps', i, 'data-d="1"' + (i === m.steps.length - 1 ? ' disabled' : ''))}${icon('arrowDown')}</button>${mini('rm', 'steps', i)}ลบ</button></div></div>
       ${field('หัวข้อขั้นตอน', inp(`steps.${i}.title`, s.title))}${field('รายละเอียด', area(`steps.${i}.detail`, s.detail, rowsFor(s.detail, 2, 8)))}</div>`).join('');
-  const faq = m.faq.map((s, i) => `<div class="ct-block cta-li2"><div class="ct-bh"><b>คำถามที่ ${i + 1}</b><div class="ct-actions">${mini('mv', 'faq', i, 'data-d="-1"' + (i === 0 ? ' disabled' : ''))}↑</button>${mini('mv', 'faq', i, 'data-d="1"' + (i === m.faq.length - 1 ? ' disabled' : ''))}↓</button>${mini('rm', 'faq', i)}ลบ</button></div></div>
+  const faq = m.faq.map((s, i) => `<div class="ct-block cta-li2"><div class="ct-bh"><b>คำถามที่ ${i + 1}</b><div class="ct-actions">${mini('mv', 'faq', i, 'data-d="-1"' + (i === 0 ? ' disabled' : ''))}${icon('arrowUp')}</button>${mini('mv', 'faq', i, 'data-d="1"' + (i === m.faq.length - 1 ? ' disabled' : ''))}${icon('arrowDown')}</button>${mini('rm', 'faq', i)}ลบ</button></div></div>
       ${field('คำถาม', inp(`faq.${i}.q`, s.q))}${field('คำตอบ', area(`faq.${i}.a`, s.a, rowsFor(s.a, 2, 8)))}</div>`).join('');
   const src = m.sources.map((s, i) => `<div class="ct-block cta-li2"><div class="ct-bh"><b>แหล่งที่ ${i + 1}</b>${mini('rm', 'sources', i)}ลบ</button></div>
       ${field('ชื่อแหล่งอ้างอิง', inp(`sources.${i}.label`, s.label))}${field('ลิงก์ (https://…)', `<input type="text" inputmode="url" data-p="sources.${i}.url" value="${esc(s.url)}" autocomplete="off">`)}
-      <label class="cta-chk"><input type="checkbox" data-p="sources.${i}.verified" data-t="bool"${s.verified ? ' checked' : ''}> ตรวจเปิดอ่านแล้ว (ถ้าไม่ติ๊ก หน้าเว็บจะแสดง “ยังไม่ได้ตรวจเปิดอ่าน”)</label></div>`).join('');
+      <label class="chk cta-chk"><input type="checkbox" data-p="sources.${i}.verified" data-t="bool"${s.verified ? ' checked' : ''}><span>ตรวจเปิดอ่านแล้ว (ถ้าไม่ติ๊ก หน้าเว็บจะแสดง “ยังไม่ได้ตรวจเปิดอ่าน”)</span></label></div>`).join('');
   return `
   <div class="ct-block cta-head">
     <div class="ct-bh"><div><b>${esc(m.title || '(ยังไม่มีชื่อ)')}</b> <small class="cta-slug">/${esc(slug)}</small><div class="cta-bd">${badges({ slug, _isStatic: isStatic, _edited: edited, _hidden: hid })}</div></div>
-      <div class="ct-actions"><a class="btn sm outline" href="/articles/?a=${encodeURIComponent(slug)}" target="_blank" rel="noopener">ดูหน้าบทความ ↗</a></div></div>
+      <div class="ct-actions"><a class="btn sm outline" href="/articles/?a=${encodeURIComponent(slug)}" target="_blank" rel="noopener">ดูหน้าบทความ${icon('external')}</a></div></div>
     <div class="ct-actions">
       <button type="button" class="btn sm${hid ? '' : ' outline'}" data-a="toggleHide">${hid ? 'เผยแพร่' : 'ซ่อนจากเว็บ'}</button>
       <button type="button" class="btn sm outline" data-a="dup">ทำสำเนา</button>
@@ -241,7 +242,7 @@ function editorHtml() {
     ${listBlock('keyPoints', 'ใจความสำคัญ', '', kp, 'เพิ่มข้อ')}
     <div class="ct-block"><div class="ct-bh"><b>เนื้อหาบทความ</b><span class="hint">${m.sections.length} หัวข้อ</span></div>
       ${m.sections.map((s, i) => sectionBlock(s, i, m.sections.length)).join('') || '<p class="hint">ยังไม่มีหัวข้อ</p>'}
-      <div class="ct-actions"><button type="button" class="btn sm outline" data-a="add" data-p="sections">+ เพิ่มหัวข้อ</button></div></div>
+      <div class="ct-actions"><button type="button" class="btn sm outline" data-a="add" data-p="sections">${icon('plus')}เพิ่มหัวข้อ</button></div></div>
     ${listBlock('steps', 'ขั้นตอนปฏิบัติ', '', steps, 'เพิ่มขั้นตอน')}
     <div class="ct-block"><div class="ct-bh"><b>รายการตรวจสอบ (checklist)</b></div>
       ${field('ชื่อรายการ', inp('checklist.title', m.checklist.title))}
@@ -433,7 +434,7 @@ export default {
       <datalist id="cta-dl-prec">${[...lawIdx.prec].map(([id, lb]) => `<option value="${esc(id)}" label="${esc(lb)}"></option>`).join('')}</datalist>` : '';
     box.innerHTML = `<div class="ct-split">
       <div class="cta-side">
-        <div class="ct-actions"><button type="button" class="btn sm" data-a="new">+ บทความใหม่</button></div>
+        <div class="ct-actions"><button type="button" class="btn sm" data-a="new">${icon('plus')}บทความใหม่</button></div>
         <div id="cta-create"></div>
         <input type="search" id="cta-q" class="cta-q" placeholder="ค้นหาบทความ" aria-label="ค้นหาบทความ" autocomplete="off">
         <p class="hint" id="cta-count" role="status"></p>

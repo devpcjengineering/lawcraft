@@ -1,16 +1,12 @@
-/* แท็บ "ข้อความหน้าเว็บ" (public/js/content-pages.js) — ใช้ร่วมกับคลาส .ct-* ท้าย app.css; ไฟล์นี้เติมเฉพาะส่วนที่ไม่มีใน app.css */
-.cp-wrap { display: grid; gap: 12px; margin-top: 16px; }
+﻿/* แท็บ "ข้อความหน้าเว็บ" (js/content-pages.js) — เฉพาะโครงจัดวาง ส่วนสี/พับ-ขยาย/ช่องกรอกอยู่ใน admin-home.css */
+.cp-wrap { display: grid; gap: 12px; margin-top: 8px; }
 .cp-intro { margin: 0 0 4px; }
-.cp-page { background: var(--card, #fff); border-radius: 12px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .06); }
-.cp-page > summary { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px 18px; cursor: pointer; list-style: none; font-weight: 600; color: var(--navy); border-radius: 12px; }
+.cp-page > summary { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; cursor: pointer; list-style: none; }
 .cp-page > summary::-webkit-details-marker { display: none; }
-.cp-page > summary::before { content: '▸'; display: inline-block; font-size: 13px; color: var(--muted); transition: transform .15s; }
-.cp-page[open] > summary::before { transform: rotate(90deg); }
-.cp-page > summary:focus-visible { outline: 2px solid var(--blue, #0071e3); outline-offset: -2px; }
 .cp-title { font-size: 16px; }
 .cp-count { margin: 0; }
-.cp-body { padding: 4px 18px 20px; gap: 16px; }
-.cp-group { margin: 10px 0 -4px; font-size: 14px; font-weight: 600; color: var(--navy); padding-top: 10px; border-top: 1px solid var(--line, #e2e5ea); }
+.cp-body { gap: 16px; }
+.cp-group { margin: 10px 0 -4px; font-size: 14px; font-weight: 600; padding-top: 10px; border-top: 1px solid var(--line, #e2e5ea); }
 .cp-body > .ct-actions + .cp-f, .cp-body > .ct-actions + .cp-group { margin-top: 4px; }
 .cp-f { display: grid; gap: 6px; }
 .cp-fb { display: flex; gap: 8px 14px; align-items: center; flex-wrap: wrap; min-height: 0; }
@@ -20,14 +16,10 @@
 .cp-secs { display: grid; gap: 12px; }
 .cp-secs .cp-group { margin-bottom: 0; }
 #cp-secs { display: grid; gap: 12px; }
-.cp-empty { display: grid; gap: 8px; justify-items: start; padding: 14px; border: 1px dashed var(--line, #c9ced6); border-radius: 12px; background: #fafbfc; }
+.cp-empty { display: grid; gap: 8px; justify-items: start; padding: 16px; border: 1px dashed var(--line, #c9ced6); }
 .cp-empty p { margin: 0; }
-.cp-sec .ct-bh b { color: var(--navy); }
 .cp-sec .ct-actions .btn { min-width: 36px; }
 @media (max-width: 860px) {
   .cp-page > summary { padding: 14px; }
   .cp-body { padding: 4px 14px 16px; }
-}
-@media (prefers-color-scheme: dark) {
-  .cp-empty { background: transparent; }
 }

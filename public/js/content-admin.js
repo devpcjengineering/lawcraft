@@ -11,6 +11,8 @@ import { S, esc, hooks } from './store.js';
 import { indexLaw } from '/shared/model.js';
 import { confirmBox } from './modal.js';
 import { notify } from './notify.js';
+import { brandHtml, tbBtn } from './chrome.js';
+import { icon } from './icons.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const TABS = [
@@ -46,9 +48,9 @@ export async function showContentAdmin(root) {
   app = root;
   S.bookMode = true; S.c = null; stateTxt = ''; stateTone = '';
   app.innerHTML = `
-  <header class="topbar"><div class="brand" data-act="goHome"><svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span><span class="brand-sub">จัดการเนื้อหา</span></div><span class="grow"></span>
-    <a class="btn ghost" href="/articles/" target="_blank" rel="noopener"><span class="tb-t">ดูบทความ ↗</span></a>
-    <button class="btn ghost" data-act="goHome"><span class="tb-i" aria-hidden="true">←</span><span class="tb-t"> คดีทั้งหมด</span></button></header>
+  <header class="topbar">${brandHtml('จัดการเนื้อหา')}<span class="grow"></span>
+    ${tbBtn({ ico: 'external', text: 'ดูบทความ', href: '/articles/', external: true })}
+    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome' })}</header>
   <main class="contentpage" id="ct-main">
     <div class="sp-head"><div><h1>จัดการเนื้อหาเว็บไซต์</h1><p class="hint">แก้บทความ ข้อกฎหมาย และข้อความบนเว็บไซต์ — บันทึกแล้วเว็บสาธารณะอัปเดตทันที (เฉพาะแอดมิน)</p></div><span class="save-state" id="ct-state"></span></div>
     <div class="ct-tabs" role="tablist" aria-label="หมวดเนื้อหา"><span class="hint">กำลังโหลด…</span></div>

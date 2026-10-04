@@ -2,6 +2,8 @@
 // หน้าเดี่ยวแบบเดียวกับสมุดรายชื่อ (book.js) แต่ไม่มีฟอร์มผูกข้อมูล จึงวาด HTML ธรรมดา
 import { S, esc, actions, hooks } from './store.js';
 import { confirmBox } from './modal.js';
+import { brandHtml, tbBtn } from './chrome.js';
+import { icon } from './icons.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 let app, rows = [], selId = null, filter = 'all', q = '', loadState = 'idle', loadErr = '';
@@ -57,9 +59,9 @@ export function showInbox(root) {
   S.c = null;
   selId = null; filter = 'all'; q = ''; loadState = 'loading'; loadErr = '';
   app.innerHTML = `
-  <header class="topbar"><div class="brand" data-act="goHome"><svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span><span class="brand-sub">กล่องข้อความปรึกษา</span></div><span class="grow"></span>
-    <button class="btn ghost" data-act="ibRefresh">รีเฟรช</button>
-    <button class="btn ghost" data-act="goHome" aria-label="คดีทั้งหมด"><span class="tb-i" aria-hidden="true">←</span><span class="tb-t"> คดีทั้งหมด</span></button></header>
+  <header class="topbar">${brandHtml('กล่องข้อความปรึกษา')}<span class="grow"></span>
+    ${tbBtn({ ico: 'refresh', text: 'รีเฟรช', act: 'ibRefresh' })}
+    ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome' })}</header>
   <main class="bookpage ibpage">
     <aside class="bk-side ib-side" aria-label="รายการข้อความ">
       <input type="search" id="ib-q" data-oninput="ibSearch" placeholder="ค้นหาชื่อ / ช่องทางติดต่อ / เรื่อง" aria-label="ค้นหาข้อความปรึกษา">
@@ -111,7 +113,7 @@ function renderDetail() {
   if (!box) return;
   const r = rows.find((x) => x.id === selId);
   if (!r) {
-    box.innerHTML = `<div class="bk-empty"><h2>กล่องข้อความปรึกษา</h2>
+    box.innerHTML = `<div class="bk-empty"><span class="es-ico">${icon('inbox')}</span><h2>กล่องข้อความปรึกษา</h2>
       <p>ข้อความที่ผู้เยี่ยมชมส่งจากหน้า “ติดต่อปรึกษากฎหมาย” ของเว็บไซต์จะมาอยู่ที่นี่ — เลือกรายการทางซ้ายเพื่อดูรายละเอียด แล้วติดต่อกลับตามช่องทางที่ผู้ส่งให้ไว้</p>
       <p class="hint">ข้อมูลในกล่องนี้เป็นข้อมูลส่วนบุคคล ใช้เพื่อติดต่อกลับเท่านั้น และควรลบเมื่อดำเนินการเสร็จ</p></div>`;
     return;
@@ -122,7 +124,7 @@ function renderDetail() {
   const inc = meta['วันที่เกิดเหตุ'], ds = daysSince(inc);
   box.innerHTML = `
     <div class="bk-head ib-head"><h2>${esc(r.name)}</h2><span class="pill ${done ? 'ok' : 'warn'}">${done ? 'จัดการแล้ว' : 'ยังไม่อ่าน'}</span><span class="grow"></span>
-      <button class="btn sm" data-act="ibStatus" data-id="${esc(r.id)}" data-to="${done ? 'new' : 'handled'}">${done ? 'ทำเป็นยังไม่อ่าน' : '✓ ทำเครื่องหมายว่าจัดการแล้ว'}</button>
+      <button class="btn sm" data-act="ibStatus" data-id="${esc(r.id)}" data-to="${done ? 'new' : 'handled'}">${done ? 'ทำเป็นยังไม่อ่าน' : icon('check') + ' ทำเครื่องหมายว่าจัดการแล้ว'}</button>
       <button class="btn sm danger" data-act="ibDel" data-id="${esc(r.id)}">ลบ</button></div>
     <dl class="ib-dl">
       <dt>ส่งเมื่อ</dt><dd>${esc(fmtDate(r.createdAt))}</dd>
