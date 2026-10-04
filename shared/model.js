@@ -257,6 +257,13 @@ export function caseLabel(c) {
   return `คำฟ้อง ${String(c?.id || '').slice(0, 8).toUpperCase() || '—'}`;
 }
 
+/** ค่านำหมาย/ปิดหมาย: จำเลยหลายคน = บวกค่านำหมายของจำเลยแต่ละคน (ไม่ให้แก้ยอดรวมเอง) — unit = อัตราต่อจำเลย 1 คน */
+export function serviceFeeInfo(c) {
+  const n = Math.max(1, defendants(c).length);
+  const unit = Number(String(c?.service?.fee ?? '').replace(/[^\d.]/g, '')) || 0;
+  return { n, unit, total: unit * n, multi: n > 1 };
+}
+
 export function caseTitle(c) {
   return caseLabel(c);
 }

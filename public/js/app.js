@@ -497,7 +497,10 @@ function renderPreview() {
   // แผงตัวอย่างถูกซ่อนอยู่ (จอแคบ) → ยังไม่คำนวณขนาดพอดี รอตอนเปิดแผง
   if (!sc.clientWidth || !sc.clientHeight) { inner.dataset.doc = doc.id; inner.style.zoom = 0.5; return; }
   sc.classList.remove('fit'); void sc.offsetWidth; // ล้าง fit และบังคับ layout เพื่อให้วัด clientWidth ได้เท่ากันทุกหน้า (มี scrollbar-gutter เสมอ)
-  const availW = sc.clientWidth - 24, availH = sc.clientHeight - 24;
+  // กว้างใช้งานคิดจากความกว้างกรอบ (offsetWidth) หัก “ช่องแถบเลื่อน” คงที่ 10px — ไม่ใช้ clientWidth ตรง ๆ เพราะแถบเลื่อนโผล่/หายตามจำนวนแผ่น
+  // (หรือเบราว์เซอร์ที่ไม่รองรับ scrollbar-gutter) จะทำให้ขนาดพอดีจอเปลี่ยนเองเมื่อสลับหน้า
+  // ความสูงก็ใช้ offsetHeight ด้วยเหตุผลเดียวกัน (ซูมเองแล้วมีแถบเลื่อนแนวนอนโผล่ → กด “พอดี” ต้องได้ขนาดเดิม)
+  const availW = sc.offsetWidth - sc.clientLeft * 2 - 10 - 24, availH = sc.offsetHeight - sc.clientTop * 2 - 24;
   const rawFit = Math.max(0.25, Math.min(1.1, availW / 794, availH / natH));
   const fit = Math.floor(rawFit * 1000) / 1000;
   const manual = typeof S.ui.pvZoom === 'number';

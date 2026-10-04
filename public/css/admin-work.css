@@ -272,3 +272,10 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
 @media (prefers-reduced-motion: reduce) {
   .wiz-prog-bar i { transition: none; }
 }
+
+/* ค่านำหมายรวมหลายจำเลย (อ่านอย่างเดียว) */
+.fee-sum { gap: 8px; }
+.fee-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.fee-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2, #f7f7f9); }
+.fee-total { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 14px; border-radius: 10px; background: var(--blue-soft, #eaf3fe); color: var(--ink); font-weight: 600; }
+.fee-total output { font-size: 20px; }

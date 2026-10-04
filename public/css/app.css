@@ -186,8 +186,11 @@ em.own { font-style: normal; font-size: 12px; background: var(--blue-soft); colo
 .lay-reset { margin-left: auto; }
 .page.lay-flash { outline: 2px solid rgba(0, 113, 227, .35); outline-offset: -2px; transition: outline-color .3s; }
 @media (min-width: 900px) {
-  .work.live { grid-template-columns: 200px minmax(0, 1fr) 45%; }
+  /* ความกว้างเมนู/ตัวอย่างต้องเท่ากับทุกหน้า (var(--nav-w) · 40%) — ห้ามหด/ขยายเมื่อสลับหน้า; หน้านี้ต่างแค่ “เปิดแผงตัวอย่างเสมอ” บนจอแคบ */
+  .work.live { grid-template-columns: var(--nav-w) minmax(0, 1fr) 40%; }
   .work.live .preview { display: flex; position: sticky; inset: auto; top: 52px; width: auto; box-shadow: none; z-index: 1; }
+  /* ปิดแผงตัวอย่าง / เปิดเป็นแผงทับ → ไม่เหลือคอลัมน์ว่างที่ทำให้ฟอร์มแคบกว่าหน้าอื่น */
+  .work.live.nopreview, .work.live.showpv { grid-template-columns: var(--nav-w) minmax(0, 1fr); }
 }
 /* ---------- หน้า “ตั้งค่า & แม่แบบ” ---------- */
 .main:has(> .fit) { padding-top: 32px; padding-bottom: 96px; }
@@ -284,7 +287,7 @@ table.simple tr.used td { background: #f5f9ff; }
   .main { padding: 16px 16px 80px; }
   .main h2 { font-size: 21px; }
   .work.live { grid-template-columns: 1fr; }
-  .work.live .preview { display: none; }
+  .work.live:not(.showpv) .preview { display: none; } /* เปิดแผงทับด้วยปุ่ม “ตัวอย่างเอกสาร” ได้เหมือนหน้าอื่น */
   .rows>li { flex-wrap: wrap; gap: 8px 12px; }
   .rows .r-act { margin-left: 36px; }
   .status-bar { padding: 16px; }

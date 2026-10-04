@@ -1,4 +1,4 @@
-﻿// ตัวสร้างเอกสารยื่นศาลจากข้อมูลคดี → "blocks" กลาง
+// ตัวสร้างเอกสารยื่นศาลจากข้อมูลคดี → "blocks" กลาง
 // แล้วให้ render-html (พรีวิว/พิมพ์ PDF) และ render-docx (ไฟล์ Word) แปลงต่อ จึงแก้เนื้อหาที่เดียวได้ผลทั้งสองแบบ
 import { ft, setFormTextOverrides } from './formtext.js';
 import {
@@ -6,7 +6,7 @@ import {
 } from './thai.js';
 import {
   indexLaw, plaintiffs, defendants, partyLabel, partyName, groupName, chargeSectionsText, chargeNamesText,
-  resolveRuns, runsToText, chargeItem, reservedValue, tailFacts,
+  resolveRuns, runsToText, chargeItem, reservedValue, tailFacts, serviceFeeInfo,
 } from './model.js';
 
 // ---------- runs ----------
@@ -343,17 +343,17 @@ function proxyDoc(c, idx) {
   const pl = plaintiffs(c);
   const h = c.proxy?.holder || {};
   return {
-    id: 'proxy', title: 'ใบมอบฉันทะ',
+    id: 'proxy', title: 'ใบมอบอำนาจ',
     blocks: [
-      top(c, '๑๐', 'ใบมอบฉันทะ'),
+      top(c, '๑๐', 'ใบมอบอำนาจ'),
       courtBlock(c),
       betweenBlock(c),
       ...pl.slice(0, 1).map((x) => p([t('ข้าพเจ้า '), ...personRuns(x, pl.length > 1 ? partyLabel(c, x) : 'โจทก์')], { indent: 1.5, justify: true })),
-      p([t('ขอมอบฉันทะให้ '), ...personRuns(h, '')], { indent: 0, justify: true }),
-      p([t('ทำการแทน โดยข้าพเจ้ายอมรับผิดชอบในการที่ผู้รับมอบฉันทะของข้าพเจ้าได้ทำการไปนั้นทุกประการ ในกิจการดังที่จะกล่าวต่อไปนี้ '), ...(c.proxy?.purpose ? [val(c.proxy.purpose)] : [dots(50)])], { indent: 0, justify: true }),
+      p([t('ขอมอบอำนาจให้ '), ...personRuns(h, '')], { indent: 0, justify: true }),
+      p([t('ทำการแทน โดยข้าพเจ้ายอมรับผิดชอบในการที่ผู้รับมอบอำนาจของข้าพเจ้าได้ทำการไปนั้นทุกประการ ในกิจการดังที่จะกล่าวต่อไปนี้ '), ...(c.proxy?.purpose ? [val(c.proxy.purpose)] : [dots(50)])], { indent: 0, justify: true }),
       sigBlock([
-        { label: 'ผู้มอบฉันทะ', name: pl[0] ? `(${partyName(pl[0])})` : '' },
-        { label: 'ผู้รับมอบฉันทะ', name: h.first || h.last ? `(${partyName(h)})` : '' },
+        { label: 'ผู้มอบอำนาจ', name: pl[0] ? `(${partyName(pl[0])})` : '' },
+        { label: 'ผู้รับมอบอำนาจ', name: h.first || h.last ? `(${partyName(h)})` : '' },
         { label: 'พยาน', name: '' }, { label: 'พยาน', name: '' },
       ]),
     ],
@@ -493,8 +493,11 @@ export function serviceMotionText(c, data) {
     out.push(`${dom.trim()} ซึ่งอยู่นอกเขตอำนาจของศาลนี้ โจทก์จึงขอให้ศาลอนุญาตให้ส่งสำเนาคำฟ้องและหมายแจ้งวันนัดไต่สวนมูลฟ้องไปยัง${svc.court || 'ศาลที่มีเขตอำนาจ'} เพื่อจัดการส่งให้แก่${dfWord} ณ ภูมิลำเนาดังกล่าว`);
   }
   if (mode.includes('post')) {
+    const fi = serviceFeeInfo(c);
+    const money = (n) => n.toLocaleString('en-US');
+    const feePhrase = fi.multi && fi.unit ? `อัตราค่านำหมายรวม ${money(fi.total)} บาท (จำเลยคนละ ${money(fi.unit)} บาท จำนวน ${fi.n} คน)` : `อัตราค่านำหมาย ${svc.fee || '...'} บาท`;
     const base = c.type === 'civil' ? 'ประมวลกฎหมายวิธีพิจารณาความแพ่ง มาตรา 79' : 'ประมวลกฎหมายวิธีพิจารณาความแพ่ง มาตรา 79 ประกอบประมวลกฎหมายวิธีพิจารณาความอาญา มาตรา 15';
-    out.push(`หากเจ้าพนักงานเดินหมายไปส่งแล้วไม่พบ${dfWord} หรือไม่มีผู้ใดยอมรับไว้แทน โจทก์ขอให้ศาลอนุญาตให้ส่งโดยวิธีปิดหมาย ณ ภูมิลำเนาของ${dfWord}ดังกล่าว ตาม${base} โดยมีอัตราค่านำหมาย ${svc.fee || '...'} บาท โจทก์จะเป็นผู้ชำระแก่ศาลตามระเบียบต่อไป`);
+    out.push(`หากเจ้าพนักงานเดินหมายไปส่งแล้วไม่พบ${dfWord} หรือไม่มีผู้ใดยอมรับไว้แทน โจทก์ขอให้ศาลอนุญาตให้ส่งโดยวิธีปิดหมาย ณ ภูมิลำเนาของ${dfWord}ดังกล่าว ตาม${base} โดยมี${feePhrase} โจทก์จะเป็นผู้ชำระแก่ศาลตามระเบียบต่อไป`);
   }
   return out.join('\n\n');
 }
@@ -508,7 +511,7 @@ export const DOC_TYPES = [
   { key: 'motions', label: 'คำร้อง / คำแถลง / คำขออื่น ๆ (แบบ ๗)' },
   { key: 'witness', label: 'บัญชีพยาน (แบบ ๑๕)' },
   { key: 'attorney', label: 'ใบแต่งทนายความ (แบบ ๙)' },
-  { key: 'proxy', label: 'ใบมอบฉันทะ (แบบ ๑๐)' },
+  { key: 'proxy', label: 'ใบมอบอำนาจ (แบบ ๑๐)' },
   { key: 'summons', label: 'ร่างหมายนัดไต่สวนมูลฟ้อง (แบบ ๑๙ ตรี)' },
   { key: 'answer', label: 'คำให้การจำเลย (แบบ ๑๑)' },
   { key: 'settlement', label: 'สัญญาประนีประนอมยอมความ (แบบ ๒๙)' },

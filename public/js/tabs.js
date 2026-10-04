@@ -2,7 +2,7 @@
 import { S, esc, actions, hooks } from './store.js';
 import { idField, field, select, check, seg, dateFields, addressFields, badge, pageHead, group, disclose, more } from './ui.js';
 import {
-  newParty, uid, plaintiffs, defendants, partyLabel, partyName, collectVars, validateCase, chargeItem, chargeSectionsText, chargeNamesText, serviceAdvice, ensureBasePrayer, tailFacts, resolveRuns,
+  newParty, uid, plaintiffs, defendants, partyLabel, partyName, collectVars, validateCase, chargeItem, chargeSectionsText, chargeNamesText, serviceAdvice, ensureBasePrayer, tailFacts, resolveRuns, serviceFeeInfo,
 } from '/shared/model.js';
 import { serviceMotionText, serviceMode, DOC_TYPES, MOTION_KINDS_ALL } from '/shared/docs.js';
 import { openViewer } from './viewer.js';
@@ -276,17 +276,35 @@ function tabCounsel() {
       ${group('อำนาจที่มอบ', field('อำนาจที่มอบให้ทนายความเพิ่มเติม (ช่อง * ในใบแต่งทนายความ)', 'counsel.powers', { cls: 's12', type: 'textarea', rows: 2, hint: 'ตาม ป.วิ.พ. มาตรา 62 ต้องระบุชัดแจ้ง เช่น ถอนฟ้อง ประนีประนอมยอมความ อุทธรณ์/ฎีกา — ไม่ระบุหากไม่ให้อำนาจ' }))}
     </div>` : ''}
   </div>
-  ${disclose('proxy', '<span class="sum-main"><span class="sum-title">ใบมอบฉันทะ (ถ้าใช้)</span><span class="sum-meta">ผู้มอบฉันทะ = โจทก์คนแรก</span></span>', `
-    ${group('ผู้รับมอบฉันทะ', `
+  ${disclose('proxy', '<span class="sum-main"><span class="sum-title">ใบมอบอำนาจ (ถ้าใช้)</span><span class="sum-meta">ผู้มอบอำนาจ = โจทก์คนแรก</span></span>', `
+    ${group('ผู้รับมอบอำนาจ', `
+      ${proxyPicker()}
       ${field('คำนำหน้า', 'proxy.holder.prefix', { cls: 's3', list: 'dl-prefix' })}
       ${field('ชื่อ', 'proxy.holder.first', { cls: 's4' })}
       ${field('นามสกุล', 'proxy.holder.last', { cls: 's5' })}
       ${idField('เลขประจำตัวประชาชน', 'proxy.holder.idCard', { cls: 's6' })}
       ${field('โทรศัพท์', 'proxy.holder.phone', { cls: 's6' })}`)}
     <section class="grp">${addressFields('proxy.holder.address', { title: 'ที่อยู่' })}</section>
-    ${group('กิจการที่มอบฉันทะ', field('กิจการที่มอบฉันทะ', 'proxy.purpose', { cls: 's12', type: 'textarea', rows: 2, ph: 'เช่น ไปยื่นคำฟ้อง รับหมายและเอกสารต่าง ๆ ของศาลแทนข้าพเจ้า' }))}`,
+    ${group('กิจการที่มอบอำนาจ', field('กิจการที่มอบอำนาจ', 'proxy.purpose', { cls: 's12', type: 'textarea', rows: 2, ph: 'เช่น ไปยื่นคำฟ้อง รับหมายและเอกสารต่าง ๆ ของศาลแทนข้าพเจ้า' }))}`,
   { cls: 'item', open: proxyFilled })}`;
 }
+// ผู้รับมอบอำนาจ: เลือกจากโจทก์/จำเลยในคดี หรือสมุดรายชื่อ (บุคคล · ทนายความ) แทนการพิมพ์ใหม่
+function proxyPicker() {
+  const inCase = S.c.parties.filter((p) => partyName(p)).map((p) => `<option value="case:${esc(p.id)}">${esc(partyLabel(S.c, p))} · ${esc(partyName(p))}</option>`).join('');
+  const book = S.people.filter((x) => x.kind === 'party' || x.kind === 'counsel').map((x) => `<option value="book:${esc(x.id)}">${esc(x.label)}${x.kind === 'counsel' ? ' (ทนายความ)' : ''}</option>`).join('');
+  if (!inCase && !book) return '';
+  return `<label class="f s12"><span>เลือกจากคู่ความในคดี / สมุดรายชื่อ</span><select data-onchange="pickProxy" aria-label="เลือกผู้รับมอบอำนาจ"><option value="">เลือกแล้วระบบเติมข้อมูลให้…</option>
+    ${inCase ? `<optgroup label="คู่ความในคดีนี้">${inCase}</optgroup>` : ''}${book ? `<optgroup label="สมุดรายชื่อ">${book}</optgroup>` : ''}</select></label>`;
+}
+actions.pickProxy = (el) => {
+  const [kind, id] = String(el.value).split(':');
+  const src = kind === 'case' ? S.c.parties.find((p) => p.id === id) : S.people.find((x) => x.id === id)?.data;
+  if (!src) return;
+  const base = newParty('plaintiff');
+  S.c.proxy = S.c.proxy || {};
+  S.c.proxy.holder = { prefix: src.prefix || '', first: src.first || '', last: src.last || '', idCard: src.idCard || '', phone: src.phone || '', address: { ...base.address, ...structuredClone(src.address || {}) } };
+  rerender(); hooks.changed();
+};
 actions.saveCounsel = async () => {
   const cn = S.c.counsel, label = `ทนาย ${cn.first} ${cn.last}`.trim();
   const rec = { id: uid(), kind: 'counsel', label, data: structuredClone(cn) };
@@ -440,9 +458,11 @@ function varsPanel() {
   const vars = collectVars(S.c);
   if (!vars.length) return '';
   const missing = vars.filter((v) => !(S.c.vars[v] || '').trim()).length;
-  return `<div class="vars"><h3>ช่องข้อมูลที่ต้องกรอก ${missing ? badge(`ค้าง ${missing}`, 'warn') : badge('ครบแล้ว', 'ok')}</h3>
-    <p class="hint">ข้อความ <code>{{…}}</code> ในร่างจะถูกแทนด้วยค่าที่กรอกที่นี่ ช่องที่ยังว่างจะเป็นแถบเหลืองในตัวอย่าง</p>
-    <div class="grid">${vars.map((v) => `<label class="f s6"><span>${esc(v)}</span><input type="text" data-var="${esc(v)}" value="${esc(S.c.vars[v] || '')}"></label>`).join('')}</div></div>`;
+  // ยังมีช่องค้าง = เปิดให้กรอก · ครบแล้ว = พับเก็บเหลือแถวเดียว (กดดู/แก้ค่าได้) ไม่ให้กินที่หน้าจอ
+  const summary = `<span class="sum-main"><span class="sum-title">ช่องข้อมูลที่ต้องกรอก</span>${missing ? badge(`ค้าง ${missing}`, 'warn') : badge('ครบแล้ว', 'ok')}</span>`;
+  const body = `<p class="hint">ข้อความ <code>{{…}}</code> ในร่างจะถูกแทนด้วยค่าที่กรอกที่นี่ ช่องที่ยังว่างจะเป็นแถบเหลืองในตัวอย่าง</p>
+    <div class="grid">${vars.map((v) => `<label class="f s6"><span>${esc(v)}</span><input type="text" data-var="${esc(v)}" value="${esc(S.c.vars[v] || '')}"></label>`).join('')}</div>`;
+  return disclose('vars', summary, body, { cls: 'item vars', open: false, force: missing ? true : undefined });
 }
 
 function snippetPicker(types, act, label = 'แทรกข้อความสำเร็จรูป') {
@@ -747,6 +767,17 @@ function tabComplaint() {
   ${asPart(tabCharges())}<hr class="part-sep">${asPart(tabFacts())}`;
 }
 
+// ค่านำหมาย: จำเลยคนเดียว = กรอกอัตราเอง · จำเลยหลายคน = บวกค่านำหมายของจำเลยแต่ละคน แสดงยอดรวมแก้เองไม่ได้
+function feeBlock() {
+  const fi = serviceFeeInfo(S.c), baht = (n) => n.toLocaleString('th-TH');
+  if (!fi.multi) return field('อัตราค่านำหมาย (บาท)', 'service.fee', { cls: 's6', type: 'number' });
+  const rows = defendants(S.c).map((d) => `<li><span>${esc(partyLabel(S.c, d))}${partyName(d) ? ` · ${esc(partyName(d))}` : ''}</span><b>${baht(fi.unit)} บาท</b></li>`).join('');
+  return `<div class="f s12 fee-sum"><span>ค่านำหมายรวม (บวกของจำเลยแต่ละคน — แก้ยอดรวมเองไม่ได้)</span>
+    <ul class="fee-list">${rows}</ul>
+    <div class="fee-total"><span>รวม ${fi.n} คน</span><output aria-live="polite"><b>${baht(fi.total)}</b> บาท</output></div>
+    <p class="hint flush">อัตราต่อจำเลย 1 คนตั้งไว้ ${baht(fi.unit)} บาท ยอดรวมคำนวณตามจำนวนจำเลยและใส่ในคำร้องให้เอง</p></div>`;
+}
+
 // ===================== หน้า: คำร้องส่งหมายนอกเขต / ปิดหมาย =====================
 function tabService() {
   const c = S.c, sv = c.service, mode = serviceMode(c);
@@ -770,7 +801,7 @@ function tabService() {
     ${mode !== 'none' ? group('รายละเอียด', `
       ${field('วันนัดไต่สวนมูลฟ้อง / วันนัด (ถ้าศาลกำหนดแล้ว)', 'hearing.date', { type: 'date', cls: 's6' })}
       ${mode.includes('cross') && !auto ? field('ศาลปลายทางที่จะส่งหมาย', 'service.court', { cls: 's6', list: 'dl-court2', ph: 'เช่น ศาลจังหวัดเชียงราย' }) : ''}
-      ${mode.includes('post') ? field('อัตราค่านำหมาย (บาท)', 'service.fee', { cls: 's6', type: 'number' }) : ''}`, { cls: 'gap-top' }) : ''}
+      ${mode.includes('post') ? feeBlock() : ''}`, { cls: 'gap-top' }) : ''}
     <datalist id="dl-court2">${courtOptions().map((n) => `<option value="${esc(n)}">`).join('')}</datalist></div>
   ${mode !== 'none' ? `<div class="panel"><h3>ข้อความในคำร้อง
       <span class="grow"></span>${sv.custom ? '<button class="btn sm outline" data-act="resetServiceText">ใช้ข้อความอัตโนมัติ</button>' : '<button class="btn sm outline" data-act="editServiceText">แก้ไขข้อความเอง</button>'}</h3>
@@ -896,7 +927,7 @@ const LAYOUT_FORMS = [
   ['all', 'ทุกแบบ (ค่ากลาง)', ''], ['complaint', 'คำฟ้อง (แบบ ๔)', 'complaint'], ['prayer', 'คำขอท้ายคำฟ้อง', 'prayer'],
   ['attachment', 'เอกสารแนบท้ายคำฟ้อง', 'attachment'], ['service', 'คำร้องส่งหมาย / ปิดหมาย', 'service'], ['motion', 'คำร้อง / คำแถลงอื่น', 'motion'],
   ['witness', 'บัญชีพยาน', 'witness'], ['summons', 'หมายนัดไต่สวนมูลฟ้อง', 'summons'], ['attorney', 'ใบแต่งทนายความ', 'attorney'],
-  ['proxy', 'ใบมอบฉันทะ', 'proxy'], ['answer', 'คำให้การจำเลย', 'answer'], ['settlement', 'สัญญาประนีประนอมยอมความ', 'settlement'],
+  ['proxy', 'ใบมอบอำนาจ', 'proxy'], ['answer', 'คำให้การจำเลย', 'answer'], ['settlement', 'สัญญาประนีประนอมยอมความ', 'settlement'],
 ];
 const LAYOUT_PRESETS = { 'emblem.width': [['เล็ก', 18], ['มาตรฐาน', 24], ['ใหญ่', 32]] };
 const layoutObj = () => { const L = (S.data.layout ||= {}); L.all ||= {}; L.forms ||= {}; return L; };
@@ -1027,5 +1058,5 @@ export const NAV = [
   ] },
 ];
 // รายการที่ไม่แสดงในเมนู แต่ลิงก์ภายในยังอ้าง key เหล่านี้ได้
-export const TABS = [...NAV.flatMap((g) => g.items), { key: 'formtext', render: tabFormText }, { key: 'forms', render: tabForms }];
+export const TABS = [...NAV.flatMap((g) => g.items), { key: 'layout', render: tabLayout }, { key: 'formtext', render: tabFormText }, { key: 'forms', render: tabForms }];
 export { courtOptions };
