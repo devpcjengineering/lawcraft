@@ -11,9 +11,27 @@ function fail(error, fallback = 'เกิดข้อผิดพลาด') {
   const e = new Error(error?.message || fallback);
   const code = String(error?.code || '');
   e.status = error?.status || (code === 'PGRST301' || /jwt|not authenticated/i.test(error?.message || '') ? 401 : code === '42501' ? 403 : 500);
+  if (e.status === 403 || code === '42501') e.message = 'ไม่มีสิทธิ์ทำรายการนี้ (เฉพาะผู้ดูแลระบบ หรือเฉพาะเจ้าของข้อมูล)';
   throw e;
 }
 const must = ({ data, error }) => { if (error) fail(error); return data; };
+
+let role = 'user';
+
+/** ข้อมูลกฎหมายสาธารณะ (law_data อ่านได้ทุกคนรวม anon) — โหมดทดลองใช้ฟังก์ชันนี้ร่วมกัน */
+export async function loadLaw() {
+  const rows = must(await sb.from('law_data').select('key,data').neq('key', 'geo'));
+  const m = Object.fromEntries(rows.map((r) => [r.key, r.data]));
+  const data = {
+    laws: m.laws || [], items: m.items || [], procedure: m.procedure || { laws: [], sections: [], snippets: [] },
+    precedents: m.precedents || [], courts: m.courts || { groups: [] },
+    templates: m.templates || { motions: [], answers: [], settlements: [] },
+    jurisdiction: m.jurisdiction || null, formText: m.formText || {},
+    courtPhones: m.courtPhones || {}, layout: m.layout || { all: {}, forms: {} },
+  };
+  const geo = (must(await sb.from('law_data').select('data').eq('key', 'geo').maybeSingle()))?.data || { provinces: [] };
+  return { data, geo };
+}
 
 export const supabaseBackend = {
   mode: 'supabase',
@@ -21,20 +39,19 @@ export const supabaseBackend = {
   needsLogin: true,
   async init() {},
 
-  async isSignedIn() {
-    const { data } = await sb.auth.getSession();
-    if (!data.session) return false;
-    // ต้องเป็นแอดมินด้วย ไม่ใช่แค่ล็อกอิน
-    const { data: ok, error } = await sb.rpc('is_admin');
-    return !error && ok === true;
-  },
-  /** 'none' = ยังไม่ล็อกอิน | 'notAdmin' = ล็อกอินแล้วแต่อีเมลไม่อยู่ในรายชื่อแอดมิน | 'ok' */
+  /** มี session อยู่หรือไม่ (ไม่ยิง RPC) — ใช้ตัดสินว่าจะใช้ backend นี้หรือโหมดทดลอง */
+  async hasSession() { const { data } = await sb.auth.getSession(); return !!data.session; },
+  async isSignedIn() { return (await this.sessionState()) !== 'none'; },
+  /** 'none' = ยังไม่ล็อกอิน | 'ok' = แอดมิน | 'user' = ล็อกอินแล้วแต่ไม่ใช่แอดมิน (ใช้งานได้เฉพาะคดีของตน) */
   async sessionState() {
     const { data } = await sb.auth.getSession();
-    if (!data.session) return 'none';
+    if (!data.session) { role = 'user'; return 'none'; }
     const { data: ok, error } = await sb.rpc('is_admin');
-    return !error && ok === true ? 'ok' : 'notAdmin';
+    role = !error && ok === true ? 'admin' : 'user';
+    return role === 'admin' ? 'ok' : 'user';
   },
+  /** 'admin' | 'user' (ค่าจริงหลังเรียก sessionState แล้ว; RLS ในฐานข้อมูลเป็นตัวบังคับจริง ไม่ใช่ค่านี้) */
+  role: () => role,
   /** อีเมลของบัญชีที่ล็อกอินอยู่ (ใช้แสดงในหน้ายืนยันตั้งเป็นแอดมินคนแรก) */
   async sessionEmail() { const { data } = await sb.auth.getSession(); return data.session?.user?.email || ''; },
   async adminExists() { const { data, error } = await sb.rpc('has_admin'); return !error && data === true; },
@@ -51,30 +68,28 @@ export const supabaseBackend = {
   },
   async signIn(email, password) {
     const { error } = await sb.auth.signInWithPassword({ email, password });
+    // ทุกบัญชีเข้าได้ (ผู้ใช้ทั่วไปเห็นเฉพาะคดีของตน) — สิทธิ์แอดมินตัดสินที่ฐานข้อมูล (is_admin)
     if (error) throw new Error(/invalid/i.test(error.message) ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' : error.message);
-    const { data: ok } = await sb.rpc('is_admin');
-    if (ok !== true) { await sb.auth.signOut(); throw new Error('บัญชีนี้ไม่มีสิทธิ์เข้าหลังบ้าน'); }
   },
-  async signOut() { await sb.auth.signOut(); },
+  async signOut() { role = 'user'; await sb.auth.signOut(); },
+  /** id ของบัญชีที่ล็อกอิน (แอดมินใช้แยก “คดีของฉัน” ออกจากคดีของคนอื่น) */
+  async sessionUserId() { const { data } = await sb.auth.getSession(); return data.session?.user?.id || ''; },
 
   async loadAll() {
-    const rows = must(await sb.from('law_data').select('key,data').neq('key', 'geo'));
-    const m = Object.fromEntries(rows.map((r) => [r.key, r.data]));
-    const data = {
-      laws: m.laws || [], items: m.items || [], procedure: m.procedure || { laws: [], sections: [], snippets: [] },
-      precedents: m.precedents || [], courts: m.courts || { groups: [] },
-      templates: m.templates || { motions: [], answers: [], settlements: [] },
-      jurisdiction: m.jurisdiction || null, formText: m.formText || {},
-      courtPhones: m.courtPhones || {}, layout: m.layout || { all: {}, forms: {} },
-    };
-    const geo = (must(await sb.from('law_data').select('data').eq('key', 'geo').maybeSingle()))?.data || { provinces: [] };
+    const { data, geo } = await loadLaw();
+    // RLS: ผู้ใช้ทั่วไปได้เฉพาะรายชื่อของตน, แอดมินได้ทั้งหมด
     const people = must(await sb.from('people').select('id,kind,label,data'));
     return { data, geo, people };
   },
 
   async listCases() {
-    const rows = must(await sb.from('cases').select('id,title,type,court,updated_at').order('updated_at', { ascending: false }));
-    return rows.map((r) => ({ id: r.id, title: r.title, type: r.type, court: r.court, updatedAt: r.updated_at }));
+    const cols = 'id,title,type,court,updated_at';
+    let res = await sb.from('cases').select(`${cols},user_id,owner_email`).order('updated_at', { ascending: false });
+    // ฐานข้อมูลที่ยังไม่ได้รัน migration 20261005000000_user_cases.sql ยังไม่มีคอลัมน์เจ้าของ → ถอยไปอ่านแบบเดิม
+    if (res.error && (res.error.code === '42703' || /user_id|owner_email/.test(res.error.message || ''))) {
+      res = await sb.from('cases').select(cols).order('updated_at', { ascending: false });
+    }
+    return must(res).map((r) => ({ id: r.id, title: r.title, type: r.type, court: r.court, updatedAt: r.updated_at, userId: r.user_id || '', ownerEmail: r.owner_email || '' }));
   },
   async getCase(id) {
     const row = must(await sb.from('cases').select('data').eq('id', id).maybeSingle());
@@ -83,6 +98,7 @@ export const supabaseBackend = {
   },
   async saveCase(c) {
     const now = new Date().toISOString();
+    // ไม่ส่ง user_id/owner_email: แถวใหม่ให้ DB เติมจาก auth.uid(); แถวเดิม (รวมกรณีแอดมินแก้คดีของผู้ใช้) เจ้าของไม่เปลี่ยน
     must(await sb.from('cases').upsert({ id: c.id, title: c.title || null, type: c.type, court: c.court || null, data: { ...c, updatedAt: now }, updated_at: now }, { onConflict: 'id' }));
     return { ok: true, updatedAt: now };
   },

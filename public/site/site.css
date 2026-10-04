@@ -85,13 +85,13 @@ h2 { font-size: clamp(32px, 5.2vw, 56px); font-weight: 700; }
 .scales .beam { transform-origin: 200px 70px; }
 .scales .pan, .scales .dish { transform-origin: 60px 70px; }
 .scales .pan.r, .scales .dish.r { transform-origin: 340px 70px; }
-.scales.play .d { animation: s-draw var(--dur, 1.8s) cubic-bezier(.4,0,.2,1) var(--d, 0s) forwards; }
-.scales.play .bowl { animation: s-draw var(--dur, 1.8s) cubic-bezier(.4,0,.2,1) var(--d, 0s) forwards, s-fill 1.2s ease-out calc(var(--d, 0s) + var(--dur, 1.8s) * .7) forwards; }
-.scales.play .shadow { animation: s-shadow 2.6s ease-out 3.4s forwards; transform: scaleX(calc(1 + var(--p, 0) * .1)); }
-.scales.play .beam { animation: s-tilt 7.5s ease-in-out 7.9s infinite both; }
-.scales.play .pan { animation: s-untilt 7.5s ease-in-out 7.9s infinite both; }
-.scales.play .dish { animation: s-dish 7.5s ease-in-out 8.3s infinite both; }
-.scales.mini { --amp: 4deg; --dur: 1.2s; }
+.scales.play .d { animation: s-draw var(--dur, .65s) cubic-bezier(.4,0,.2,1) calc(var(--d, 0s) * .28) forwards; }
+.scales.play .bowl { animation: s-draw var(--dur, .65s) cubic-bezier(.4,0,.2,1) calc(var(--d, 0s) * .28) forwards, s-fill .5s ease-out calc(var(--d, 0s) * .28 + var(--dur, .65s) * .7) forwards; }
+.scales.play .shadow { animation: s-shadow 1s ease-out 1s forwards; transform: scaleX(calc(1 + var(--p, 0) * .1)); }
+.scales.play .beam { animation: s-tilt 7.5s ease-in-out 2.4s infinite both; }
+.scales.play .pan { animation: s-untilt 7.5s ease-in-out 2.4s infinite both; }
+.scales.play .dish { animation: s-dish 7.5s ease-in-out 2.7s infinite both; }
+.scales.mini { --amp: 4deg; --dur: .5s; }
 @keyframes s-draw { to { stroke-dashoffset: 0; } }
 @keyframes s-fill { to { fill-opacity: .92; } }
 @keyframes s-shadow { to { opacity: 1; } }

@@ -6,6 +6,8 @@ export const S = {
   people: [],
   c: null,           // คดีที่เปิดอยู่
   tab: 'case',
+  role: 'user',      // 'admin' | 'user' | 'guest' — ตั้งโดย auth-ui.gate() ตอนเริ่ม (ค่าเริ่มต้นไม่ใช่แอดมิน = ปลอดภัยไว้ก่อน)
+  email: '', uid: '', // บัญชีที่ล็อกอินอยู่ (ว่างในโหมดทดลอง/ไฟล์ในเครื่อง)
   ui: { law: '', q: '', pvDoc: '', pvOn: true, refQ: '', refKind: 'items' },
 };
 

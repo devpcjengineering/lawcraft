@@ -11,6 +11,7 @@ export const localBackend = {
   mode: 'local',
   label: 'เครื่องนี้ (ไฟล์ในโฟลเดอร์ cases)',
   needsLogin: false,
+  role: () => 'admin', // โหมดไฟล์ในเครื่อง = เครื่องของเจ้าของระบบ ไม่มีบัญชี
   async init() {},
   async loadAll() {
     const [data, geo, people] = await Promise.all([http('/api/data'), http('/api/geo').catch(() => ({ provinces: [] })), http('/api/people').catch(() => [])]);
@@ -38,12 +39,29 @@ export const localBackend = {
 
 export let backend = localBackend;
 
-/** เรียกครั้งเดียวตอนเริ่ม: ถ้า config.js ตั้ง Supabase ไว้ ให้โหลดโมดูล Supabase มาใช้แทน */
+/**
+ * เรียกครั้งเดียวตอนเริ่ม:
+ *  - ไม่ได้ตั้ง Supabase → ใช้ไฟล์ในเครื่อง (ผู้ใช้คนเดียว = ผู้ดูแล)
+ *  - ตั้ง Supabase แล้ว: มี session → Supabase (แอดมินหรือผู้ใช้ทั่วไป) | ไม่มี session แต่เลือกโหมดทดลองไว้ → เก็บในเบราว์เซอร์ | นอกนั้น → Supabase (app.js จะแสดงหน้าเข้าสู่ระบบ)
+ */
 export async function selectBackend() {
   if (config.supabase?.url && config.supabase?.anonKey) {
     const mod = await import('./supabase-backend.js');
     backend = mod.supabaseBackend;
+    if (!(await backend.hasSession())) {
+      const g = await import('./guest-backend.js');
+      if (g.guestFlag()) backend = g.guestBackend;
+    }
   }
+  await backend.init();
+  return backend;
+}
+
+/** สลับเป็นโหมดทดลอง (เก็บในเบราว์เซอร์) โดยไม่โหลดหน้าใหม่ */
+export async function useGuestBackend() {
+  const g = await import('./guest-backend.js');
+  g.setGuestFlag(true);
+  backend = g.guestBackend;
   await backend.init();
   return backend;
 }

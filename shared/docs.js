@@ -6,7 +6,7 @@ import {
 } from './thai.js';
 import {
   indexLaw, plaintiffs, defendants, partyLabel, partyName, groupName, chargeSectionsText, chargeNamesText,
-  resolveRuns, runsToText, chargeItem, reservedValue,
+  resolveRuns, runsToText, chargeItem, reservedValue, tailFacts,
 } from './model.js';
 
 // ---------- runs ----------
@@ -205,7 +205,7 @@ function complaintDoc(c, idx) {
   }
   blocks.push(...sideIntro(c, 'plaintiff', true), ...sideIntro(c, 'defendant', true));
   blocks.push(p([t('มีข้อความตามที่จะกล่าวต่อไปนี้')], { indent: 0 }));
-  const facts = c.facts.filter((f) => (f.text || '').trim());
+  const facts = [...c.facts.filter((f) => (f.text || '').trim()), ...tailFacts(c).map((text) => ({ text, tail: true }))];
   if (facts.length) {
     facts.forEach((f, i) => {
       const lines = multiline(f.text);

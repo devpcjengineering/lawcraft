@@ -1,0 +1,36 @@
+/* ความสมูทร่วมทั้งเว็บสาธารณะและหลังบ้าน: ไม่ให้ข้อความ/หน้าโผล่พรึบ */
+
+/* 1) ซ่อนหน้าไว้จนฟอนต์ไทยโหลดเสร็จ แล้วค่อย ๆ ปรากฏ (กันตัวอักษรเปลี่ยนหน้าตาตอนโหลด) — เปิดด้วย smooth.js, ไม่มี JS ก็เห็นปกติ */
+html.fw:not(.fr) body { opacity: 0; }
+html.fw.fr body { opacity: 1; transition: opacity .38s ease; }
+
+/* 2) เปลี่ยนหน้าระหว่างหน้าเว็บ: จางเข้า-ออกแทนการกะพริบขาว (เบราว์เซอร์ที่รองรับ View Transitions) */
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: vt-out .16s ease both; }
+::view-transition-new(root) { animation: vt-in .3s ease both; }
+@keyframes vt-out { to { opacity: 0; } }
+@keyframes vt-in { from { opacity: 0; } }
+
+/* 3) เลื่อนไปยังหัวข้ออย่างนุ่มนวล */
+html { scroll-behavior: smooth; }
+
+/* 4) ปุ่ม/ลิงก์/การ์ด/ช่องกรอก เปลี่ยนสถานะอย่างนุ่ม + กดแล้วยุบเล็กน้อย */
+a, button, summary, select, input, textarea, label { transition: background-color .2s ease, color .2s ease, box-shadow .2s ease, border-color .2s ease, opacity .2s ease, transform .16s ease; }
+button:active:not(:disabled):not([aria-disabled=true]), .btn:active, .btn-pill:active, a.card:active, .chip:active { transform: scale(.97); }
+
+/* 5) กล่องที่พับ/ขยาย (details) เนื้อหาค่อย ๆ ลื่นลงมา */
+details[open] > :not(summary) { animation: sm-open .32s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes sm-open { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+/* 6) หน้าต่างโต้ตอบ/เมนูที่โผล่ขึ้น */
+dialog[open] { animation: sm-pop .26s cubic-bezier(.2, .9, .3, 1.15) both; }
+dialog::backdrop { animation: vt-in .26s ease both; }
+@keyframes sm-pop { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  html.fw:not(.fr) body { opacity: 1; }
+  html.fw.fr body, details[open] > :not(summary), dialog[open], dialog::backdrop { animation: none; transition: none; }
+  @view-transition { navigation: none; }
+  a, button, summary, select, input, textarea, label { transition: none; }
+}

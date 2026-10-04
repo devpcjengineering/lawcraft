@@ -2,7 +2,7 @@
 import { S, esc, actions, hooks } from './store.js';
 import { field, select, check, seg, dateFields, addressFields, badge, pageHead, group, disclose, more } from './ui.js';
 import {
-  newParty, uid, plaintiffs, defendants, partyLabel, partyName, collectVars, validateCase, chargeItem, chargeSectionsText, chargeNamesText, serviceAdvice, ensureBasePrayer,
+  newParty, uid, plaintiffs, defendants, partyLabel, partyName, collectVars, validateCase, chargeItem, chargeSectionsText, chargeNamesText, serviceAdvice, ensureBasePrayer, tailFacts, resolveRuns,
 } from '/shared/model.js';
 import { serviceMotionText, serviceMode, DOC_TYPES, MOTION_KINDS_ALL } from '/shared/docs.js';
 import { openViewer } from './viewer.js';
@@ -482,38 +482,18 @@ actions.addPrayer = () => { S.c.prayers.push({ id: uid(), text: '' }); ensureBas
 actions.snipFact = () => { const s = snippetById(document.getElementById('snip-snipFact').value); if (s) { S.c.facts.push({ id: uid(), text: s.text, src: 'snip' }); rerender(); hooks.changed(); } };
 actions.snipPrayer = () => { const s = snippetById(document.getElementById('snip-snipPrayer').value); if (s) { S.c.prayers.push({ id: uid(), text: s.text, src: 'snip' }); ensureBasePrayer(S.c); rerender(); hooks.changed(); } };
 
-/** ข้อท้ายคำฟ้อง: เกิดเหตุที่ไหน / โจทก์เป็นผู้เสียหายอย่างไร (บุคคลทั่วไปหรือนิติบุคคล) / ร้องทุกข์ต่อพนักงานสอบสวนหรือไม่ */
-function tailTexts() {
-  const c = S.c, crim = c.type === 'criminal';
-  const pl = plaintiffs(c)[0] || {};
-  const out = [];
-  if (crim) {
-    out.push('เหตุคดีนี้เกิดที่ {{สถานที่เกิดเหตุ}} ซึ่งอยู่ในเขตอำนาจของศาลนี้');
-    out.push(pl.kind === 'juristic'
-      ? `โจทก์เป็นนิติบุคคล โดย ${pl.repName || '{{ผู้แทนโจทก์}}'}${pl.repPosition ? ' ตำแหน่ง' + pl.repPosition : ''} ผู้มีอำนาจกระทำการแทน เป็นผู้เสียหายโดยตรงจากการกระทำของจำเลยดังกล่าว จึงมีอำนาจฟ้องคดีนี้ตามประมวลกฎหมายวิธีพิจารณาความอาญา มาตรา 28 (2)`
-      : 'โจทก์เป็นผู้เสียหายโดยตรงจากการกระทำของจำเลยดังกล่าว จึงมีอำนาจฟ้องคดีนี้ตามประมวลกฎหมายวิธีพิจารณาความอาญา มาตรา 28 (2)');
-    out.push((c.closing?.mode || 'self') === 'police'
-      ? 'โจทก์ได้ร้องทุกข์ต่อพนักงานสอบสวน {{สถานีตำรวจที่ร้องทุกข์}} ไว้แล้ว แต่โจทก์ประสงค์ดำเนินคดีนี้ด้วยตนเอง จึงนำคดีมาฟ้องต่อศาลโดยตรง'
-      : 'โจทก์มิได้ร้องทุกข์ต่อพนักงานสอบสวนในความผิดคดีนี้ แต่ประสงค์ดำเนินคดีด้วยตนเอง จึงนำคดีมาฟ้องต่อศาลโดยตรง');
-  } else {
-    out.push('มูลคดีนี้เกิดที่ {{สถานที่เกิดเหตุ}} และจำเลยมีภูมิลำเนาอยู่ในเขตอำนาจของศาลนี้ ศาลนี้จึงมีอำนาจพิจารณาพิพากษาคดี');
-  }
-  return out;
-}
-actions.addTailFacts = () => {
-  S.c.facts = S.c.facts.filter((f) => f.src !== 'tail');
-  for (const text of tailTexts()) S.c.facts.push({ id: uid(), text, src: 'tail' });
-  hooks.toast('เพิ่มข้อท้ายคำฟ้องแล้ว — แก้ไขข้อความได้ในรายการด้านบน');
-  rerender(); hooks.changed();
-};
+/** ข้อท้ายคำฟ้อง — ระบบต่อท้ายข้อเท็จจริงให้อัตโนมัติ (สถานที่เกิดเหตุใช้ช่องเดียวกับข้อความด้านบน) แสดงตัวอย่างสด ปิดได้ */
 function tailPanel() {
   const crim = S.c.type === 'criminal';
-  S.c.closing ||= { mode: 'self' };
-  return `<div class="panel"><h3>ข้อท้ายคำฟ้อง</h3>
-    <p class="hint panel-note">สร้างข้อความท้ายคำฟ้องเป็นข้อ ๆ จากข้อมูลที่เลือก (ใช้ได้ทั้งโจทก์บุคคลธรรมดาและนิติบุคคล) แล้วแก้ไขหรือพิมพ์เองทั้งหมดได้ในรายการด้านบน</p>
-    <div class="grid">${field('เกิดเหตุที่', 'vars.สถานที่เกิดเหตุ', { cls: 's12', ph: 'เช่น ตำบล… อำเภอ… จังหวัด… หรือ “ทางเฟซบุ๊ก/อินเทอร์เน็ต”' })}</div>
-    ${crim ? `<div class="f" style="margin-top:12px"><span class="lbl">การร้องทุกข์ต่อพนักงานสอบสวน</span>${seg('closing.mode', [['self', 'ไม่ได้ร้องทุกข์ — ประสงค์ดำเนินคดีด้วยตนเอง'], ['police', 'ร้องทุกข์ไว้แล้ว แต่ประสงค์ฟ้องเอง']], { label: 'การร้องทุกข์', rerender: true })}</div>` : ''}
-    <div class="toolbar" style="margin:14px 0 0"><button class="btn outline" data-act="addTailFacts">${S.c.facts.some((f) => f.src === 'tail') ? 'สร้างข้อท้ายคำฟ้องใหม่' : '+ เพิ่มข้อท้ายคำฟ้อง'}</button></div></div>`;
+  S.c.closing ||= { mode: 'self', auto: true };
+  const on = S.c.closing.auto !== false;
+  const n = S.c.facts.filter((f) => (f.text || '').trim()).length;
+  const items = tailFacts(S.c);
+  return `<div class="panel tail"><h3>ข้อท้ายคำฟ้อง <span class="pill ${on ? 'ok' : ''}">${on ? 'ใส่ให้อัตโนมัติ' : 'ปิดอยู่'}</span></h3>
+    <p class="hint panel-note">ต่อท้ายข้อเท็จจริงด้านบนให้เองในคำฟ้อง ไม่ต้องกดอะไร — สถานที่เกิดเหตุใช้ช่อง “สถานที่เกิดเหตุ” ที่กรอกไว้ด้านบน</p>
+    ${check('ใส่ข้อท้ายคำฟ้องให้อัตโนมัติ', 'closing.auto', { rerender: true })}
+    ${on && crim ? `<div class="f" style="margin-top:10px"><span class="lbl">การร้องทุกข์ต่อพนักงานสอบสวน</span>${seg('closing.mode', [['self', 'ไม่ได้ร้องทุกข์ — ประสงค์ดำเนินคดีด้วยตนเอง'], ['police', 'ร้องทุกข์ไว้แล้ว แต่ประสงค์ฟ้องเอง']], { label: 'การร้องทุกข์', rerender: true })}</div>` : ''}
+    ${on ? `<ol class="tail-list" start="${n + 1}">${items.map((t) => `<li>${resolveRuns(t, S.c, S.idx).map((r) => (r.kind === 'ph' ? `<mark>${esc(r.text)}</mark>` : esc(r.text))).join('')}</li>`).join('')}</ol>` : ''}</div>`;
 }
 
 function tabFacts() {

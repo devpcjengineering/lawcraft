@@ -198,3 +198,7 @@
   .rm::before { transform: none; transition: none; } .rm li { opacity: 1; transform: none; transition: none; }
 }
 @media print { .nav, .foot, .ar-toc, .ar-cta, .ar-pn, .ar-crumb { display: none !important; } .ar-cols { display: block; } }
+
+.ar-main > .wrap { animation: ar-swap .4s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes ar-swap { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ar-main > .wrap { animation: none; } }

@@ -13,6 +13,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/site/site.css">
 <link rel="stylesheet" href="/articles/articles.css">
+<link rel="stylesheet" href="/css/smooth.css">
+<script>document.documentElement.classList.add('fw')</script>
 </head>
 <body>
 
@@ -24,10 +26,10 @@
       <span class="logo-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span>
     </a>
     <div class="nav-links" id="navLinks">
+      <a href="#articles">คดีออนไลน์</a>
       <a href="#library">ประมวลกฎหมาย</a>
       <a href="#jurisdiction">เขตอำนาจศาล</a>
       <a href="#process">ขั้นตอนฟ้องคดี</a>
-      <a href="#articles">บทความ</a>
       <a href="#drafting">ร่างคำฟ้อง</a>
       <a href="/contact/">ติดต่อ</a>
     </div>
@@ -78,6 +80,58 @@
       <a class="link-arrow" href="#drafting">ดูระบบร่างคำฟ้อง</a>
     </div>
     <div class="stats reveal" id="stats" aria-label="สถิติข้อมูล"></div>
+  </section>
+
+  <!-- Articles -->
+  <section class="sec" id="articles">
+    <div class="wrap">
+      <header class="sec-head reveal">
+        <p class="eyebrow">คดีออนไลน์</p>
+        <h2>ถูกหลอก ถูกหมิ่น ถูกข่มขู่.<br>รู้ทางเลือกของคุณ.</h2>
+        <p class="lead">ซื้อขายออนไลน์ ฉ้อโกง หมิ่นประมาท ข่มขู่ และภาพส่วนตัว — ทางเลือก ขั้นตอน หลักฐาน และกำหนดเวลา</p>
+      </header>
+      <div class="ar-facts reveal">
+        <div><b>ฟ้องภายใน 3 เดือน</b><span>ความผิดต่อส่วนตัว เช่น หมิ่นประมาท ต้องร้องทุกข์หรือฟ้องภายใน 3 เดือนนับแต่รู้เรื่องและรู้ตัวผู้กระทำผิด (ตรวจว่าข้อหาของคุณเข้าข่ายหรือไม่)</span></div>
+        <div><b>ฟ้องเองได้</b><span>ผู้เสียหายยื่นฟ้องต่อศาลเองได้ ศาลจะไต่สวนมูลฟ้องก่อนประทับรับฟ้อง</span></div>
+        <div><b>เก็บหลักฐานก่อนถูกลบ</b><span>แคปหน้าจอพร้อมลิงก์ วันเวลา และสลิปโอนเงิน ก่อนโพสต์หรือบัญชีจะหายไป</span></div>
+        <div><b>ขอลบและเรียกค่าเสียหาย</b><span>นอกจากโทษทางอาญา ยังขอให้ลบเนื้อหาและฟ้องเรียกค่าสินไหมทดแทนได้</span></div>
+      </div>
+
+      <!-- ตัวช่วยเลือกสถานการณ์ (สร้างโดย site.js) -->
+      <div class="pk reveal" id="picker" hidden>
+        <div class="pk-head">
+          <h3 id="pkTitle">ปัญหาของคุณคือแบบไหน</h3>
+          <p>เลือกสถานการณ์ที่ใกล้เคียงที่สุด เพื่อดูสิ่งที่ควรทำก่อน ทางเลือก และบทความที่เกี่ยวข้อง</p>
+        </div>
+        <div class="pk-opts" id="pkOpts" role="group" aria-labelledby="pkTitle"></div>
+        <div class="pk-out" id="pkOut" aria-live="polite"></div>
+      </div>
+
+      <!-- เส้นทางโดยสังเขป -->
+      <div class="rm-wrap reveal">
+        <h3 class="pk-h">เส้นทางโดยสังเขป</h3>
+        <ol class="rm" id="roadmap">
+          <li style="--i:0"><span class="rm-n" aria-hidden="true">1</span><b>เก็บหลักฐาน</b><p>แคปหน้าจอพร้อมลิงก์ วันเวลา และสลิปโอนเงิน ก่อนโพสต์หรือบัญชีจะหายไป</p><a href="/articles/?a=digital-evidence">วิธีเก็บหลักฐาน</a></li>
+          <li style="--i:1"><span class="rm-n" aria-hidden="true">2</span><b>เลือกทาง</b><p>แจ้งความ ฟ้องคดีอาญาเอง หรือฟ้องแพ่ง — ใช้ได้มากกว่าหนึ่งทางควบคู่กัน</p><a href="/articles/?a=online-case-overview">เปรียบเทียบทางเลือก</a></li>
+          <li style="--i:2"><span class="rm-n" aria-hidden="true">3</span><b>ยื่นคำฟ้อง / ไต่สวนมูลฟ้อง</b><p>คดีอาญาที่ราษฎรฟ้องเอง ศาลจะไต่สวนมูลฟ้องก่อนว่าจะประทับรับฟ้องหรือไม่</p><a href="#process">ดูขั้นตอนในศาล</a></li>
+          <li style="--i:3"><span class="rm-n" aria-hidden="true">4</span><b>ติดตามคดี</b><p>ตามนัดพิจารณา สืบพยาน และกำหนดเวลาต่าง ๆ จนถึงคำพิพากษา</p></li>
+        </ol>
+      </div>
+
+      <div class="pk-row reveal">
+        <h3 class="pk-h">บทความแนะนำ</h3>
+        <a class="link-arrow" href="/articles/">ดูบทความทั้งหมด</a>
+      </div>
+      <div class="ar-grid" id="artTeaser" aria-busy="true"></div>
+
+      <aside class="hcta reveal" aria-labelledby="hctaTitle">
+        <div>
+          <h3 id="hctaTitle">ไม่แน่ใจว่าเรื่องของคุณเข้าข่ายแบบไหน?</h3>
+          <p>เล่าเรื่องโดยย่อ ให้เจ้าหน้าที่ตรวจสอบเบื้องต้นก่อน แล้วติดต่อกลับตามช่องทางที่คุณให้ไว้ การส่งข้อความไม่ใช่การว่าจ้างทนายความ และไม่ใช่การรับประกันผลของคดี</p>
+        </div>
+        <a class="btn-pill light" href="/contact/">ติดต่อปรึกษากฎหมาย</a>
+      </aside>
+    </div>
   </section>
 
   <!-- Library -->
@@ -145,58 +199,6 @@
     </div>
   </section>
 
-  <!-- Articles -->
-  <section class="sec" id="articles">
-    <div class="wrap">
-      <header class="sec-head reveal">
-        <p class="eyebrow">คดีออนไลน์</p>
-        <h2>ถูกหลอก ถูกหมิ่น ถูกข่มขู่.<br>รู้ทางเลือกของคุณ.</h2>
-        <p class="lead">ซื้อขายออนไลน์ ฉ้อโกง หมิ่นประมาท ข่มขู่ และภาพส่วนตัว — ทางเลือก ขั้นตอน หลักฐาน และกำหนดเวลา</p>
-      </header>
-      <div class="ar-facts reveal">
-        <div><b>ฟ้องภายใน 3 เดือน</b><span>ความผิดต่อส่วนตัว เช่น หมิ่นประมาท ต้องร้องทุกข์หรือฟ้องภายใน 3 เดือนนับแต่รู้เรื่องและรู้ตัวผู้กระทำผิด (ตรวจว่าข้อหาของคุณเข้าข่ายหรือไม่)</span></div>
-        <div><b>ฟ้องเองได้</b><span>ผู้เสียหายยื่นฟ้องต่อศาลเองได้ ศาลจะไต่สวนมูลฟ้องก่อนประทับรับฟ้อง</span></div>
-        <div><b>เก็บหลักฐานก่อนถูกลบ</b><span>แคปหน้าจอพร้อมลิงก์ วันเวลา และสลิปโอนเงิน ก่อนโพสต์หรือบัญชีจะหายไป</span></div>
-        <div><b>ขอลบและเรียกค่าเสียหาย</b><span>นอกจากโทษทางอาญา ยังขอให้ลบเนื้อหาและฟ้องเรียกค่าสินไหมทดแทนได้</span></div>
-      </div>
-
-      <!-- ตัวช่วยเลือกสถานการณ์ (สร้างโดย site.js) -->
-      <div class="pk reveal" id="picker" hidden>
-        <div class="pk-head">
-          <h3 id="pkTitle">ปัญหาของคุณคือแบบไหน</h3>
-          <p>เลือกสถานการณ์ที่ใกล้เคียงที่สุด เพื่อดูสิ่งที่ควรทำก่อน ทางเลือก และบทความที่เกี่ยวข้อง</p>
-        </div>
-        <div class="pk-opts" id="pkOpts" role="group" aria-labelledby="pkTitle"></div>
-        <div class="pk-out" id="pkOut" aria-live="polite"></div>
-      </div>
-
-      <!-- เส้นทางโดยสังเขป -->
-      <div class="rm-wrap reveal">
-        <h3 class="pk-h">เส้นทางโดยสังเขป</h3>
-        <ol class="rm" id="roadmap">
-          <li style="--i:0"><span class="rm-n" aria-hidden="true">1</span><b>เก็บหลักฐาน</b><p>แคปหน้าจอพร้อมลิงก์ วันเวลา และสลิปโอนเงิน ก่อนโพสต์หรือบัญชีจะหายไป</p><a href="/articles/?a=digital-evidence">วิธีเก็บหลักฐาน</a></li>
-          <li style="--i:1"><span class="rm-n" aria-hidden="true">2</span><b>เลือกทาง</b><p>แจ้งความ ฟ้องคดีอาญาเอง หรือฟ้องแพ่ง — ใช้ได้มากกว่าหนึ่งทางควบคู่กัน</p><a href="/articles/?a=online-case-overview">เปรียบเทียบทางเลือก</a></li>
-          <li style="--i:2"><span class="rm-n" aria-hidden="true">3</span><b>ยื่นคำฟ้อง / ไต่สวนมูลฟ้อง</b><p>คดีอาญาที่ราษฎรฟ้องเอง ศาลจะไต่สวนมูลฟ้องก่อนว่าจะประทับรับฟ้องหรือไม่</p><a href="#process">ดูขั้นตอนในศาล</a></li>
-          <li style="--i:3"><span class="rm-n" aria-hidden="true">4</span><b>ติดตามคดี</b><p>ตามนัดพิจารณา สืบพยาน และกำหนดเวลาต่าง ๆ จนถึงคำพิพากษา</p></li>
-        </ol>
-      </div>
-
-      <div class="pk-row reveal">
-        <h3 class="pk-h">บทความแนะนำ</h3>
-        <a class="link-arrow" href="/articles/">ดูบทความทั้งหมด</a>
-      </div>
-      <div class="ar-grid" id="artTeaser" aria-busy="true"></div>
-
-      <aside class="hcta reveal" aria-labelledby="hctaTitle">
-        <div>
-          <h3 id="hctaTitle">ไม่แน่ใจว่าเรื่องของคุณเข้าข่ายแบบไหน?</h3>
-          <p>เล่าเรื่องโดยย่อ ให้เจ้าหน้าที่ตรวจสอบเบื้องต้นก่อน แล้วติดต่อกลับตามช่องทางที่คุณให้ไว้ การส่งข้อความไม่ใช่การว่าจ้างทนายความ และไม่ใช่การรับประกันผลของคดี</p>
-        </div>
-        <a class="btn-pill light" href="/contact/">ติดต่อปรึกษากฎหมาย</a>
-      </aside>
-    </div>
-  </section>
-
   <!-- Drafting -->
   <section class="sec dark" id="drafting">
     <div class="wrap">
@@ -212,7 +214,7 @@
         <article class="tile reveal"><h3>Word และ PDF</h3><p>ดาวน์โหลดเป็นไฟล์ Word แก้ไขต่อได้ หรือพิมพ์เป็น PDF ฟอนต์ TH Sarabun IT๙</p></article>
       </div>
       <div class="actions center reveal">
-        <a class="btn-pill light" href="/admin/">เข้าสู่ระบบหลังบ้าน</a>
+        <a class="btn-pill light" href="/admin/">เข้าสู่ระบบร่างคำฟ้อง</a>
       </div>
     </div>
   </section>
@@ -235,5 +237,6 @@
 
 <script type="module" src="/site/footer.js"></script>
 <script type="module" src="/site/site.js"></script>
+<script src="/js/smooth.js"></script>
 </body>
 </html>

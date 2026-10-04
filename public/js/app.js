@@ -10,9 +10,11 @@ import { ageFromBirth, validCitizenId } from '/shared/thai.js';
 import { selectBackend } from './api.js';
 import { showBook, leaveBook } from './book.js';
 import { openViewer } from './viewer.js';
+import { firstBlocked, isLocked, wizardNav, refreshWizard, STEPS } from './wizard.js';
 import { showInbox } from './inbox.js';
 import { confirmBox, alertBox, issuesBox, modal } from './modal.js';
 import { notify, banner, clearBanner, mountBanners, inferType } from './notify.js';
+import * as authUi from './auth-ui.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const app = document.getElementById('app');
@@ -105,24 +107,8 @@ function applyBrand() {
 }
 
 // ---------------- เข้าสู่ระบบ (ใช้เมื่อเชื่อม Supabase) ----------------
-function showLogin(msg = '') {
-  app.innerHTML = `<div class="login"><form class="login-card" id="loginForm">
-    <svg class="login-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><h1>เข้าสู่ระบบหลังบ้าน</h1>
-    <p class="hint">ข้อมูลคู่ความเป็นข้อมูลส่วนบุคคล ต้องเข้าสู่ระบบก่อนใช้งาน</p>
-    <button type="button" class="g-btn" data-act="googleLogin"><svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>เข้าสู่ระบบด้วย Google</button>
-    <div class="or"><span>หรือใช้อีเมลและรหัสผ่าน</span></div>
-    <label class="f s12"><span>อีเมล</span><input type="email" name="email" required autocomplete="username"></label>
-    <label class="f s12"><span>รหัสผ่าน</span><input type="password" name="password" required autocomplete="current-password"></label>
-    <div class="login-err" role="alert">${esc(msg)}</div>
-    <button class="btn primary" style="width:100%;justify-content:center">เข้าสู่ระบบ</button>
-    <a class="hint" href="/" style="text-align:center">← กลับเว็บไซต์</a></form></div>`;
-  $('#loginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const f = new FormData(e.target);
-    try { await backend.signIn(f.get('email'), f.get('password')); await startApp(); }
-    catch (err) { showLogin(err.message || 'เข้าสู่ระบบไม่สำเร็จ'); }
-  });
-}
+// หน้าเข้าสู่ระบบ (Google / อีเมล / โหมดทดลอง) อยู่ใน auth-ui.js
+function showLogin(msg = '') { return authUi.showLogin(msg); }
 
 /** หน้ายืนยันตั้งบัญชีที่ล็อกอินอยู่เป็นผู้ดูแลระบบคนแรก */
 function showClaim(email) {
@@ -147,11 +133,11 @@ actions.claimAdmin = async () => {
 async function showHome() {
   S.c = null; S.bookMode = false;
   let list = [];
-  try { list = await backend.listCases(); } catch (e) { if (e.status === 401) return showLogin(); }
+  try { list = authUi.filterCases(await backend.listCases()); } catch (e) { if (e.status === 401) return showLogin(); }
   app.innerHTML = `
   <header class="topbar"><div class="brand" data-act="goHome"><svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg><span class="brand-text">Law <b>Craft</b></span><span class="brand-sub">หลังบ้าน · ระบบร่างคำฟ้อง</span></div><span class="grow"></span>
     <span class="save-state" title="ที่เก็บข้อมูล">${esc(backend.label || '')}</span>
-    ${backend.needsLogin ? '<button class="btn ghost" data-act="signOut">ออกจากระบบ</button>' : ''}
+    ${authUi.userBar()}
     <a class="btn ghost" href="/">← เว็บไซต์</a></header>
   <main class="home">
     <h1>คดีของฉัน</h1>
@@ -163,10 +149,10 @@ async function showHome() {
       <button class="card newcase" data-act="openInbox"><h3>✉ กล่องข้อความปรึกษา <span class="ib-badge" data-inbox-badge hidden></span></h3><span class="hint">ข้อความที่ผู้เยี่ยมชมส่งจากหน้า “ติดต่อปรึกษากฎหมาย” ของเว็บไซต์ — ตรวจสอบ ติดต่อกลับ และทำเครื่องหมายว่าจัดการแล้ว</span></button>
       <label class="card newcase" style="cursor:pointer"><h3>⬆ นำเข้าข้อมูลคดี (.json)</h3><span class="hint">ไฟล์ที่ส่งออกจากระบบนี้</span><input type="file" id="importFile" accept=".json,application/json" hidden></label>
     </div>
-    <h2 class="section-title">คดีที่บันทึกไว้ (${list.length})</h2>
+    <h2 class="section-title">คดีที่บันทึกไว้ (${list.length})</h2>${authUi.caseToolbar()}
     ${list.length ? `<div class="cards">${list.map((x) => `<div class="card case-item">
         <div><span class="pill ${x.type === 'civil' ? 'civil' : 'crim'}">${x.type === 'civil' ? 'แพ่ง' : 'อาญา'}</span></div>
-        <h3>${esc(x.title || 'คดีใหม่')}</h3>
+        <h3>${esc(x.title || 'คดีใหม่')}</h3>${authUi.ownerLine(x)}
         <div class="meta">${esc(x.court || 'ยังไม่ได้เลือกศาล')} · แก้ไขล่าสุด ${new Date(x.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}</div>
         <div class="row"><button class="btn primary sm" data-act="openCase" data-id="${esc(x.id)}">เปิด</button>
           <button class="btn sm" data-act="dupCase" data-id="${esc(x.id)}" title="คัดลอกคู่ความ ทนาย และข้อมูลทั้งหมดไปเป็นคดีใหม่">ทำสำเนา</button>
@@ -175,6 +161,7 @@ async function showHome() {
     <p class="hint" style="margin-top:28px">แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม (สำนักงานศาลยุติธรรม) · ข้อมูลกฎหมายเป็นเครื่องมือช่วยร่าง ผู้ใช้ต้องตรวจสอบความถูกต้องก่อนยื่นต่อศาลทุกครั้ง</p>
   </main>`;
   mountBanners($('.topbar'));
+  authUi.afterHome(app);
   playEnter($('.home'));
   $('#importFile')?.addEventListener('change', async (e) => {
     const f = e.target.files[0]; if (!f) return;
@@ -202,7 +189,7 @@ function openCase(c, tab = 'case') {
   S.c = normalizeCase(c);
   alerted.clear();
   applyServiceAuto(S.c, S.data);
-  S.tab = TABS.some((t) => t.key === tab) ? tab : 'case';
+  S.tab = TABS.some((t) => t.key === tab) && !authUi.tabBlocked(tab) ? tab : 'case';
   S.ui.pvDoc = '';
   syncPreviewDoc();
   showWorkspace();
@@ -210,8 +197,8 @@ function openCase(c, tab = 'case') {
 
 actions.goHome = async () => { if (S.bookMode) await leaveBook(); showHome(); };
 actions.openBook = () => showBook(app);
-actions.openInbox = () => showInbox(app);
-actions.signOut = async () => { await backend.signOut(); showLogin(); };
+actions.openInbox = () => { if (authUi.isAdmin()) showInbox(app); };
+actions.signOut = () => authUi.signOut();
 actions.googleLogin = async () => {
   try { await backend.signInWithGoogle(); } // เบราว์เซอร์จะถูกพาไปหน้า Google แล้วกลับมาที่ /admin/
   catch (e) { const el = $('.login-err'); if (el) el.textContent = e.message; else alertBox(e.message, { title: 'Login ด้วย Google ไม่สำเร็จ', tone: 'warn' }); }
@@ -234,13 +221,28 @@ actions.delCase = async (el) => {
 };
 
 const TAB_ALIAS = { charges: 'complaint', facts: 'complaint' };
+actions.wizGo = (el) => actions.goTab(el);
+actions.wizNext = (el) => actions.goTab(el); // ถ้าหน้านี้ยังไม่ครบ goTab จะแจ้งสิ่งที่ขาดและไม่ไปต่อ
 actions.goTab = (el) => {
-  S.tab = TAB_ALIAS[el.dataset.tab] || el.dataset.tab;
+  if (authUi.tabBlocked(TAB_ALIAS[el.dataset.tab] || el.dataset.tab)) return hooks.toast('หน้านี้สำหรับผู้ดูแลระบบเท่านั้น', { type: 'warn' });
+  let target = TAB_ALIAS[el.dataset.tab] || el.dataset.tab;
+  // ไปทีละหน้า: หน้าก่อนหน้ายังกรอกไม่ครบ → พาไปหน้านั้นพร้อมบอกว่าขาดอะไร
+  const blk = firstBlocked(target, S.c);
+  if (blk) {
+    notify({ type: 'warn', id: 'wiz-block', title: `กรอก “${blk.label}” ให้ครบก่อน`, message: `ยังขาด: ${blk.missing.slice(0, 4).join(', ')}${blk.missing.length > 4 ? ` และอีก ${blk.missing.length - 4} รายการ` : ''}` });
+    if (blk.key === S.tab) return;
+    target = blk.key;
+  }
+  S.tab = target;
   if (S.tab === 'layout') S.ui.pvOn = true;
   syncPreviewDoc();
-  renderShell(true);
-  window.scrollTo({ top: 0 });
+  smoothSwap(() => { renderShell(true); window.scrollTo({ top: 0 }); });
 };
+/** เปลี่ยนหน้าแบบจางข้ามกัน (View Transitions) ถ้าเบราว์เซอร์รองรับ ไม่งั้นสลับทันที */
+function smoothSwap(fn) {
+  if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) { try { document.startViewTransition(fn); return; } catch { /* fallthrough */ } }
+  fn();
+}
 
 /** เลือกเอกสารที่แสดงในตัวอย่างให้ตรงกับหน้าที่เปิดอยู่ */
 function syncPreviewDoc() {
@@ -256,7 +258,7 @@ function showWorkspace() {
     <button class="ready-chip" id="ready-chip" data-act="showReadiness" type="button"></button>
     <span class="save-state" id="save-state" data-tone="">${esc(saveState)}</span>
     <button class="btn ghost" data-act="togglePreview">👁 ตัวอย่างเอกสาร</button>
-    <button class="btn ghost" data-act="goHome">คดีทั้งหมด</button></header>
+    <button class="btn ghost" data-act="goHome">คดีทั้งหมด</button>${authUi.userBar()}</header>
   <div class="work" id="work"><nav class="steps" id="steps" aria-label="เมนูเอกสารและขั้นตอน"></nav><main class="main" id="main"></main>
     <aside class="preview" id="preview"><div class="pv-bar" id="pv-bar"></div><div class="pv-scroll" id="pv-scroll"><div class="pv-inner" id="pv-inner"></div></div></aside></div>`;
   renderShell();
@@ -271,19 +273,21 @@ function renderSteps() {
   if (!el || !S.c) return;
   const errors = validateCase(S.c, S.idx).filter((i) => i.level === 'error').length;
   const crim = S.c.type === 'criminal';
-  el.innerHTML = NAV.map((g) => {
-    const items = g.items.filter((t) => !t.only || t.only === S.c.type || (t.only === 'criminal' && crim));
+  el.innerHTML = NAV.filter(authUi.navGroupVisible).map((g) => {
+    const items = g.items.filter((t) => authUi.navItemVisible(t) && (!t.only || t.only === S.c.type || (t.only === 'criminal' && crim)));
     return `<div class="nav-group"><div class="nav-head">${esc(g.group)}${g.hint ? `<small>${esc(g.hint)}</small>` : ''}</div>${items.map((t) => {
       const st = t.status ? t.status() : null;
       const cnt = t.count ? t.count() : 0;
-      return `<button class="nav-item ${S.tab === t.key ? 'on' : ''}" data-act="goTab" data-tab="${t.key}" ${S.tab === t.key ? 'aria-current="page"' : ''}>
+      const lock = isLocked(t.key, S.c);
+      return `<button class="nav-item ${S.tab === t.key ? 'on' : ''} ${lock ? 'locked' : ''}" data-act="goTab" data-tab="${t.key}" ${S.tab === t.key ? 'aria-current="page"' : ''} ${lock ? 'aria-disabled="true" title="กรอกหน้าก่อนหน้าให้ครบก่อน"' : ''}>
         <span class="nav-ico">${t.num ?? t.icon ?? '•'}</span><span class="nav-label">${esc(t.label)}</span>
         ${cnt ? `<span class="nav-count">${cnt}</span>` : ''}
         ${t.key === 'export' && errors ? `<span class="badge">${errors}</span>` : ''}
-        ${st ? `<span class="dot ${st}" title="${STATUS_TXT[st]}" role="img" aria-label="${STATUS_TXT[st]}"></span>` : ''}</button>`;
+        ${lock ? '<span class="lock" aria-hidden="true">🔒</span>' : (st ? `<span class="dot ${st}" title="${STATUS_TXT[st]}" role="img" aria-label="${STATUS_TXT[st]}"></span>` : '')}</button>`;
     }).join('')}</div>`;
   }).join('');
   updateReady();
+  refreshWizard(S.tab, S.c);
 }
 function updateReady() {
   const chip = $('#ready-chip');
@@ -312,7 +316,7 @@ function renderStepsSoon() { clearTimeout(stepsTimer); stepsTimer = setTimeout(r
 function renderMain(enter = false) {
   const tab = TABS.find((t) => t.key === S.tab) || TABS[0];
   const scrollY = window.scrollY;
-  $('#main').innerHTML = provinceList() + tab.render();
+  $('#main').innerHTML = provinceList() + tab.render() + wizardNav(tab.key, S.c);
   if (tab.key === 'export') renderDocList();
   window.scrollTo(0, scrollY);
   if (enter) playEnter($('#main'));
@@ -396,33 +400,59 @@ function renderPreview() {
     const t = TABS.find((x) => x.key === S.tab);
     S.ui.pvDoc = docs.find((d) => d.id === t?.doc || (t?.doc === 'motions' && d.id.startsWith('motion-')) || (t?.doc === 'summons' && d.id.startsWith('summons-')))?.id || docs[0].id;
   }
-  // ตัวเลือกเอกสารเดียว (แทนแท็บเรียงยาว): ลูกศรก่อนหน้า/ถัดไป + เมนูเลือก + ตัวนับ
+  // ตัวเลือกเอกสารเดียว (แทนแท็บเรียงยาว): ลูกศรก่อนหน้า/ถัดไป + เมนูเลือก + ตัวนับ + ซูม
   const idx = Math.max(0, docs.findIndex((d) => d.id === S.ui.pvDoc));
   const bar = $('#pv-bar');
+  const doc = docs.find((d) => d.id === S.ui.pvDoc);
+  const inner = $('#pv-inner');
+  const sc = $('#pv-scroll');
+  // ขนาดพอดีหน้าจอ: ให้เห็นทั้งหน้าโดยไม่ต้องเลื่อน (คำนวณจากความสูงจริงของเอกสาร) แล้วซูมเพิ่มได้
+  const same = inner.dataset.doc === doc.id;
+  const keepTop = sc.scrollTop, keepLeft = sc.scrollLeft;
+  const oldZoom = parseFloat(inner.style.zoom) || 1;
+  inner.style.zoom = 1;
+  inner.style.margin = '0';
+  inner.innerHTML = docHtml(doc, S.data.layout);
+  inner.classList.toggle('pv-guides', !!S.ui.guides);
+  const natH = Math.max(1123, inner.offsetHeight);
+  // แผงตัวอย่างถูกซ่อนอยู่ (จอแคบ) → ยังไม่คำนวณขนาดพอดี รอตอนเปิดแผง
+  if (!sc.clientWidth || !sc.clientHeight) { inner.dataset.doc = doc.id; inner.style.zoom = 0.5; return; }
+  const availW = sc.clientWidth - 24, availH = sc.clientHeight - 24;
+  const fit = Math.max(0.25, Math.min(1.1, availW / 794, availH / natH));
+  const manual = typeof S.ui.pvZoom === 'number';
+  const zoom = manual ? S.ui.pvZoom : fit;
+  inner.style.zoom = zoom;
+  inner.style.margin = '0 12px';
+  sc.classList.toggle('fit', !manual || zoom <= fit + 0.001);
+  const pct = Math.round(zoom * 100);
   const barHtml = `<div class="pv-nav">
     <button type="button" class="pv-arrow" data-act="pvPrev" aria-label="เอกสารก่อนหน้า" ${docs.length < 2 ? 'disabled' : ''}>‹</button>
     <label class="pv-select"><select data-onchange="pvSelect" aria-label="เลือกเอกสารที่แสดงในตัวอย่าง">${docs.map((d) => `<option value="${esc(d.id)}" ${d.id === S.ui.pvDoc ? 'selected' : ''}>${esc(d.title)}</option>`).join('')}</select></label>
     <button type="button" class="pv-arrow" data-act="pvNext" aria-label="เอกสารถัดไป" ${docs.length < 2 ? 'disabled' : ''}>›</button>
-    <span class="pv-count" aria-hidden="true">${idx + 1}/${docs.length}</span></div>`;
-  // สร้างแถบเลือกเอกสารใหม่เฉพาะเมื่อเนื้อหาเปลี่ยน (ไม่ให้เมนูที่เปิดอยู่ปิด/เด้งทุกครั้งที่พิมพ์)
+    <span class="pv-count" aria-hidden="true">${idx + 1}/${docs.length}</span>
+    <span class="pv-zoom" role="group" aria-label="ขยายหรือย่อตัวอย่าง"><button type="button" class="pv-arrow" data-act="pvZoom" data-d="-1" aria-label="ย่อ">−</button>
+      <button type="button" class="pv-pct" data-act="pvZoom" data-d="fit" title="พอดีหน้าจอ" aria-label="ขนาดพอดีหน้าจอ">${manual ? pct + '%' : 'พอดี'}</button>
+      <button type="button" class="pv-arrow" data-act="pvZoom" data-d="1" aria-label="ขยาย">+</button></span></div>`;
+  // สร้างแถบใหม่เฉพาะเมื่อเนื้อหาเปลี่ยน (ไม่ให้เมนูที่เปิดอยู่ปิด/เด้งทุกครั้งที่พิมพ์)
   if (bar.dataset.sig !== barHtml) { bar.innerHTML = barHtml; bar.dataset.sig = barHtml; }
-  const doc = docs.find((d) => d.id === S.ui.pvDoc);
-  const inner = $('#pv-inner');
-  const sc = $('#pv-scroll');
-  // จำตำแหน่งเลื่อนไว้: แก้ไขเอกสารเดิม → คงที่เดิมไม่เด้ง; เปลี่ยนไปเอกสารอื่น → เริ่มบนสุด
-  const same = inner.dataset.doc === doc.id;
-  const keepTop = sc.scrollTop, keepLeft = sc.scrollLeft;
-  const oldZoom = parseFloat(inner.style.zoom) || 1;
-  const avail = sc.clientWidth - 24;
-  const zoom = Math.min(1, avail / 794);
-  inner.style.zoom = zoom; // ตั้งก่อนใส่เนื้อหา เพื่อไม่ให้ความสูงสะดุด
-  inner.style.margin = '0 12px';
-  inner.innerHTML = docHtml(doc, S.data.layout);
-  inner.classList.toggle('pv-guides', !!S.ui.guides);
   inner.dataset.doc = doc.id;
-  if (same) { sc.scrollTop = keepTop * (zoom / oldZoom); sc.scrollLeft = keepLeft; }
-  else { sc.scrollTop = 0; sc.scrollLeft = 0; inner.classList.remove('pv-swap'); void inner.offsetWidth; inner.classList.add('pv-swap'); }
+  inner.dataset.fit = String(fit);
+  if (same && manual) { sc.scrollTop = keepTop * (zoom / oldZoom); sc.scrollLeft = keepLeft; }
+  else { sc.scrollTop = 0; sc.scrollLeft = 0; }
+  if (!same) { inner.classList.remove('pv-swap'); void inner.offsetWidth; inner.classList.add('pv-swap'); }
 }
+actions.pvZoom = (el) => {
+  const fit = parseFloat($('#pv-inner')?.dataset.fit) || 1;
+  const cur = typeof S.ui.pvZoom === 'number' ? S.ui.pvZoom : fit;
+  const d = el.dataset.d;
+  if (d === 'fit') S.ui.pvZoom = 'fit';
+  else {
+    const next = Math.round((cur + (d === '1' ? 0.1 : -0.1)) * 100) / 100;
+    S.ui.pvZoom = Math.min(2.5, Math.max(0.25, next));
+    if (Math.abs(S.ui.pvZoom - fit) < 0.03) S.ui.pvZoom = 'fit';
+  }
+  renderPreview();
+};
 actions.pvDoc = (el) => { S.ui.pvDoc = el.dataset.id; renderPreview(); };
 actions.pvSelect = (el) => { S.ui.pvDoc = el.value; renderPreview(); };
 const pvStep = (d) => { const docs = previewDocs(); if (!docs.length) return; const i = docs.findIndex((x) => x.id === S.ui.pvDoc); S.ui.pvDoc = docs[(i + d + docs.length) % docs.length].id; renderPreview(); };
@@ -530,6 +560,7 @@ document.addEventListener('click', (e) => {
 // ---------------- เริ่มต้น ----------------
 async function startApp() {
   app.innerHTML = '<div class="boot"><div class="spinner" aria-hidden="true"></div><p>กำลังโหลดข้อมูลกฎหมาย…</p></div>';
+  if (!(await authUi.gate())) return; // ตั้ง S.role (admin | user | guest) หรือแสดงหน้าเข้าสู่ระบบ/ตั้งแอดมิน
   try {
     const { data, geo, people } = await backend.loadAll();
     S.data = data; S.idx = indexLaw(data); S.geo = geo; S.people = people;
@@ -563,16 +594,6 @@ async function startApp() {
 
 (async function boot() {
   backend = await selectBackend();
-  if (backend.needsLogin) {
-    const st = backend.sessionState ? await backend.sessionState() : ((await backend.isSignedIn()) ? 'ok' : 'none');
-    if (st === 'notAdmin') {
-      // ยังไม่มีแอดมินเลย → เสนอให้บัญชีนี้ (ถ้าเป็น Google) เป็นผู้ดูแลคนแรก; มีแอดมินแล้ว → ปฏิเสธ
-      if (backend.adminExists && !(await backend.adminExists())) return showClaim(await backend.sessionEmail());
-      const em = backend.sessionEmail ? await backend.sessionEmail() : '';
-      await backend.signOut();
-      return showLogin(`บัญชี ${em || 'นี้'} ยังไม่ได้รับสิทธิ์เข้าหลังบ้าน — ให้ผู้ดูแลระบบเพิ่มอีเมลนี้ก่อน`);
-    }
-    if (st !== 'ok') return showLogin();
-  }
-  startApp();
+  authUi.bind({ app, getBackend: () => backend, setBackend: (b) => { backend = b; }, startApp, showHome, showClaim });
+  startApp(); // authUi.gate() ใน startApp ตัดสินบทบาท: แอดมิน | ผู้ใช้ทั่วไป | โหมดทดลอง | ต้องเข้าสู่ระบบ
 })();

@@ -167,12 +167,32 @@ export function resolveRuns(text, c, idx) {
 export function runsToText(runs) { return runs.map((r) => r.text).join(''); }
 
 /** ตัวแปรที่ผู้ใช้ต้องกรอก (ไม่รวมตัวแปรสงวน) ตามลำดับที่ปรากฏ */
+/** ข้อท้ายคำฟ้อง (ระบบต่อท้ายข้อเท็จจริงให้อัตโนมัติ ปิดได้ที่ closing.auto = false) */
+export function tailFacts(c) {
+  if (c.closing?.auto === false) return [];
+  const pl = plaintiffs(c)[0] || {};
+  const out = [];
+  if (c.type !== 'civil') {
+    out.push('เหตุคดีนี้เกิดที่ {{สถานที่เกิดเหตุ}} ซึ่งอยู่ในเขตอำนาจของศาลนี้');
+    out.push(pl.kind === 'juristic'
+      ? `โจทก์เป็นนิติบุคคล โดย ${pl.repName || 'ผู้แทนโจทก์'}${pl.repPosition ? ' ตำแหน่ง' + pl.repPosition : ''} ผู้มีอำนาจกระทำการแทน เป็นผู้เสียหายโดยตรงจากการกระทำของจำเลยดังกล่าว จึงมีอำนาจฟ้องคดีนี้ตามประมวลกฎหมายวิธีพิจารณาความอาญา มาตรา 28 (2)`
+      : 'โจทก์เป็นผู้เสียหายโดยตรงจากการกระทำของจำเลยดังกล่าว จึงมีอำนาจฟ้องคดีนี้ตามประมวลกฎหมายวิธีพิจารณาความอาญา มาตรา 28 (2)');
+    out.push((c.closing?.mode || 'self') === 'police'
+      ? 'โจทก์ได้ร้องทุกข์ต่อพนักงานสอบสวน {{สถานีตำรวจที่ร้องทุกข์}} ไว้แล้ว แต่โจทก์ประสงค์ดำเนินคดีนี้ด้วยตนเอง จึงนำคดีมาฟ้องต่อศาลโดยตรง'
+      : 'โจทก์มิได้ร้องทุกข์ต่อพนักงานสอบสวนในความผิดคดีนี้ แต่ประสงค์ดำเนินคดีด้วยตนเอง จึงนำคดีมาฟ้องต่อศาลโดยตรง');
+  } else {
+    out.push('มูลคดีนี้เกิดที่ {{สถานที่เกิดเหตุ}} และจำเลยมีภูมิลำเนาอยู่ในเขตอำนาจของศาลนี้ ศาลนี้จึงมีอำนาจพิจารณาพิพากษาคดี');
+  }
+  return out;
+}
+
 export function collectVars(c) {
   const seen = [];
   const add = (s) => {
     for (const t of tokenize(s || '')) if (t.v !== undefined && !isReserved(t.v) && !seen.includes(t.v)) seen.push(t.v);
   };
   c.facts.forEach((f) => add(f.text));
+  tailFacts(c).forEach(add);
   c.prayers.forEach((f) => add(f.text));
   c.motions.forEach((m) => add(m.text));
   add(c.powers);
