@@ -83,11 +83,11 @@ details.item[open]>summary { border-bottom-left-radius: 0; border-bottom-right-r
 details.item>summary::before, details.more>summary::before, details.book>summary::before, details.prec>summary::before { content: ''; width: 7px; height: 7px; flex: none; border-right: 2px solid #8a909c; border-bottom: 2px solid #8a909c; transform: rotate(-45deg); margin: 0 6px 0 2px; transition: transform .15s; }
 details[open]>summary::before { transform: rotate(45deg); }
 details.item>.d-body { border-top: 1px solid var(--hair); padding: 24px 24px 24px; }
-.sum-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px 12px; }
+.sum-main { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; } /* ยาวเกินจอ = ขึ้นบรรทัดใหม่ ไม่ตัดด้วย … */
 .sum-title { font-weight: 600; white-space: nowrap; flex: none; }
-.sum-name { font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sum-name { font-weight: 500; min-width: 0; white-space: normal; overflow-wrap: anywhere; flex: 1 1 12em; }
 .sum-name em { font-style: normal; color: #8a909c; font-weight: 400; }
-.sum-meta { color: var(--muted); font-size: 13.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 0 100000 auto; }
+.sum-meta { color: var(--muted); font-size: 13.5px; min-width: 0; white-space: normal; overflow-wrap: anywhere; flex: 0 1 auto; }
 .sum-badges { flex: none; }
 .sum-main.wrap { flex-wrap: wrap; }
 .sum-main.wrap .sum-name { white-space: normal; flex: 1 1 12em; }

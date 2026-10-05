@@ -296,7 +296,7 @@ function motionDoc(c, idx, m, n) {
   return { id: `motion-${m.id || n}`, title: `คำร้อง${m.title ? ' – ' + m.title : ' ' + (n + 1)}`, blocks };
 }
 
-/** แถวของตารางบัญชีพยาน (ใช้ร่วมกันทั้งบัญชีเดิม แบบ ๑๕ และบัญชีเพิ่มเติม แบบ ๑๕ ทวิ) — ลำดับ = เลข no จากบัญชีรวม จึงต่อเนื่องกัน */
+/** แถวของตารางบัญชีพยาน (ใช้ร่วมกันทั้งบัญชีเดิมและบัญชีพยานเพิ่มเติม — แบบ ๑๕ เดียวกัน) — ลำดับ = เลข no จากบัญชีรวม จึงต่อเนื่องกัน */
 function witnessTableRows(c, list) {
   // พยานเอกสาร/วัตถุ: คอลัมน์ที่อยู่ = ผู้ครอบครอง + ที่อยู่/ที่เก็บ · หมายเหตุว่าง = “หมายเรียก” (ระบบออกหมายให้) หรือ “นำ” (ปิดหมายรายนี้)
   return list.map(({ no, w }) => {
@@ -335,7 +335,7 @@ function witnessDoc(c, idx) {
 }
 
 /**
- * บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ) — ยื่นหลังฟ้องแล้ว มีเลขคดีดำ/แดงที่หัวเอกสาร
+ * บัญชีพยาน (เพิ่มเติม) ครั้งที่ … — ใช้แบบฟอร์มบัญชีพยาน (แบบ ๑๕) เดียวกับบัญชีเดิม ; ยื่นหลังฟ้องแล้ว มีเลขคดีดำ/แดงที่หัวเอกสาร
  * ลำดับอันดับนับต่อจากบัญชีเดิม (บัญชีเดิม 4 อันดับ → เพิ่มเติมเริ่มที่ ๕) ; null เมื่อไม่มีพยานที่ติดธง extra
  */
 function witnessExtraDoc(c, idx) {
@@ -344,9 +344,10 @@ function witnessExtraDoc(c, idx) {
   const pl = plaintiffs(c);
   const rows = witnessTableRows(c, list);
   const first = list[0].no, last = list[list.length - 1].no;
-  const title = ft('witnessExtra.title');
+  const round = String(c.witnessExtraRound ?? '').trim(); // เลขครั้งที่ยื่นเพิ่มเติม (ว่าง = จุดไข่ปลาให้เขียนเติม)
+  const title = ft('witnessExtra.title', { round: round || '......' });
   const blocks = [
-    top(c, '๑๕ ทวิ', title, { courtUse: true }),
+    top(c, '๑๕', title, { courtUse: true }), // ใช้แบบฟอร์มบัญชีพยาน (แบบ ๑๕) เดียวกับบัญชีเดิม
     courtBlock(c),
     betweenBlock(c),
     p([t('ข้าพเจ้า '), val(groupName(c, 'plaintiff')), t(` ${pl.length > 1 ? 'โจทก์ทั้งหมด' : 'โจทก์'}`)], { indent: 1.5 }),
@@ -680,7 +681,7 @@ export const DOC_TYPES = [
   { key: 'service', label: 'คำร้องส่งหมายนอกเขต / ปิดหมาย (แบบ ๗)' },
   { key: 'motions', label: 'คำร้อง / คำแถลง / คำขออื่น ๆ (แบบ ๗)' },
   { key: 'witness', label: 'บัญชีพยาน (แบบ ๑๕)' },
-  { key: 'witnessExtra', label: 'บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ — สร้างอัตโนมัติเมื่อมีพยานที่ติดธง “เพิ่มเติมภายหลังยื่นฟ้อง”)' },
+  { key: 'witnessExtra', label: 'บัญชีพยาน (เพิ่มเติม) ครั้งที่ … (แบบ ๑๕ — สร้างอัตโนมัติเมื่อมีพยานที่ติดธง “เพิ่มเติมภายหลังยื่นฟ้อง”)' },
   { key: 'witnessSummons', label: 'หมายเรียกพยานบุคคล / เอกสาร / วัตถุ (แบบ ๑๖ · ๑๗ · ๑๘ — สร้างอัตโนมัติจากบัญชีพยาน ฉบับละพยาน)' },
   { key: 'attorney', label: 'ใบแต่งทนายความ (แบบ ๙)' },
   { key: 'proxy', label: 'ใบมอบอำนาจ (แบบ ๑๐)' },
@@ -718,7 +719,7 @@ export function buildDocuments(c, data, only) {
   if (want('service')) { const sv = serviceDoc(c, data, idx); if (sv) docs.push(sv); }
   if (want('motions')) c.motions.forEach((m, i) => docs.push(motionDoc(c, idx, m, i)));
   if (want('witness')) docs.push(witnessDoc(c, idx));
-  // บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ): สร้างเองเมื่อมีพยานที่ติดธง extra (ปิดได้ด้วย docs.witnessExtra = false)
+  // บัญชีพยาน (เพิ่มเติม) ครั้งที่ … (แบบ ๑๕): สร้างเองเมื่อมีพยานที่ติดธง extra (ปิดได้ด้วย docs.witnessExtra = false)
   if (only ? only.includes('witnessExtra') : c.docs.witnessExtra !== false) { const wx = witnessExtraDoc(c, idx); if (wx) docs.push(wx); }
   // หมายเรียกพยาน: เปิดโดยปริยายเมื่อมีพยานที่ต้องเรียก (ปิดได้ด้วย docs.witnessSummons = false)
   if (only ? only.includes('witnessSummons') : c.docs.witnessSummons !== false) witnessSummonsPlan(c, !!only).forEach((g) => docs.push(witnessSummonsDoc(c, data, g)));

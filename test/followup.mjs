@@ -57,7 +57,8 @@ for (const type of ['criminal', 'civil']) {
   assert.ok(!wr.some((r) => /สอง|สัญญาเช่า/.test(r[1])), 'บัญชีเดิมต้องไม่มีพยานเพิ่มเติม');
   assert.deepEqual(xr.map((r) => r[0]), ['๓', '๔'], 'บัญชีเพิ่มเติมเริ่มที่ 3 ต่อจากบัญชีเดิม 2 อันดับ');
   assert.ok(/พยานเอกสาร/.test(xr[1][1]));
-  assert.equal(wx.blocks.find((b) => b.t === 'top').formNo, '(๑๕ ทวิ)');
+  assert.equal(wx.blocks.find((b) => b.t === 'top').formNo, '(๑๕)');
+  assert.match(JSON.stringify(wx.blocks.find((b) => b.t === 'top')), /บัญชีพยาน \(เพิ่มเติม\) ครั้งที่ \.{6}/);
   const intro = wx.blocks.find((b) => b.t === 'p' && /เพิ่มเติม/.test(b.runs.map((r) => r.text).join('')));
   assert.ok(intro && /อันดับที่ ๓ ถึง ๔/.test(intro.runs.map((r) => r.text).join('')), 'ประโยคระบุพยานเพิ่มเติม');
 

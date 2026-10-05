@@ -605,16 +605,17 @@ function witSummary(x) {
     <span class="sum-name">${named ? esc(x.name) : '<em>ยังไม่ระบุ</em>'}</span>${pos ? `<span class="sum-meta sum-pos">${esc(pos)}</span>` : ''}${no ? `<span class="sum-meta">อันดับ ${no}${meta ? ' · ' + esc(meta) : ''}</span>` : (meta ? `<span class="sum-meta">${esc(meta)}</span>` : '')}${witLacksAddr(x) ? badge('ยังไม่มีที่อยู่', 'warn') : ''}`;
 }
 
-/** กล่อง “บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ)”: พยานที่ติดธง “เพิ่มเติมภายหลังยื่นฟ้อง” + สวิตช์ + ดูตัวอย่าง */
+/** กล่อง “บัญชีพยาน (เพิ่มเติม) ครั้งที่ …” (ใช้แบบ ๑๕):พยานที่ติดธง “เพิ่มเติมภายหลังยื่นฟ้อง” + สวิตช์ + ดูตัวอย่าง */
 function witnessExtraPanel() {
   const c = S.c, on = c.docs.witnessExtra !== false, extra = witnessList(c, 'extra'), base = witnessList(c, 'base');
   const filed = isFiled(c);
   const hint = filed
     ? 'คดีนี้ฟ้องแล้ว — พยานที่เพิ่มใหม่ในหน้านี้จะเข้า “บัญชีพยานเพิ่มเติม” โดยอัตโนมัติ (ปิดสวิตช์ “เพิ่มเติมภายหลังยื่นฟ้อง” ของรายนั้นได้ถ้าต้องการลงบัญชีเดิม)'
-    : 'พยานที่ติดธง “เพิ่มเติมภายหลังยื่นฟ้อง” จะไม่อยู่ในบัญชีพยานเดิม แต่ไปลงบัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ) โดยนับอันดับต่อจากบัญชีเดิม · เลขคดีที่ศาลให้ (ถ้ามี) ใส่ในหน้า “ข้อมูลคดี” เพื่อเติมลงหัวเอกสาร ไม่ใส่ก็ออกเอกสารได้ เว้นจุดไข่ปลาไว้ให้เขียนเติม';
+    : 'พยานที่ติดธง “เพิ่มเติมภายหลังยื่นฟ้อง” จะไม่อยู่ในบัญชีพยานเดิม แต่ไปลงบัญชีพยาน (เพิ่มเติม) ครั้งที่ … (ใช้แบบ ๑๕ เดียวกัน) โดยนับอันดับต่อจากบัญชีเดิม · เลขคดีที่ศาลให้ (ถ้ามี) ใส่ในหน้า “ข้อมูลคดี” เพื่อเติมลงหัวเอกสาร ไม่ใส่ก็ออกเอกสารได้ เว้นจุดไข่ปลาไว้ให้เขียนเติม';
   return `<div class="panel wit-panel">
-    <h3>${icon('file', { size: 18 })}<span class="h-t">บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ): ${on ? extra.length : 0} รายการ</span><span class="grow"></span>${check('สร้างบัญชีพยานเพิ่มเติมอัตโนมัติ', 'docs.witnessExtra', { sw: true, rerender: true })}</h3>
+    <h3>${icon('file', { size: 18 })}<span class="h-t">บัญชีพยาน (เพิ่มเติม): ${on ? extra.length : 0} รายการ</span><span class="grow"></span>${check('สร้างบัญชีพยานเพิ่มเติมอัตโนมัติ', 'docs.witnessExtra', { sw: true, rerender: true })}</h3>
     <p class="hint">${hint}</p>
+    ${on ? `<div class="grid">${field('ครั้งที่ (บัญชีพยาน (เพิ่มเติม) ครั้งที่ …)', 'witnessExtraRound', { cls: 's6', ph: 'เว้นว่าง = จุดไข่ปลาให้เขียนเติม' })}</div>` : ''}
     ${!on ? `<div class="empty">${icon('file', { size: 22 })}<span>ปิดอยู่ — ไม่สร้างบัญชีพยานเพิ่มเติมในชุดเอกสาร</span></div>`
     : extra.length ? `<ul class="rows"><li><span class="st-ico ok" aria-hidden="true">${icon('check', { size: 15 })}</span>
         <span class="r-main">บัญชีพยานเพิ่มเติม · อันดับที่ ${extra[0].no}${extra.length > 1 ? `–${extra[extra.length - 1].no}` : ''}<span class="r-note">บัญชีเดิมมี ${base.length} อันดับ · ${extra.length} รายการเพิ่มเติม ลำดับนับต่อเนื่องกัน</span></span>
@@ -662,7 +663,7 @@ function witnessFields(x, i) {
       ${person ? field('ประเด็นที่จะให้พยานเบิกความ (ไม่บังคับ — พิมพ์ลงช่องว่างด้านหลังหมายเรียก)', `${base}.purpose`, { cls: 's12', type: 'textarea', rows: 2 }) : ''}
       ${field('หมายเหตุ (ลงในบัญชีพยาน)', `${base}.note`, { cls: 's6', list: 'dl-wnote', ph: 'นำ / หมายเรียก', hint: `หมายเหตุเป็นหลัก: พิมพ์ “หมายเรียก” = ขอให้ศาลออกหมาย · “นำ” = โจทก์นำมาเอง (ไม่ออกหมาย) · เว้นว่างหรือข้อความอื่น = ตามสวิตช์ด้านขวา (ระบบเติม “หมายเรียก”/“นำ” ลงบัญชีพยานให้)${person ? ' · พยานเป็นเด็กอายุไม่เกิน ๑๘ ปี ให้ระบุในช่องนี้' : ''}` })}
       <div class="f s6"><span>หมายเรียก</span>${check('ขอให้ศาลออกหมายเรียกพยานรายนี้', `${base}.summons`, { sw: true, rerender: true })}</div>
-      <div class="f s12"><span>บัญชีพยาน</span>${check('เพิ่มเติมภายหลังยื่นฟ้อง — ลงบัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ) ไม่ลงบัญชีพยานเดิม', `${base}.extra`, { sw: true, rerender: true })}</div>
+      <div class="f s12"><span>บัญชีพยาน</span>${check('เพิ่มเติมภายหลังยื่นฟ้อง — ลงบัญชีพยาน (เพิ่มเติม) ครั้งที่ … ไม่ลงบัญชีพยานเดิม', `${base}.extra`, { sw: true, rerender: true })}</div>
     </div></section>`;
 }
 
@@ -672,13 +673,13 @@ function tabWitness() {
   const nPerson = w.filter((x) => witnessKind(x) === 'person').length;
   const unnamed = w.filter((x) => !(x.name || '').trim()).length;
   const filed = isFiled(S.c), nExtra = w.filter((x) => x.extra).length;
-  return `${pageHead('บัญชีพยาน', 'แบบ ๑๕ — พยานบุคคลลงตาราง พยานเอกสาร/วัตถุแยกตาราง · พยานเพิ่มเติมหลังยื่นฟ้องลงแบบ ๑๕ ทวิ · ระบบสร้างหมายเรียกพยาน (แบบ ๑๖ · ๑๗ · ๑๘) ให้อัตโนมัติ')}
+  return `${pageHead('บัญชีพยาน', 'แบบ ๑๕ — พยานบุคคลลงตาราง พยานเอกสาร/วัตถุแยกตาราง · พยานเพิ่มเติมหลังยื่นฟ้องใช้แบบเดียวกันเป็น “บัญชีพยาน (เพิ่มเติม) ครั้งที่ …” ·ระบบสร้างหมายเรียกพยาน (แบบ ๑๖ · ๑๗ · ๑๘) ให้อัตโนมัติ')}
   <datalist id="dl-wnote"><option value="นำ"><option value="หมายเรียก"><option value="เด็กอายุไม่เกิน 18 ปี"></datalist>
   <div class="toolbar wit-add n${filed ? 3 : 4}" role="group" aria-label="เพิ่มพยาน">
     <button class="btn outline" data-act="addWit" data-kind="person">${icon('plus', { size: 16 })}<span>พยานบุคคล</span></button>
     <button class="btn outline" data-act="addWit" data-kind="document">${icon('plus', { size: 16 })}<span>พยานเอกสาร</span></button>
     <button class="btn outline" data-act="addWit" data-kind="object">${icon('plus', { size: 16 })}<span>พยานวัตถุ</span></button>
-    ${filed ? '' : `<button class="btn outline" data-act="addWit" data-kind="person" data-extra="1" title="พยานที่เพิ่มภายหลังยื่นฟ้อง — ลงบัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ)">${icon('plus', { size: 16 })}<span>พยานเพิ่มเติม</span></button>`}
+    ${filed ? '' : `<button class="btn outline" data-act="addWit" data-kind="person" data-extra="1" title="พยานที่เพิ่มภายหลังยื่นฟ้อง — ลงบัญชีพยาน (เพิ่มเติม) ครั้งที่ …">${icon('plus', { size: 16 })}<span>พยานเพิ่มเติม</span></button>`}
     <select class="sel-inline wit-from" data-onchange="witFromParty" aria-label="เพิ่มพยานจากรายชื่อคู่ความ"><option value="">เพิ่มจากรายชื่อคู่ความ…</option>${S.c.parties.map((p) => `<option value="${esc(p.id)}">${esc(partyLabel(S.c, p))}: ${esc(partyName(p))}</option>`).join('')}</select>
   </div>
   <div class="panel compact">${check('โจทก์อ้างตนเองเป็นพยาน (ค่าเริ่มต้น — ใส่ชื่อโจทก์เป็นลำดับแรกในบัญชีพยานให้อัตโนมัติ)', 'options.selfWitness', { rerender: true, sw: true })}</div>
@@ -812,7 +813,7 @@ function tabExport() {
     <p class="hint panel-note">พิมพ์เลขคดีที่ศาลให้บนหัวเอกสารทุกฉบับ — เตรียมหมายเรียกพยาน บัญชีพยานเพิ่มเติม และคำร้อง/คำแถลงได้จากกลุ่มนี้</p>
     <ul class="rows">
       ${postRow('หมายเรียกพยาน (แบบ ๑๖ · ๑๗ · ๑๘)', nSum ? `${nSum} ฉบับ — สร้างอัตโนมัติจากรายการพยาน` : 'ยังไม่มีพยานที่ต้องออกหมายเรียก', nSum, 'witness', nSum ? 'ดู/แก้พยาน' : 'เพิ่มพยาน')}
-      ${postRow('บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ)', nExtra ? `${nExtra} รายการ · อันดับต่อจากบัญชีเดิม` : 'ยังไม่มีพยานเพิ่มเติม', nExtra, 'witness', nExtra ? 'ดู/แก้พยาน' : 'เพิ่มพยาน')}
+      ${postRow('บัญชีพยาน (เพิ่มเติม) ครั้งที่ …',nExtra ? `${nExtra} รายการ · อันดับต่อจากบัญชีเดิม` : 'ยังไม่มีพยานเพิ่มเติม', nExtra, 'witness', nExtra ? 'ดู/แก้พยาน' : 'เพิ่มพยาน')}
       ${postRow('คำร้อง / คำแถลง / คำขอ', nMot ? `${nMot} ฉบับ` : 'ยังไม่มีคำร้องหรือคำแถลง', nMot, 'motions', nMot ? 'ดู/แก้' : 'เพิ่มคำร้อง')}
     </ul>
     <div class="doc-pick">${POST_FILING_KEYS.map((k) => DOC_TYPES.find((d) => d.key === k)).map((d) => check(esc(d.label), `docs.${d.key}`, { rerender: true })).join('')}</div>
@@ -979,7 +980,7 @@ function tabFormText() {
       }).join('')}</select></label>
       <label class="ref-search">${ix('search')}<input type="search" id="ft-q" data-oninput="setFtQ" value="${esc(S.ui.ftQ || '')}" placeholder="ค้นหาข้อความทุกกลุ่ม" aria-label="ค้นหาข้อความในแบบฟอร์ม"></label>
       <span class="hint ft-cnt" id="ft-count">แก้แล้ว ${ftModCount()} รายการ</span></div>
-    <p class="hint ft-vars">ตัวแปรที่ใช้ได้: <code>{def}</code> จำเลย · <code>{names}</code> ชื่อจำเลย · <code>{n}</code> จำนวน · หมายเรียกพยาน: <code>{when}</code> วัน-เวลานัด · <code>{date}</code> วันที่ · <code>{items}</code> รายการเอกสาร/วัตถุ · <code>{court}</code> ศาล · บัญชีพยานเพิ่มเติม: <code>{range}</code> อันดับที่ (เช่น ๕ ถึง ๗) · <code>{from}</code> <code>{to}</code> (ขึ้นบรรทัดใหม่ = ย่อหน้าใหม่)</p>`;
+    <p class="hint ft-vars">ตัวแปรที่ใช้ได้: <code>{def}</code> จำเลย · <code>{names}</code> ชื่อจำเลย · <code>{n}</code> จำนวน · หมายเรียกพยาน: <code>{when}</code> วัน-เวลานัด · <code>{date}</code> วันที่ · <code>{items}</code> รายการเอกสาร/วัตถุ · <code>{court}</code> ศาล · บัญชีพยาน (เพิ่มเติม): <code>{round}</code> ครั้งที่ (ใน “ชื่อเอกสาร”) · <code>{range}</code> อันดับที่ (เช่น ๕ ถึง ๗) · <code>{from}</code> <code>{to}</code> (ขึ้นบรรทัดใหม่ = ย่อหน้าใหม่)</p>`;
   const body = `<div class="panel flat">${list.length ? list.map(item).join('') : `<div class="empty">${ix('search', { size: 22 })}<span>ไม่พบข้อความที่ค้นหา</span></div>`}</div>`;
   const foot = `<button class="btn primary" data-act="saveFormText">${ix('save')}<span>บันทึกข้อความแบบฟอร์ม</span></button><span class="hint" id="ft-state">${S.ui.ftDirty ? 'ยังไม่ได้บันทึก' : ''}</span>`;
   return fit(head, body, foot, 'รายการข้อความ');
@@ -1010,7 +1011,7 @@ actions.saveFormText = async () => {
 
 // ===================== หน้า: แบบพิมพ์ศาล (ต้นฉบับ) =====================
 let formsIndex = null;
-const USED_FORMS = new Set(['04', '05', '06', '07', '09', '10', '11', '15', '15 ทวิ', '16', '17', '18', '19 ตรี', '29']);
+const USED_FORMS = new Set(['04', '05', '06', '07', '09', '10', '11', '15', '16', '17', '18', '19 ตรี', '29']);
 function tabForms() {
   if (!formsIndex) {
     fetch('/templates/index.json').then((r) => r.json()).then((j) => { formsIndex = j.forms || []; if (S.tab === 'forms') rerender(); }).catch(() => { formsIndex = []; if (S.tab === 'forms') rerender(); });
@@ -1041,7 +1042,7 @@ actions.setFormQ = (el) => {
 const LAYOUT_FORMS = [
   ['all', 'ทุกแบบ (ค่ากลาง)', ''], ['complaint', 'คำฟ้อง (แบบ ๔)', 'complaint'], ['prayer', 'คำขอท้ายคำฟ้อง', 'prayer'],
   ['attachment', 'เอกสารแนบท้ายคำฟ้อง', 'attachment'], ['service', 'คำร้องส่งหมาย / ปิดหมาย', 'service'], ['motion', 'คำร้อง / คำแถลงอื่น', 'motion'],
-  ['witness', 'บัญชีพยาน', 'witness'], ['witnessExtra', 'บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ)', 'witnessExtra'], ['witnessSummons', 'หมายเรียกพยาน (แบบ ๑๖ · ๑๗ · ๑๘)', 'witnessSummons'], ['summons', 'หมายนัดไต่สวนมูลฟ้อง', 'summons'], ['attorney', 'ใบแต่งทนายความ', 'attorney'],
+  ['witness', 'บัญชีพยาน', 'witness'], ['witnessExtra', 'บัญชีพยาน (เพิ่มเติม) ครั้งที่ …', 'witnessExtra'], ['witnessSummons', 'หมายเรียกพยาน (แบบ ๑๖ · ๑๗ · ๑๘)', 'witnessSummons'], ['summons', 'หมายนัดไต่สวนมูลฟ้อง', 'summons'], ['attorney', 'ใบแต่งทนายความ', 'attorney'],
   ['proxy', 'ใบมอบอำนาจ', 'proxy'], ['answer', 'คำให้การจำเลย', 'answer'], ['settlement', 'สัญญาประนีประนอมยอมความ', 'settlement'],
 ];
 const LAYOUT_PRESETS = { 'emblem.width': [['เล็ก', 18], ['มาตรฐาน', 24], ['ใหญ่', 32]] };
