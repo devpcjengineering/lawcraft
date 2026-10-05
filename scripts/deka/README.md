@@ -87,6 +87,24 @@ Get-Content "$env:LOCALAPPDATA\lawcraft-deka-data\checkpoint.json"
 2. เขียน `load.mjs` (ยังไม่มี): อ่าน `<ปี>.jsonl` → ตัดคำไทยด้วย `Intl.Segmenter('th')` เก็บใน `search_tokens` → แปลง `laws` เป็น `sections text[]` (เช่น `ป.พ.พ. ม. 11`) → เลือกระเบียนซ้ำที่ข้อความยาวสุด → upsert ด้วย `source_doc_id` เป็นชุดละ 500 แถวด้วย service_role key จากเครื่องแอดมินเท่านั้น
 3. API ค้นหาต้องตัดคำคำค้นด้วยตัวตัดคำเดียวกัน (ดูหัวข้อในไฟล์ SQL)
 
+## โหลดเข้า Aiven for PostgreSQL (เก็บเฉพาะข้อมูลฎีกา; ข้อมูลคดี/ผู้ใช้อยู่ Supabase ตามเดิม)
+
+ใช้ `schema-aiven.sql` (Postgres ธรรมดา ไม่มี RLS) + `load-aiven.mjs` + `precedent-map.mjs` (แปลงแถว + ตัดคำไทย; ทดสอบ: `node test/deka-map.mjs`)
+
+```
+$env:AIVEN_DATABASE_URL = '<สตริงเชื่อมต่อ avnadmin>'     # ห้ามเขียนลงไฟล์ใน repo
+npm i --no-save pg
+node scripts/deka/load-aiven.mjs --schema-only           # ตาราง (ไม่มีดัชนีหนัก)
+node scripts/deka/load-aiven.mjs                         # โหลดทุกปี ใหม่→เก่า รันซ้ำได้ ข้ามคดีที่มีแล้ว (ต่อจาก crawl ที่ยังวิ่งอยู่ได้)
+node scripts/deka/load-aiven.mjs --build-indexes         # ดัชนีค้นหา หลังโหลดเสร็จ
+node scripts/deka/load-aiven.mjs --create-reader         # role lawcraft_reader (SELECT อย่างเดียว) → URL เก็บที่ <ข้อมูล>\aiven-reader.url (นอก repo)
+node scripts/deka/load-aiven.mjs --stats
+```
+
+- ตั้ง `AIVEN_CA_FILE=<ไฟล์ CA ของ Aiven>` เพื่อตรวจใบรับรองเซิร์ฟเวอร์ (ไม่ตั้ง = เข้ารหัสแต่ไม่ตรวจตัวเซิร์ฟเวอร์)
+- ค้นหา: คำค้นต้องตัดคำด้วย `tokenize()` ใน `precedent-map.mjs` แล้ว `to_tsquery('simple', 'คำ1 & คำ2')` (เลขไทยแปลงเป็นเลขอารบิกทั้งสองฝั่ง)
+- **ขนาด:** ทดลองโหลดจริงได้ ~10.7 KB/คดี (ตาราง ~610 MB ต่อ ~57,000 คดี ยังไม่รวมดัชนี) → ทั้งคลัง 133,000 คดี ≈ 1.5 GB + ดัชนี ~0.7–1 GB; Aiven จะล็อกฐานเป็น **อ่านอย่างเดียวเมื่อดิสก์เต็ม** (เกิดขึ้นแล้วที่ 618 MB ในแผนเดิม) ต้องใช้แผนที่ดิสก์ ≥ 5 GB
+
 ## ข้อควรรู้ก่อนรันเต็ม
 
 - **ลิขสิทธิ์/สิทธิ**: เว็บระบุ "© ลิขสิทธิ์โดยศาลฎีกา" แม้ตัวคำพิพากษาไม่เป็นงานอันมีลิขสิทธิ์ตาม พ.ร.บ.ลิขสิทธิ์ ม.7 แต่ย่อสั้น/ย่อยาวเป็นงานเรียบเรียงโดยเจ้าหน้าที่ศาล และฐานข้อมูลเป็นของศาล — เจ้าของแจ้งว่าขอศาลแล้ว **ควรได้หนังสืออนุญาตเป็นลายลักษณ์อักษรก่อนรันเต็มและก่อนเผยแพร่ซ้ำ**
