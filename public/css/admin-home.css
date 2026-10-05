@@ -410,3 +410,9 @@ dialog.modal::backdrop { background: rgba(16, 24, 40, .42); -webkit-backdrop-fil
 a.brand, a.nav-item, a.act-card, a.ct-tab, a.btn { text-decoration: none; }
 a.ct-tab { display: inline-block; }
 a.act-card, a.brand { color: var(--ink); }
+/* การ์ดคดี: ชื่อโจทก์/จำเลย (บรรทัดเดียวต่อฝ่าย ตัดด้วย …) — ความสูงการ์ดยังเท่ากันด้วย grid-auto-rows */
+.case-item .ci-parties { display: grid; gap: 4px; min-width: 0; font-size: 14.5px; line-height: 1.5; color: var(--ink-2); }
+.case-item .ci-line { display: flex; gap: 6px; min-width: 0; }
+.case-item .ci-line b { flex: none; font-weight: 600; color: var(--muted); }
+.case-item .ci-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.case-item .ci-name em { color: var(--muted-2); font-style: normal; }

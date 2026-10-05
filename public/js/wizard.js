@@ -1,5 +1,5 @@
 // ขั้นตอนทีละหน้า: ต้องกรอกข้อมูลที่จำเป็นของหน้าก่อนหน้าให้ครบ จึงไปหน้าถัดไปได้ (ย้อนกลับได้เสมอ)
-import { plaintiffs, defendants, partyName, partyLabel } from '/shared/model.js';
+import { plaintiffs, defendants, partyName, partyLabel, isFiled } from '/shared/model.js';
 import { validCitizenId } from '/shared/thai.js';
 import { esc } from './store.js';
 import { morphInto } from './morph.js';
@@ -69,6 +69,7 @@ const keyOf = (k) => k;
 /** หน้าแรกก่อนหน้า “key” ที่ยังกรอกไม่ครบ (ถ้ามี) → {key,label,missing} */
 export function firstBlocked(key, c) {
   if (!c) return null;
+  if (isFiled(c)) return null; // คดีที่ฟ้องแล้ว (มีเลขคดี): เปิดหน้าใดก็ได้เพื่อทำเอกสารหลังยื่นฟ้อง — ข้อมูลที่ขาดยังแจ้งเตือน แต่ไม่ขวาง
   const list = applicable(c);
   const at = list.findIndex((s) => s.key === keyOf(key));
   if (at < 0) return null; // หน้านอกลำดับหลัก (ตำรา ตั้งค่า) เข้าได้เสมอ
@@ -86,14 +87,15 @@ export function wizardNav(key, c) {
   const at = list.findIndex((s) => s.key === key);
   if (at < 0) return '';
   const miss = stepMissing(key, c);
-  return `<div class="wiz-nav" id="wiz-nav">${wizardInner(list[at - 1], list[at + 1], miss, at, list.length)}</div>`;
+  return `<div class="wiz-nav" id="wiz-nav">${wizardInner(list[at - 1], list[at + 1], miss, at, list.length, isFiled(c))}</div>`;
 }
-export function wizardInner(prev, next, miss, at = 0, total = 0) {
+export function wizardInner(prev, next, miss, at = 0, total = 0, filed = false) {
   const pct = total ? Math.round(((at + 1) / total) * 100) : 0;
-  return `${miss.length ? `<div class="wiz-miss" role="status"><div class="wiz-miss-h">${icon('alert', { size: 16 })}<b>กรอกให้ครบก่อนไปหน้าถัดไป</b></div><ul>${miss.slice(0, 8).map((x) => `<li>${esc(x)}</li>`).join('')}${miss.length > 8 ? `<li>…และอีก ${miss.length - 8} รายการ</li>` : ''}</ul></div>` : ''}
+  const lock = miss.length && !filed;
+  return `${miss.length ? `<div class="wiz-miss${filed ? ' soft' : ''}" role="status"><div class="wiz-miss-h">${icon('alert', { size: 16 })}<b>${filed ? 'ข้อมูลหน้านี้ยังไม่ครบ (คดีฟ้องแล้ว — ไปหน้าอื่นต่อได้)' : 'กรอกให้ครบก่อนไปหน้าถัดไป'}</b></div><ul>${miss.slice(0, 8).map((x) => `<li>${esc(x)}</li>`).join('')}${miss.length > 8 ? `<li>…และอีก ${miss.length - 8} รายการ</li>` : ''}</ul></div>` : ''}
     <div class="wiz-btns">${prev ? `<button type="button" class="btn" data-act="wizGo" data-tab="${prev.key}">${icon('arrowLeft', { size: 16 })}<span class="wiz-t">${esc(prev.label)}</span></button>` : '<span></span>'}
       ${total ? `<div class="wiz-prog" role="progressbar" aria-valuemin="1" aria-valuemax="${total}" aria-valuenow="${at + 1}" aria-label="ความคืบหน้า"><span class="wiz-prog-t">ขั้นที่ ${at + 1} จาก ${total}</span><span class="wiz-prog-bar"><i style="width:${pct}%"></i></span></div>` : ''}
-      ${next ? `<button type="button" class="btn primary ${miss.length ? 'is-locked' : ''}" data-act="wizNext" data-tab="${next.key}" ${miss.length ? 'aria-disabled="true"' : ''}><span class="wiz-t">${esc(next.label)}</span>${icon('arrowRight', { size: 16 })}</button>` : '<span></span>'}</div>`;
+      ${next ? `<button type="button" class="btn primary ${lock ? 'is-locked' : ''}" data-act="wizNext" data-tab="${next.key}" ${lock ? 'aria-disabled="true"' : ''}><span class="wiz-t">${esc(next.label)}</span>${icon('arrowRight', { size: 16 })}</button>` : '<span></span>'}</div>`;
 }
 /** อัปเดตแถบตามข้อมูลล่าสุด (เรียกหลังพิมพ์) โดยไม่วาดหน้าใหม่ */
 export function refreshWizard(key, c) {
@@ -102,5 +104,5 @@ export function refreshWizard(key, c) {
   const list = applicable(c);
   const at = list.findIndex((s) => s.key === key);
   if (at < 0) return;
-  morphInto(el, wizardInner(list[at - 1], list[at + 1], stepMissing(key, c), at, list.length));
+  morphInto(el, wizardInner(list[at - 1], list[at + 1], stepMissing(key, c), at, list.length, isFiled(c)));
 }

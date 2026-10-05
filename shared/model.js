@@ -1,5 +1,5 @@
 // โมเดลข้อมูลคดี + ตัวช่วยที่ใช้ร่วมกันทั้งหน้าเว็บและเซิร์ฟเวอร์
-import { todayParts, fullName, courtShort, sectionsJoin, validCitizenId, addressText, isBkk } from './thai.js';
+import { todayParts, fullName, courtShort, sectionsJoin, validCitizenId, addressText, isBkk, toThaiDigits } from './thai.js';
 
 export function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -44,7 +44,7 @@ export function newCase(type = 'criminal') {
     hearing: { date: '', time: '' },
     answer: { defendantId: '', templateId: '', text: '' },               // คำให้การจำเลย (แบบ ๑๑)
     settlement: { templateId: '', subject: '', clauses: [] },            // สัญญาประนีประนอมยอมความ (แบบ ๒๙)
-    docs: { complaint: true, prayer: true, attachment: true, service: true, witness: true, witnessSummons: true, summons: true, attorney: false, proxy: false, motions: true, answer: false, settlement: false },
+    docs: { complaint: true, prayer: true, attachment: true, service: true, witness: true, witnessExtra: true, witnessSummons: true, summons: true, attorney: false, proxy: false, motions: true, answer: false, settlement: false },
     options: { thaiDigits: true, autoFill: true, selfWitness: true },
     closing: { mode: 'self' },                    // ข้อท้ายคำฟ้อง: self = ไม่ได้ร้องทุกข์ ประสงค์ดำเนินคดีเอง | police = ร้องทุกข์ต่อพนักงานสอบสวนแล้ว
   };
@@ -89,10 +89,11 @@ export const emptyAddress = () => ({ no: '', moo: '', building: '', soi: '', roa
  *  - person: name = ชื่อ-สกุลพยาน · addr/address = ที่อยู่พยาน · phone · purpose = ประเด็นที่จะให้เบิกความ (พิมพ์ลงช่องว่างหลังหมาย)
  *  - object/document: name = รายการเอกสาร/วัตถุ · holder = ผู้ครอบครอง · addr/address = ที่อยู่ผู้ครอบครอง/ที่เก็บ
  *  - summons: false = ไม่ขอให้ศาลออกหมายเรียกรายนี้ (เช่น โจทก์นำมาเอง)
+ *  - extra: true = พยานที่เพิ่มภายหลังยื่นฟ้อง → ลงเฉพาะ “บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ)” ไม่อยู่ในบัญชีพยานเดิม (แบบ ๑๕)
  *  address เป็นข้อความรวมช่องเดียว (ข้อมูลเดิม) ส่วน addr เป็นที่อยู่แยกช่องตามแบบพิมพ์ศาล — ถ้ามี addr จะใช้ addr ก่อน
  */
-export function newWitness(kind = 'person') {
-  return { id: uid(), kind: kind === 'object' || kind === 'document' ? kind : 'person', name: '', holder: '', address: '', addr: emptyAddress(), phone: '', purpose: '', note: '', summons: true };
+export function newWitness(kind = 'person', extra = false) {
+  return { id: uid(), kind: kind === 'object' || kind === 'document' ? kind : 'person', name: '', holder: '', address: '', addr: emptyAddress(), phone: '', purpose: '', note: '', summons: true, extra: !!extra };
 }
 export const witnessKind = (w) => (w?.kind === 'object' || w?.kind === 'document' ? w.kind : 'person');
 export const isItemWitness = (w) => witnessKind(w) !== 'person';
@@ -108,13 +109,18 @@ export function witnessAddrText(w) {
 /** ระบบจะออกหมายเรียกให้พยานรายนี้หรือไม่ (ปิดรายตัวได้ หรือหมายเหตุขึ้นต้น “นำ” = โจทก์นำมาเอง) */
 export const witnessWantsSummons = (w) => !!w && !w.self && w.summons !== false && !/^\s*นำ/.test(String(w.note || ''));
 
-/** บัญชีพยานตามลำดับที่ปรากฏในแบบ ๑๕: โจทก์อ้างตนเอง (ถ้าเปิด) ก่อน แล้วตามด้วยพยานที่เพิ่มเอง (เฉพาะที่ระบุชื่อ/รายการแล้ว) */
-export function witnessList(c) {
+/**
+ * บัญชีพยานตามลำดับที่ปรากฏในแบบ ๑๕: โจทก์อ้างตนเอง (ถ้าเปิด) ก่อน แล้วตามด้วยพยานที่เพิ่มเอง (เฉพาะที่ระบุชื่อ/รายการแล้ว)
+ * พยานที่เพิ่มภายหลังยื่นฟ้อง (extra) เรียงต่อท้ายเสมอ — ลำดับ (no) จึงนับต่อจากบัญชีเดิม (เดิม 4 อันดับ → เพิ่มเติมเริ่มที่ ๕)
+ * which: 'all' (ค่าเริ่มต้น, ลำดับ no นับรวม) | 'base' = เฉพาะบัญชีเดิม | 'extra' = เฉพาะบัญชีเพิ่มเติม (ยังคงเลข no ต่อเนื่อง)
+ */
+export function witnessList(c, which = 'all') {
   const own = (c.witnesses || []).filter((w) => wFilled(w.name));
   const selfW = c.options?.selfWitness === false ? [] : plaintiffs(c)
     .filter((x) => partyName(x) && !own.some((w) => w.name === partyName(x)))
     .map((x) => ({ id: `self-${x.id}`, kind: 'person', name: partyName(x), addr: x.address, address: '', phone: x.phone || '', note: 'นำ', self: true }));
-  return [...selfW, ...own].map((w, i) => ({ no: i + 1, w, self: !!w.self }));
+  const all = [...selfW, ...own.filter((w) => !w.extra), ...own.filter((w) => w.extra)].map((w, i) => ({ no: i + 1, w, self: !!w.self }));
+  return which === 'base' ? all.filter((r) => !r.w.extra) : which === 'extra' ? all.filter((r) => r.w.extra) : all;
 }
 
 /**
@@ -327,6 +333,8 @@ export function validateCase(c, idx) {
       if (g.kind === 'item' && !wFilled(r.w.holder) && !witnessAddrText(r.w)) add('warn', `${lbl}: ยังไม่ระบุผู้ครอบครอง/ที่อยู่ — หมายเรียกจะเว้นไว้ให้เขียนเติมเอง`, 'witness');
     }
   }
+  const nExtra = witnessList(c, 'extra').length;
+  if (nExtra && !isFiled(c)) add('warn', `มีพยานเพิ่มเติมภายหลังยื่นฟ้อง ${nExtra} ราย แต่ยังไม่ได้ใส่เลขคดีที่ศาลให้ — บัญชีพยานเพิ่มเติมและหมายเรียกจะเว้นเลขคดีไว้ให้เขียนเติม`, 'case');
   const nW = witnessSummonsPlan(c).length;
   if (nW && !c.hearing?.date) add('info', `หมายเรียกพยาน ${nW} ฉบับจะเว้นวัน-เวลานัดไว้ให้เขียนเติม (ยังไม่ระบุวันนัด)`, 'case');
   return out;
@@ -340,6 +348,55 @@ export function caseLabel(c) {
   if (black) return `คดีหมายเลขดำที่ ${withYr(black)}`;
   if (red) return `คดีหมายเลขแดงที่ ${withYr(red)}`;
   return `คำฟ้อง ${String(c?.id || '').slice(0, 8).toUpperCase() || '—'}`;
+}
+
+const filledStr = (v) => String(v ?? '').trim();
+
+/** คดีที่ยื่นฟ้องแล้ว = ศาลให้เลขคดีดำหรือแดงแล้ว (ใส่เลขในหน้า “ข้อมูลคดี”) — ไม่มีสวิตช์แยก */
+export function isFiled(c) { return !!(filledStr(c?.caseNoBlack) || filledStr(c?.caseNoRed)); }
+
+/**
+ * เลขคดีสำหรับพิมพ์บนหัวเอกสาร: { black, red, year }
+ * รับทั้งแบบแยกช่อง (เลข + ปี) และแบบพิมพ์รวมในช่องเลข เช่น “อ.123/2569” → black “อ.123”, year “2569” (ถ้าช่องปีว่าง)
+ */
+export function caseNoParts(c) {
+  const split = (v) => {
+    const s = filledStr(v), m = /^(.*?)\s*\/\s*([0-9๐-๙]{2,4})$/.exec(s);
+    return m ? [m[1].trim(), m[2]] : [s, ''];
+  };
+  const [black, by] = split(c?.caseNoBlack), [red, ry] = split(c?.caseNoRed);
+  return { black, red, year: filledStr(c?.caseYear) || by || ry };
+}
+
+/** ป้ายสั้น “ดำ ๑๒๓/๖๙” สำหรับป้ายสถานะ (ดำก่อน ถ้าไม่มีใช้แดง) — ว่าง = ยังไม่ได้ฟ้อง */
+export function filedNoText(c) {
+  const { black, red, year } = caseNoParts(c);
+  const n = black || red;
+  return n ? `${black ? 'ดำ' : 'แดง'} ${n}${year ? '/' + year : ''}` : '';
+}
+
+/** ป้ายสถานะ “ฟ้องแล้ว · ดำ ๑๒๓/๖๙” (เลขไทยตามตัวเลือกของคดี) — ว่าง = ยังเป็นร่าง */
+export function filedBadge(c) {
+  const n = filedNoText(c);
+  if (!n) return '';
+  const s = `ฟ้องแล้ว · ${n}`;
+  return c?.options?.thaiDigits === false ? s : toThaiDigits(s);
+}
+
+/**
+ * ข้อมูลย่อของคดีสำหรับการ์ดในหน้ารายการ (ทั้งโหมดไฟล์ในเครื่องและ Supabase ใช้ฟังก์ชันเดียวกัน)
+ * ชื่อโจทก์/จำเลย = คนแรกที่ระบุชื่อ + จำนวนคนที่เหลือ
+ */
+export function caseListInfo(c) {
+  const side = (role) => {
+    const list = (c?.parties || []).filter((p) => p.role === role);
+    return { name: list.map(partyName).find(Boolean) || '', more: Math.max(0, list.length - 1) };
+  };
+  const pl = side('plaintiff'), df = side('defendant');
+  return {
+    caseNoBlack: filledStr(c?.caseNoBlack), caseNoRed: filledStr(c?.caseNoRed), caseYear: filledStr(c?.caseYear), filed: isFiled(c),
+    plName: pl.name, plMore: pl.more, dfName: df.name, dfMore: df.more,
+  };
 }
 
 /** ค่านำหมาย/ปิดหมาย: จำเลยหลายคน = บวกค่านำหมายของจำเลยแต่ละคน (ไม่ให้แก้ยอดรวมเอง) — unit = อัตราต่อจำเลย 1 คน */

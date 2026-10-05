@@ -279,3 +279,22 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
 .fee-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2, #f7f7f9); }
 .fee-total { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 14px; border-radius: 10px; background: var(--blue-soft, #eaf3fe); color: var(--ink); font-weight: 600; }
 .fee-total output { font-size: 20px; }
+/* ---------- หลังยื่นฟ้อง (เลขคดี · ป้าย “ฟ้องแล้ว” · กลุ่มเอกสารหลังยื่นฟ้อง) ---------- */
+.filed-chip { flex: none; display: inline-flex; align-items: center; min-height: 28px; padding: 0 12px; margin-left: 4px; border-radius: 99px; background: var(--ok-bg); color: var(--ok); font-size: 13.5px; font-weight: 700; line-height: 1.4; white-space: nowrap; }
+.filed-chip[hidden] { display: none; }
+.nav-filed { display: flex; align-items: center; gap: 8px; margin: 6px 0 8px; padding: 8px 12px; border-radius: var(--r-ctl); background: var(--ok-bg); color: var(--ok); font-size: 14px; font-weight: 700; line-height: 1.35; }
+.nav-filed .ico { flex: none; }
+.nav-filed span { min-width: 0; overflow-wrap: anywhere; }
+.panel.post-filing { border-color: var(--hair-2); border-left: 4px solid #c9ced8; }
+.panel.post-filing.is-filed, .panel.post-docs { border-left: 4px solid var(--ok); }
+.panel.post-filing > h3 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.panel.post-filing .pf-go { margin-top: 16px; gap: 8px; flex-wrap: wrap; }
+.panel.post-docs > h3 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.panel.post-docs .doc-pick { margin-top: 12px; }
+.wiz-miss.soft { background: var(--surface-3); color: var(--ink-2); }
+.wiz-miss.soft .wiz-miss-h .ico { color: var(--muted); }
+@media (max-width: 760px) {
+  .topbar .filed-chip { display: none; }
+  .nav-filed { flex: none; margin: 0 4px 0 0; padding: 0 14px 0 10px; min-height: 44px; border-radius: 22px; white-space: nowrap; }
+  .panel.post-filing .pf-go .btn { flex: 1 1 100%; justify-content: center; }
+}

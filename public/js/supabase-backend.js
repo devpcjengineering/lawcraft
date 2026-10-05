@@ -1,5 +1,6 @@
 // Backend ของหลังบ้านที่ใช้ Supabase: ฐานข้อมูล Postgres (RLS) + Auth + Edge Function (ออกไฟล์ Word)
 import config from './config.js';
+import { caseListInfo } from '/shared/model.js';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 const { url, anonKey } = config.supabase;
@@ -56,6 +57,9 @@ export const supabaseBackend = {
   async sessionState() {
     const { data } = await sb.auth.getSession();
     if (!data.session) { role = 'user'; return 'none'; }
+    // เข้าสู่ระบบได้ด้วย Google เท่านั้น — เซสชันจากวิธีอื่น (อีเมล+รหัสผ่าน ฯลฯ) ถูกปฏิเสธและออกจากระบบ
+    const u = data.session.user, viaGoogle = u?.app_metadata?.provider === 'google' || (u?.identities || []).some((i) => i.provider === 'google');
+    if (!viaGoogle) { role = 'user'; try { await sb.auth.signOut(); } catch { /* ข้าม */ } return 'none'; }
     const { data: ok, error } = await sb.rpc('is_admin');
     role = !error && ok === true ? 'admin' : 'user';
     return role === 'admin' ? 'ok' : 'user';
@@ -77,11 +81,6 @@ export const supabaseBackend = {
         : error.message);
     }
   },
-  async signIn(email, password) {
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-    // ทุกบัญชีเข้าได้ (ผู้ใช้ทั่วไปเห็นเฉพาะคดีของตน) — สิทธิ์แอดมินตัดสินที่ฐานข้อมูล (is_admin)
-    if (error) throw new Error(/invalid/i.test(error.message) ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' : error.message);
-  },
   async signOut() { role = 'user'; await sb.auth.signOut(); },
   /** id ของบัญชีที่ล็อกอิน (แอดมินใช้แยก “คดีของฉัน” ออกจากคดีของคนอื่น) */
   async sessionUserId() { const { data } = await sb.auth.getSession(); return data.session?.user?.id || ''; },
@@ -94,13 +93,31 @@ export const supabaseBackend = {
   },
 
   async listCases() {
-    const cols = 'id,title,type,court,updated_at,caseNoBlack:data->>caseNoBlack,caseNoRed:data->>caseNoRed,caseYear:data->>caseYear';
+    // meta = data->listMeta : ชื่อโจทก์/จำเลยแบบย่อที่ saveCase เก็บไว้ในตัวคดี (ไม่ต้องดึงรายชื่อคู่ความทั้งก้อนมาแสดงรายการ)
+    const cols = 'id,title,type,court,updated_at,caseNoBlack:data->>caseNoBlack,caseNoRed:data->>caseNoRed,caseYear:data->>caseYear,meta:data->listMeta';
     let res = await sb.from('cases').select(`${cols},user_id,owner_email`).order('updated_at', { ascending: false });
     // ฐานข้อมูลที่ยังไม่ได้รัน migration 20261005000000_user_cases.sql ยังไม่มีคอลัมน์เจ้าของ → ถอยไปอ่านแบบเดิม
     if (res.error && (res.error.code === '42703' || /user_id|owner_email/.test(res.error.message || ''))) {
       res = await sb.from('cases').select(cols).order('updated_at', { ascending: false });
     }
-    return must(res).map((r) => ({ id: r.id, title: r.title, caseNoBlack: r.caseNoBlack || '', caseNoRed: r.caseNoRed || '', caseYear: r.caseYear || '', type: r.type, court: r.court, updatedAt: r.updated_at, userId: r.user_id || '', ownerEmail: r.owner_email || '' }));
+    const rows = must(res);
+    // คดีเก่าที่ยังไม่เคยบันทึกซ้ำหลังมี listMeta → ดึงเฉพาะรายชื่อคู่ความของคดีเหล่านั้นมาย่อทีหลัง (ข้อมูลมาไม่ได้ก็ข้ามไป ไม่ให้รายการล่ม)
+    const old = rows.filter((r) => !r.meta).map((r) => r.id);
+    const legacy = new Map();
+    for (let i = 0; i < old.length; i += 40) {
+      const part = await sb.from('cases').select('id,parties:data->parties').in('id', old.slice(i, i + 40));
+      if (part.error) break;
+      for (const r of part.data || []) legacy.set(r.id, caseListInfo({ parties: Array.isArray(r.parties) ? r.parties : [] }));
+    }
+    return rows.map((r) => {
+      const m = r.meta || legacy.get(r.id) || {};
+      const black = r.caseNoBlack || '', red = r.caseNoRed || '';
+      return {
+        id: r.id, title: r.title, caseNoBlack: black, caseNoRed: red, caseYear: r.caseYear || '', filed: !!(black.trim() || red.trim()),
+        plName: m.plName || '', plMore: m.plMore || 0, dfName: m.dfName || '', dfMore: m.dfMore || 0,
+        type: r.type, court: r.court, updatedAt: r.updated_at, userId: r.user_id || '', ownerEmail: r.owner_email || '',
+      };
+    });
   },
   async getCase(id) {
     const row = must(await sb.from('cases').select('data').eq('id', id).maybeSingle());
@@ -110,7 +127,7 @@ export const supabaseBackend = {
   async saveCase(c) {
     const now = new Date().toISOString();
     // ไม่ส่ง user_id/owner_email: แถวใหม่ให้ DB เติมจาก auth.uid(); แถวเดิม (รวมกรณีแอดมินแก้คดีของผู้ใช้) เจ้าของไม่เปลี่ยน
-    must(await sb.from('cases').upsert({ id: c.id, title: c.title || null, type: c.type, court: c.court || null, data: { ...c, updatedAt: now }, updated_at: now }, { onConflict: 'id' }));
+    must(await sb.from('cases').upsert({ id: c.id, title: c.title || null, type: c.type, court: c.court || null, data: { ...c, updatedAt: now, listMeta: caseListInfo(c) }, updated_at: now }, { onConflict: 'id' }));
     return { ok: true, updatedAt: now };
   },
   async deleteCase(id) { must(await sb.from('cases').delete().eq('id', id)); return { ok: true }; },

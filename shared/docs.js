@@ -8,6 +8,7 @@ import {
   indexLaw, plaintiffs, defendants, partyLabel, partyName, groupName, chargeSectionsText, chargeNamesText,
   resolveRuns, runsToText, chargeItem, reservedValue, tailFacts, serviceFeeInfo,
   witnessList, witnessSummonsPlan, witnessAddr, witnessHasAddr, witnessAddrText, witnessWantsSummons, witnessKind, isItemWitness,
+  caseNoParts, isFiled,
 } from './model.js';
 
 // ---------- runs ----------
@@ -77,7 +78,9 @@ function counselName(cn) {
 const p = (runs, o = {}) => ({ t: 'p', runs: runs.filter(Boolean), ...o });
 
 function top(c, formNo, title, o = {}) {
-  return { t: 'top', formNo: formNo ? `(${formNo})` : '', title, black: c.caseNoBlack, red: c.caseNoRed, year: c.caseYear, showRed: o.showRed !== false, courtUse: !!o.courtUse, noEmblem: !!o.noEmblem, kinds: o.kinds || null };
+  // เลขคดีดำ/แดง + ปี ที่ศาลให้ — พิมพ์บนหัวเอกสารทุกฉบับ (เอกสารหลังยื่นฟ้องทั้งหมดผ่านฟังก์ชันนี้)
+  const no = caseNoParts(c);
+  return { t: 'top', formNo: formNo ? `(${formNo})` : '', title, black: no.black, red: no.red, year: no.year, showRed: o.showRed !== false, courtUse: !!o.courtUse, noEmblem: !!o.noEmblem, kinds: o.kinds || null };
 }
 
 function courtBlock(c, kindOverride) {
@@ -292,33 +295,60 @@ function motionDoc(c, idx, m, n) {
   return { id: `motion-${m.id || n}`, title: `คำร้อง${m.title ? ' – ' + m.title : ' ' + (n + 1)}`, blocks };
 }
 
-function witnessDoc(c, idx) {
-  // ตามตัวอย่างบัญชีพยานของศาล: ตารางเดียว รวมพยานบุคคล/เอกสาร/วัตถุเรียงตามอันดับ หมายเหตุ = "นำ" หรือ "หมายเรียก"
-  const pl = plaintiffs(c);
+/** แถวของตารางบัญชีพยาน (ใช้ร่วมกันทั้งบัญชีเดิม แบบ ๑๕ และบัญชีเพิ่มเติม แบบ ๑๕ ทวิ) — ลำดับ = เลข no จากบัญชีรวม จึงต่อเนื่องกัน */
+function witnessTableRows(c, list) {
   // พยานเอกสาร/วัตถุ: คอลัมน์ที่อยู่ = ผู้ครอบครอง + ที่อยู่/ที่เก็บ · หมายเหตุว่าง = “หมายเรียก” (ระบบออกหมายให้) หรือ “นำ” (ปิดหมายรายนี้)
-  const all = witnessList(c).map(({ w }) => {
-    const item = isItemWitness(w), holder = String(w.holder || '').trim();
+  return list.map(({ no, w }) => {
+    const item = isItemWitness(w), holder = String(w.holder || '').trim(), kind = witnessKind(w);
     const address = item ? [holder, witnessAddrText(w)].filter(Boolean).join(' ') : witnessAddrText(w);
     const auto = c.docs?.witnessSummons === false || w.self ? '' : witnessWantsSummons(w) ? 'หมายเรียก' : 'นำ';
-    return { kind: witnessKind(w), name: w.name, address, note: String(w.note || '').trim() || auto };
+    return [String(no), w.name + (kind === 'object' ? ' (พยานวัตถุ)' : kind === 'document' ? ' (พยานเอกสาร)' : ''), address || '', String(w.note || '').trim() || auto];
   });
+}
+const WITNESS_TABLE_HEAD = ['อันดับ', 'ชื่อและสกุลพยาน', 'บ้านเลขที่ หมู่ที่ ถนน ซอย ตำบล/แขวง อำเภอ/เขต จังหวัด', 'หมายเหตุ'];
+
+function witnessDoc(c, idx) {
+  // ตามตัวอย่างบัญชีพยานของศาล: ตารางเดียว รวมพยานบุคคล/เอกสาร/วัตถุเรียงตามอันดับ หมายเหตุ = "นำ" หรือ "หมายเรียก"
+  // พยานที่เพิ่มภายหลังยื่นฟ้อง (extra) ไม่อยู่ในบัญชีนี้ — ไปอยู่ในบัญชีพยานเพิ่มเติม (witnessExtraDoc)
+  const pl = plaintiffs(c);
+  const rows = witnessTableRows(c, witnessList(c, 'base'));
   const blocks = [
     top(c, '๑๕', 'บัญชีพยาน', { courtUse: true }),
     courtBlock(c),
     betweenBlock(c),
     p([t('ข้าพเจ้า '), val(groupName(c, 'plaintiff')), t(` ${pl.length > 1 ? 'โจทก์ทั้งหมด' : 'โจทก์'}`)], { indent: 1.5 }),
-    p(nRuns('witness.intro', all.length ? String(all.length) : ''), { indent: 0 }),
-    {
-      t: 'table', head: ['อันดับ', 'ชื่อและสกุลพยาน', 'บ้านเลขที่ หมู่ที่ ถนน ซอย ตำบล/แขวง อำเภอ/เขต จังหวัด', 'หมายเหตุ'],
-      widths: [9, 34, 39, 18],
-      rows: all.map((w, i) => [String(i + 1), w.name + (w.kind === 'object' ? ' (พยานวัตถุ)' : w.kind === 'document' ? ' (พยานเอกสาร)' : ''), w.address || '', w.note || '']),
-      minRows: 6,
-    },
+    p(nRuns('witness.intro', rows.length ? String(rows.length) : ''), { indent: 0 }),
+    { t: 'table', head: WITNESS_TABLE_HEAD, widths: [9, 34, 39, 18], rows, minRows: 6 },
     sigBlock([{ label: 'ผู้ระบุ', name: pl.length === 1 ? `(${partyName(pl[0])})` : '' }]),
     { t: 'rule' },
     p([{ text: 'หมายเหตุ', u: true }, t(' ' + ft('witness.child'))], { indent: 0, small: true }),
   ];
   return { id: 'witness', title: 'บัญชีพยาน', blocks };
+}
+
+/**
+ * บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ) — ยื่นหลังฟ้องแล้ว มีเลขคดีดำ/แดงที่หัวเอกสาร
+ * ลำดับอันดับนับต่อจากบัญชีเดิม (บัญชีเดิม 4 อันดับ → เพิ่มเติมเริ่มที่ ๕) ; null เมื่อไม่มีพยานที่ติดธง extra
+ */
+function witnessExtraDoc(c, idx) {
+  const list = witnessList(c, 'extra');
+  if (!list.length) return null;
+  const pl = plaintiffs(c);
+  const rows = witnessTableRows(c, list);
+  const first = list[0].no, last = list[list.length - 1].no;
+  const title = ft('witnessExtra.title');
+  const blocks = [
+    top(c, '๑๕ ทวิ', title, { courtUse: true }),
+    courtBlock(c),
+    betweenBlock(c),
+    p([t('ข้าพเจ้า '), val(groupName(c, 'plaintiff')), t(` ${pl.length > 1 ? 'โจทก์ทั้งหมด' : 'โจทก์'}`)], { indent: 1.5 }),
+    p(tplRuns(ft('witnessExtra.intro'), { n: String(list.length), from: String(first), to: String(last), range: first === last ? String(first) : `${first} ถึง ${last}` }), { indent: 0 }),
+    { t: 'table', head: WITNESS_TABLE_HEAD, widths: [9, 34, 39, 18], rows, minRows: 6 },
+    sigBlock([{ label: 'ผู้ระบุ', name: pl.length === 1 ? `(${partyName(pl[0])})` : '' }]),
+    { t: 'rule' },
+    p([{ text: 'หมายเหตุ', u: true }, t(' ' + ft('witness.child'))], { indent: 0, small: true }),
+  ];
+  return { id: 'witnessExtra', title, blocks };
 }
 
 function attorneyDoc(c, idx) {
@@ -626,6 +656,7 @@ export const DOC_TYPES = [
   { key: 'service', label: 'คำร้องส่งหมายนอกเขต / ปิดหมาย (แบบ ๗)' },
   { key: 'motions', label: 'คำร้อง / คำแถลง / คำขออื่น ๆ (แบบ ๗)' },
   { key: 'witness', label: 'บัญชีพยาน (แบบ ๑๕)' },
+  { key: 'witnessExtra', label: 'บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ — สร้างอัตโนมัติเมื่อมีพยานที่ติดธง “เพิ่มเติมภายหลังยื่นฟ้อง”)' },
   { key: 'witnessSummons', label: 'หมายเรียกพยานบุคคล / เอกสาร / วัตถุ (แบบ ๑๖ · ๑๗ · ๑๘ — สร้างอัตโนมัติจากบัญชีพยาน ฉบับละพยาน)' },
   { key: 'attorney', label: 'ใบแต่งทนายความ (แบบ ๙)' },
   { key: 'proxy', label: 'ใบมอบอำนาจ (แบบ ๑๐)' },
@@ -633,6 +664,12 @@ export const DOC_TYPES = [
   { key: 'answer', label: 'คำให้การจำเลย (แบบ ๑๑)' },
   { key: 'settlement', label: 'สัญญาประนีประนอมยอมความ (แบบ ๒๙)' },
 ];
+
+/** เอกสารหลังยื่นฟ้อง = หมายเรียกพยาน · บัญชีพยานเพิ่มเติม · คำร้อง/คำแถลง (ไม่รวมคำร้องส่งหมายซึ่งเป็นของชุดคำฟ้อง) */
+export const POST_FILING_KEYS = ['witnessSummons', 'witnessExtra', 'motions'];
+export const isPostFilingDoc = (d) => /^(witnessSummons-|motion-)/.test(d.id) || d.id === 'witnessExtra';
+/** ลำดับกลุ่มหลังยื่นฟ้อง: หมายเรียกพยาน → บัญชีพยานเพิ่มเติม → คำร้อง/คำแถลง → (ชุดคำฟ้อง) */
+const postRank = (d) => (d.id.startsWith('witnessSummons-') ? 0 : d.id === 'witnessExtra' ? 1 : d.id.startsWith('motion-') ? 2 : 3);
 
 function deepDigits(o) {
   if (typeof o === 'string') return /@/.test(o) ? o : toThaiDigits(o);
@@ -656,6 +693,8 @@ export function buildDocuments(c, data, only) {
   if (want('service')) { const sv = serviceDoc(c, data, idx); if (sv) docs.push(sv); }
   if (want('motions')) c.motions.forEach((m, i) => docs.push(motionDoc(c, idx, m, i)));
   if (want('witness')) docs.push(witnessDoc(c, idx));
+  // บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ): สร้างเองเมื่อมีพยานที่ติดธง extra (ปิดได้ด้วย docs.witnessExtra = false)
+  if (only ? only.includes('witnessExtra') : c.docs.witnessExtra !== false) { const wx = witnessExtraDoc(c, idx); if (wx) docs.push(wx); }
   // หมายเรียกพยาน: เปิดโดยปริยายเมื่อมีพยานที่ต้องเรียก (ปิดได้ด้วย docs.witnessSummons = false)
   if (only ? only.includes('witnessSummons') : c.docs.witnessSummons !== false) witnessSummonsPlan(c, !!only).forEach((g) => docs.push(witnessSummonsDoc(c, data, g)));
   if (want('summons') && c.type === 'criminal') {
@@ -667,7 +706,10 @@ export function buildDocuments(c, data, only) {
   if (want('proxy')) docs.push(proxyDoc(c, idx));
   if (want('answer')) { const a = answerDoc(c, idx); if (a) docs.push(a); }
   if (want('settlement')) docs.push(settlementDoc(c, idx));
+  // คดีที่ฟ้องแล้ว: เอกสารหลังยื่นฟ้องมาก่อน (คงลำดับเดิมในกลุ่ม) ตามกลุ่มบนหน้าออกเอกสาร
+  if (!only && isFiled(c)) docs.sort((a, b) => postRank(a) - postRank(b));
   const clean = docs.map((d) => ({ ...d, blocks: d.blocks.map((b) => (b.runs ? { ...b, runs: b.runs.filter(Boolean) } : b)) }));
   return c.options?.thaiDigits === false ? clean : clean.map(deepDigits);
 }
+
 

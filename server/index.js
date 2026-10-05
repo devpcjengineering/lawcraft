@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDocuments } from '../shared/docs.js';
 import { renderDocx } from './render-docx.js';
-import { caseTitle } from '../shared/model.js';
+import { caseTitle, caseListInfo } from '../shared/model.js';
 import { loadData, loadArticles, DATA_DIR } from './load-data.js';
 import { packArticles } from './articles-pack.js';
 
@@ -81,7 +81,7 @@ app.get('/api/cases', (req, res) => {
   const list = fs.readdirSync(CASES_DIR).filter((f) => f.endsWith('.json') && !f.startsWith('_')).map((f) => {
     try {
       const c = JSON.parse(fs.readFileSync(path.join(CASES_DIR, f), 'utf8'));
-      return { id: c.id, title: caseTitle(c), caseNoBlack: c.caseNoBlack || '', caseNoRed: c.caseNoRed || '', caseYear: c.caseYear || '', type: c.type, court: c.court, updatedAt: c.updatedAt };
+      return { id: c.id, title: caseTitle(c), ...caseListInfo(c), type: c.type, court: c.court, updatedAt: c.updatedAt };
     } catch { return null; }
   }).filter(Boolean).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
   res.json(list);

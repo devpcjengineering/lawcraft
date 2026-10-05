@@ -1,9 +1,9 @@
 // หลังบ้าน: ระบบร่างคำฟ้อง — เมนูซ้ายเลือกเอกสาร ฟอร์มกลาง ตัวอย่างเอกสารขวา, บันทึกอัตโนมัติ, ออกเอกสาร
 import { S, esc, actions, hooks, setPath } from './store.js';
-import { NAV, TABS } from './tabs.js';
+import { NAV, TABS, postFilingState } from './tabs.js';
 import { provinceList, refreshGeo, idStateHtml } from './ui.js';
-import { newCase, indexLaw, caseTitle, caseLabel, validateCase, newParty, uid, applyServiceAuto } from '/shared/model.js';
-import { buildDocuments } from '/shared/docs.js';
+import { newCase, indexLaw, caseTitle, caseLabel, validateCase, newParty, uid, applyServiceAuto, isFiled, filedBadge, newWitness } from '/shared/model.js';
+import { buildDocuments, isPostFilingDoc } from '/shared/docs.js';
 import { resolveLayout, layoutCssVars } from '/shared/layout.js';
 import { docsHtml, docHtml } from './render-html.js';
 import { ageFromBirth, validCitizenId, maskCitizenId } from '/shared/thai.js';
@@ -102,7 +102,18 @@ hooks.changed = () => {
   schedulePreview();
   renderStepsSoon();
   const nm = $('.case-name'); if (nm) nm.textContent = S.c.title;
+  updateFiledUi();
 };
+/** ป้าย “ฟ้องแล้ว · ดำ …” บนแถบบน + สถานะบนการ์ดหน้า “ข้อมูลคดี” — อัปเดตสดตามที่พิมพ์เลขคดี */
+function updateFiledUi() {
+  if (!S.c) return;
+  const b = filedBadge(S.c);
+  const chip = $('#filed-chip');
+  if (chip) { chip.textContent = b; chip.hidden = !b; }
+  const pf = $('#pf-state');
+  if (pf) { const st = postFilingState(S.c); pf.textContent = st.text; pf.className = 'pill ' + st.tone; }
+  $('#post-filing')?.classList.toggle('is-filed', !!b);
+}
 window.addEventListener('beforeunload', (e) => { if (savePending || saveFailed) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('offline', () => banner('net', { type: 'warn', message: 'ออฟไลน์ — ยังแก้ไขได้ ระบบจะบันทึกเมื่อกลับมาออนไลน์' }));
 window.addEventListener('online', () => { clearBanner('net'); if (saveFailed || savePending) doSave(); });
@@ -156,6 +167,13 @@ actions.claimAdmin = async () => {
 // ---------------- หน้าแรก (รายการคดี) ----------------
 // หน้าโหลด (กำลังโหลด…ชื่อหน้า) ครอบโดย dispatch() ตอนเปลี่ยนหน้า ; ตอนรีเฟรชรายการในหน้าเดิมใช้ reloadHome()
 const reloadHome = () => withLoading('รายการคดี', showHome());
+/** ป้ายสถานะบนการ์ดคดี: “ฟ้องแล้ว” (มีเลขคดีดำ/แดง) หรือ “ร่างคำฟ้อง” */
+const caseStatusPill = (x) => ((x.filed ?? !!(String(x.caseNoBlack || '').trim() || String(x.caseNoRed || '').trim())) ? '<span class="pill ok">ฟ้องแล้ว</span>' : '<span class="pill">ร่างคำฟ้อง</span>');
+/** “โจทก์: ชื่อ และอีก N คน” — ชื่อยาวตัดบรรทัดเดียว (ดู .ci-line) */
+const partyLine = (label, name, more) => {
+  const txt = name ? `${name}${more ? ` และอีก ${more} คน` : ''}` : '';
+  return `<div class="ci-line"><b>${label}:</b><span class="ci-name" ${txt ? `title="${esc(txt)}"` : ''}>${txt ? esc(txt) : '<em>ยังไม่ระบุ</em>'}</span></div>`;
+};
 async function showHome() {
   view = 'home'; S.c = null; S.bookMode = false;
   let list = [];
@@ -182,8 +200,9 @@ async function showHome() {
     </div></section>
     <section class="home-sec" aria-labelledby="hs-cases"><div class="sec-bar"><h2 class="section-title" id="hs-cases">คดีที่บันทึกไว้ <span class="sec-count">${list.length}</span></h2><div class="sec-tools">${authUi.caseToolbar()}<label class="btn sm import-btn" title="เลือกไฟล์ที่ส่งออกจากระบบนี้ เพื่อเปิดต่อหรือย้ายข้อมูลคดีมาไว้ที่นี่">${ico2('upload')}นำเข้าข้อมูลคดี (.json)<input type="file" id="importFile" accept=".json,application/json" class="vh"></label></div></div>
     ${list.length ? `<div class="cards">${list.map((x) => `<div class="card case-item">
-        <div class="ci-top"><span class="pill ${x.type === 'civil' ? 'civil' : 'crim'}">${x.type === 'civil' ? 'แพ่ง' : 'อาญา'}</span>${authUi.ownerLine(x)}</div>
+        <div class="ci-top"><span class="pill ${x.type === 'civil' ? 'civil' : 'crim'}">${x.type === 'civil' ? 'แพ่ง' : 'อาญา'}</span>${caseStatusPill(x)}${authUi.ownerLine(x)}</div>
         <h3>${esc(caseLabel(x))}</h3>
+        <div class="ci-parties">${partyLine('โจทก์', x.plName, x.plMore)}${partyLine('จำเลย', x.dfName, x.dfMore)}</div>
         <div class="meta"><span class="m-court">${ico2('building')}<span>${esc(x.court || 'ยังไม่ได้เลือกศาล')}</span></span><span class="m-time">${ico2('clock')}<span>แก้ไขล่าสุด ${new Date(x.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}</span></span></div>
         <div class="row"><a class="btn primary sm" href="${urls.caseTab(x.id)}" data-act="openCase" data-id="${esc(x.id)}">เปิด</a>
           <button class="btn sm" data-act="dupCase" data-id="${esc(x.id)}" title="คัดลอกคู่ความ ทนาย และข้อมูลทั้งหมดไปเป็นคดีใหม่">ทำสำเนา</button>
@@ -289,7 +308,7 @@ actions.newCase = (el) => { go(urls.newCase(el.dataset.type)); };
 actions.openCase = (el) => { go(urls.caseTab(el.dataset.id)); };
 actions.dupCase = async (el) => {
   const c = await backend.getCase(el.dataset.id);
-  c.id = uid(); c.caseNoBlack = ''; c.caseNoRed = ''; c.createdAt = new Date().toISOString();
+  c.id = uid(); c.caseNoBlack = ''; c.caseNoRed = ''; c.caseYear = ''; c.createdAt = new Date().toISOString();
   await backend.saveCase(c); hooks.toast('ทำสำเนาแล้ว'); reloadHome();
 };
 actions.delCase = async (el) => {
@@ -326,7 +345,7 @@ function syncPreviewDoc() {
 function showWorkspace() {
   app.innerHTML = `
   <header class="topbar">${brandHtml('ระบบร่างคำฟ้อง')}
-    <span class="case-name">${esc(S.c.title || caseTitle(S.c))}</span><span class="grow"></span>
+    <span class="case-name">${esc(S.c.title || caseTitle(S.c))}</span><span class="filed-chip" id="filed-chip" title="คดีนี้ยื่นฟ้องแล้ว — มีเลขคดีที่ศาลให้" ${isFiled(S.c) ? '' : 'hidden'}>${esc(filedBadge(S.c))}</span><span class="grow"></span>
     <button class="ready-chip" id="ready-chip" data-act="showReadiness" type="button"></button>
     <span class="save-state" id="save-state" data-tone="">${esc(saveState)}</span>
     ${tbBtn({ ico: 'eye', text: 'ตัวอย่างเอกสาร', act: 'togglePreview' })}
@@ -345,9 +364,15 @@ function renderSteps() {
   if (!el || !S.c) return;
   const errors = validateCase(S.c, S.idx).filter((i) => i.level === 'error').length;
   const crim = S.c.type === 'criminal';
-  const stepsHtml = NAV.filter(authUi.navGroupVisible).map((g) => {
+  const filed = isFiled(S.c);
+  // คดีที่ฟ้องแล้ว: กลุ่ม “เพิ่มเติม” (คำร้อง/คำแถลง) ขึ้นก่อนชุดคำฟ้อง + ป้ายสถานะบนสุดของเมนู
+  const navGroups = NAV.filter(authUi.navGroupVisible);
+  if (filed) { const i = navGroups.findIndex((g) => g.group === 'เพิ่มเติม'), j = navGroups.findIndex((g) => g.group === 'เอกสารในชุดฟ้อง'); if (i > j && j >= 0) navGroups.splice(j, 0, ...navGroups.splice(i, 1)); }
+  const filedNav = filed ? `<div class="nav-filed" title="คดีนี้ยื่นฟ้องแล้ว — เลขคดีพิมพ์บนหัวเอกสารทุกฉบับ">${ico2('gavel', { size: 15 })}<span>${esc(filedBadge(S.c))}</span></div>` : '';
+  const stepsHtml = filedNav + navGroups.map((g) => {
     const items = g.items.filter((t) => authUi.navItemVisible(t) && (!t.only || t.only === S.c.type || (t.only === 'criminal' && crim)));
-    return `<div class="nav-group"><div class="nav-head">${esc(g.group)}${g.hint ? `<small>${esc(g.hint)}</small>` : ''}</div>${items.map((t) => {
+    const hint = filed && g.group === 'เพิ่มเติม' ? 'หลังยื่นฟ้อง' : g.hint;
+    return `<div class="nav-group"><div class="nav-head">${esc(g.group)}${hint ? `<small>${esc(hint)}</small>` : ''}</div>${items.map((t) => {
       const st = t.status ? t.status() : null;
       const cnt = t.count ? t.count() : 0;
       const lock = isLocked(t.key, S.c);
@@ -360,6 +385,7 @@ function renderSteps() {
   }).join('');
   morphInto(el, stepsHtml, { mark: false });
   updateReady();
+  updateFiledUi();
   refreshWizard(S.tab, S.c);
   // มือถือ: เมนูขั้นตอนเป็นแถบเลื่อนแนวนอน → เลื่อนให้ปุ่มที่เปิดอยู่มาอยู่กลางแถบ
   const on = el.querySelector('.nav-item.on');
@@ -445,7 +471,7 @@ function schedulePreview(now) {
 function currentDocs() { return buildDocuments(S.c, S.data); }
 
 // หน้า “ตำแหน่งตัวหนังสือ & ตราครุฑ”: เลือกแบบใดต้องเห็นเอกสารแบบนั้นทันที แม้ยังไม่ได้เปิดใช้ในชุด (เช่น ใบแต่งทนาย)
-const LAYOUT_DOCKEY = { complaint: 'complaint', prayer: 'prayer', attachment: 'attachment', service: 'service', motion: 'motions', witness: 'witness', summons: 'summons', witnessSummons: 'witnessSummons', attorney: 'attorney', proxy: 'proxy', answer: 'answer', settlement: 'settlement' };
+const LAYOUT_DOCKEY = { complaint: 'complaint', prayer: 'prayer', attachment: 'attachment', service: 'service', motion: 'motions', witness: 'witness', witnessExtra: 'witnessExtra', summons: 'summons', witnessSummons: 'witnessSummons', attorney: 'attorney', proxy: 'proxy', answer: 'answer', settlement: 'settlement' };
 const isDocOf = (d, key) => d.id === key || d.id.startsWith(key + '-') || (key === 'motions' && d.id.startsWith('motion-'));
 function previewDocs() {
   const docs = currentDocs();
@@ -455,6 +481,7 @@ function previewDocs() {
   const tmp = structuredClone(S.c);
   if (key === 'service' && tmp.service.mode === 'none') tmp.service.mode = 'cross-post';
   if (key === 'summons') tmp.type = 'criminal';
+  if (key === 'witnessExtra' && !(tmp.witnesses || []).some((w) => w.extra && (w.name || '').trim())) tmp.witnesses = [...(tmp.witnesses || []), { ...newWitness('person', true), name: 'นายตัวอย่าง พยานเพิ่มเติม' }];
   if (key === 'motions' && !tmp.motions.length) tmp.motions = [{ id: 'sample', title: 'ตัวอย่างคำร้อง', text: 'โจทก์ขอยื่นคำร้องนี้เพื่อประกอบการพิจารณาของศาล\n\nขอศาลได้โปรดพิจารณา' }];
   if (key === 'attachment') {
     for (const role of ['plaintiff', 'defendant']) {
@@ -581,9 +608,17 @@ documentFontsReady().then(() => { if (S.c && S.ui.pvOn) schedulePreview(true); }
 function renderDocList() {
   const box = $('#doclist');
   if (!box) return;
-  const docs = currentDocs();
-  box.innerHTML = docs.length ? docs.map((d, i) => `<div class="docrow"><span class="docrow-ico" aria-hidden="true">${ico2('file')}</span><span class="grow"><span class="docrow-n">${i + 1}</span>${esc(d.title)}</span>
-    <button class="btn sm outline" data-act="printDoc" data-id="${esc(d.id)}">${ico2('print')}<span>ดู PDF</span></button></div>`).join('') : `<div class="empty">${ico2('file', { size: 22 })}<span>ยังไม่ได้เลือกเอกสาร</span></div>`;
+  const all = currentDocs();
+  // คดีที่ฟ้องแล้ว: เอกสารหลังยื่นฟ้องแยกไปอยู่กลุ่มบน (#doclist-post) ; ยังไม่ฟ้อง = รายการเดียวเหมือนเดิม
+  const filed = isFiled(S.c) && !!$('#doclist-post');
+  const fill = (el, docs, emptyMsg) => {
+    el.innerHTML = docs.length ? docs.map((d, i) => `<div class="docrow"><span class="docrow-ico" aria-hidden="true">${ico2('file')}</span><span class="grow"><span class="docrow-n">${i + 1}</span>${esc(d.title)}</span>
+      <button class="btn sm outline" data-act="printDoc" data-id="${esc(d.id)}">${ico2('print')}<span>ดู PDF</span></button></div>`).join('') : `<div class="empty">${ico2('file', { size: 22 })}<span>${emptyMsg}</span></div>`;
+  };
+  if (filed) {
+    fill($('#doclist-post'), all.filter(isPostFilingDoc), 'ยังไม่มีเอกสารหลังยื่นฟ้อง — เพิ่มพยาน คำร้อง หรือคำแถลง');
+    fill(box, all.filter((d) => !isPostFilingDoc(d)), 'ยังไม่ได้เลือกเอกสาร');
+  } else fill(box, all, 'ยังไม่ได้เลือกเอกสาร');
 }
 
 /** ตรวจก่อนออกเอกสาร: มีรายการผิดพลาด/เตือน → แสดง popup ให้เลือกกลับไปแก้หรือออกต่อ */

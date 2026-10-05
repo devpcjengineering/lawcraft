@@ -12,6 +12,9 @@
     "witness": {
       "caseNo.dy": 0.1
     },
+    "witnessExtra": {
+      "caseNo.dy": 0.1
+    },
     "summons": {
       "caseNo.dy": 0.1
     },
