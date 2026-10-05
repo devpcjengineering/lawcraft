@@ -1,4 +1,4 @@
-﻿import { resolveLayout, layoutCssVars } from '/shared/layout.js';
+import { resolveLayout, layoutCssVars } from '/shared/layout.js';
 import { thaiDigitsDoc } from '/shared/thai.js';
 // แปลง blocks → HTML สำหรับพรีวิวและพิมพ์ PDF (ฟอนต์ TH Sarabun IT๙ ตามแบบฟอร์มศาล)
 
@@ -70,7 +70,7 @@ function blockHtml(b, doc) {
       return `<p class="p center${b.big ? ' big' : ''}${b.b ? ' b' : ''}${b.u ? ' u' : ''}">${esc(b.text)}</p>`;
     case 'sig':
       return `<div class="sig${b.compact ? ' compact' : ''}">${b.lines.map((l) => `<div class="sig-row"><div class="sig-line"><span>ลงชื่อ</span><span class="sig-dots"></span><span>${esc(l.label)}</span></div>${l.name ? `<div class="sig-name">${esc(l.name)}</div>` : ''}</div>`).join('')}</div>`;
-    case 'flip': return '<div class="flip">(พลิก)</div>';
+    case 'flip': return b.note ? `<div class="flip flip-n"><span>${esc(b.note)}</span><span>(พลิก)</span></div>` : '<div class="flip">(พลิก)</div>';
     case 'rule': return '<hr class="rule">';
     case 'lines': return Array.from({ length: b.n }, () => '<div class="dline"></div>').join('');
     case 'table': {

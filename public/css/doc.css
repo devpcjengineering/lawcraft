@@ -64,6 +64,9 @@
 .page .sig-dots { flex: 1; border-bottom: 1.5px dotted #000; min-width: 40mm; }
 .page .sig-name { text-align: center; margin-left: 12mm; }
 .page .flip { text-align: right; margin: 2mm 0 6mm; }
+.page .flip.flip-n { display: flex; justify-content: space-between; align-items: baseline; text-align: left; gap: 8mm; margin: 1mm 0 2mm; }
+.page .flip.flip-n + .rule { margin: 2mm 0 2mm; }
+.page .flip.flip-n > span:first-child { font-size: .9em; }
 .page .rule { border: 0; border-top: 1.5px solid #000; margin: 6mm 0 3mm; }
 .page .dline { border-bottom: 1.5px dotted #000; height: 9mm; }
 .page .pb { break-after: page; }

@@ -478,6 +478,13 @@ function citeByRuns(c) {
   return [t('ด้วย '), val(side), ...(cn?.enabled && (cn.first || cn.last) ? [t(' โดย '), val(counselName(cn)), t(' ทนายความ '), val(side)] : [])];
 }
 
+/** แบบ ๑๗/๑๘: “ด้วย โจทก์ โดย ชื่อทนาย ทนายความ โจทก์” — ไม่มีทนายความ = เว้นช่องไว้ (จุดไข่ปลา) ให้เขียนเติมเอง */
+function citeByRunsItem(c) {
+  const cn = c.counsel, side = plaintiffs(c).length > 1 ? 'โจทก์ทั้งหมด' : 'โจทก์';
+  const has = cn?.enabled && (cn.first || cn.last);
+  return [t('ด้วย '), val(side), t(' โดย '), has ? val(counselName(cn)) : dots(18), t(' ทนายความ '), has ? val(side) : dots(8)];
+}
+
 function witnessSummonsDoc(c, data, g) {
   const crim = c.type !== 'civil', person = g.kind === 'person';
   const h = hearingParts(c);
@@ -527,25 +534,31 @@ function witnessSummonsDoc(c, data, g) {
   const items = g.rows.map((r) => r.w.name.trim());
   const itemsText = items.length > 1 ? items.map((x, i) => `(${i + 1}) ${x}`).join(' ') : items[0];
   const mark = crim ? 'หมาย' : 'คำสั่ง';
+  const kinds = new Set(g.rows.map((r) => r.w.kind));
+  const kindLabel = kinds.has('document') && kinds.has('object') ? 'พยานเอกสาร/วัตถุ' : kinds.has('object') ? 'พยานวัตถุ' : 'พยานเอกสาร';
   blocks.push(
     p([t(crim ? 'หมายถึง ' : 'ถึง '), holderName ? val(holderName) : dots(60)], { indent: 0 }),
     ...(holderPos ? [p([val(holderPos)], { indent: crim ? 1.5 : 0.9 })] : []),
     ...(legacyOnly && !String(w0.phone || '').trim() ? [] : [p(witnessAddrRuns(w0, !legacyOnly), { indent: 0, justify: true })]),
-    ...tplParas(ft('wsum.item.cite'), { items: itemsText }, [...citeByRuns(c), t(' ')]),
-    ...tplParas(ft(crim ? 'wsum.item.deliver.criminal' : 'wsum.item.deliver.civil'), { items: itemsText, court, date: dateRuns(h.hd) }),
+    ...tplParas(ft('wsum.item.cite'), { items: kindLabel + ' *' }, [...citeByRunsItem(c), t(' ')]),
+    ...tplParas(ft(crim ? 'wsum.item.deliver.criminal' : 'wsum.item.deliver.civil'), { items: kindLabel, court, date: dateRuns(h.hd) }),
     sigBlock([{ label: 'ผู้พิพากษา', name: '' }], true),
     p([t('ศาล '), courtVal], { indent: 0 }),
     p([t('โทรศัพท์ '), phone ? val(phone) : dots(14)], { indent: 0 }),
-    { t: 'flip' },
+    { t: 'flip', note: `* รายละเอียดปรากฏตามด้านหลัง${mark}ฉบับนี้` },
     { t: 'rule' },
     { t: 'center', text: `ใบรับ${crim ? 'หมายเรียก' : 'คำสั่งเรียก'}พยานเอกสารหรือพยานวัตถุ`, u: true },
     p([t(BLANK_DATE + ' ข้าพเจ้า '), holderName ? val(holderName) : dots(24), ...(holderPos ? [t(' ตำแหน่ง '), val(holderPos)] : []), t(` ได้รับ${crim ? 'หมายเรียก' : 'คำสั่งเรียก'}พยานเอกสารหรือพยานวัตถุของศาล`), courtVal, t(' ซึ่งได้กำหนดให้ข้าพเจ้าส่ง '),
-      ...(itemsText.length > 110 ? [t(`ตามรายการที่ระบุใน${mark}นี้`)] : [val(itemsText)]),
+      val(kindLabel), t(`ตามรายการที่ระบุด้านหลัง${mark}นี้`),
       t(' ไปประกอบการพิจารณา ในคดีระหว่าง '), val(pName), t(' โจทก์ '), val(allD), t(' จำเลย ก่อน'), ...dateRuns(h.hd), t(' ไว้แล้ว')], { indent: 1.5, justify: true }),
     sigBlock([{ label: `ผู้รับ${mark}`, name: '' }, { label: `ผู้ส่ง${mark}`, name: '' }], true),
     { t: 'pagebreak' },
     { t: 'center', text: 'คำเตือน', u: true, b: true },
-    p([t(ft(crim ? 'wsum.item.warn.criminal' : 'wsum.item.warn.civil'))], { indent: 1.5, justify: true }),
+    p([t(ft(crim ? 'wsum.item.warn.criminal' : 'wsum.item.warn.civil'))], { indent: 1.5, justify: true, gap: true }),
+    { t: 'rule' },
+    { t: 'center', text: `รายละเอียดพยานเอกสารและหลักฐานที่ต้องจัดส่งตาม${mark}นี้`, u: true, b: true },
+    ...items.map((x, i) => p([t(items.length > 1 ? `(${i + 1}) ` : ''), val(x)], { indent: 0, justify: true })),
+    { t: 'lines', n: 12 },
   );
   return { id: g.id, title: g.title, blocks };
 }
