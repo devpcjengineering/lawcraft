@@ -5,6 +5,7 @@
 const PX_PER_MM = 96 / 25.4;
 const PAGE_H = 297 * PX_PER_MM;
 const PAD = 2; // เผื่อขอบล่างของบรรทัดสุดท้ายในเอกสาร (px)
+const CLOSE_PX = 2; // หน้าต่างตัดต่อท้ายตารางลงอีกเท่านี้ (px) ในแผ่นที่จบกลางตาราง ให้ครึ่งเส้นล่างของเส้นปิดท้ายตารางอยู่ในหน้าต่าง
 
 /** กล่องของบรรทัดข้อความทุกบรรทัดในย่อหน้า (px, พิกัดหน้าจอของ doc) จัดกลุ่มตามกึ่งกลางแนวตั้งและระยะบรรทัดจริง */
 function lineBoxes(el, doc) {
@@ -125,9 +126,7 @@ function sheetsOf(sec, doc) {
     const clip = doc.createElement('div');
     clip.className = 'flow-clip';
     const hdr = pg.hdr || 0; // แผ่นต่อของตาราง: ที่สำหรับแถวหัวตารางที่ซ้ำ (ทุกอย่างในแผ่นเลื่อนลงเท่านี้)
-    const bodyH = Math.max(1, round2(pg.end - pg.start + hdr)); //ไม่ปัดเป็นจำนวนเต็ม: ปัดแล้วหน้าต่างตัดเลื่อนได้ถึง 0.5px ซึ่งกินช่องว่างระหว่างบรรทัดที่มีแค่ ~5px
-    if (i === 0) { clip.style.top = '0'; clip.style.paddingTop = `${padT}px`; clip.style.height = `${round2(bodyH + padT)}px`; } // แผ่นแรก: เห็นขอบบนกระดาษด้วย (ตราครุฑเลื่อนขึ้นไปในขอบได้)
-    else clip.style.height = `${bodyH}px`;
+    let closes = false; // แผ่นนี้จบกลางตาราง (ตารางไหลต่อแผ่นถัดไป) — ตั้งค่าในลูปด้านล่าง
     const flow = doc.createElement('div');
     flow.className = 'flow';
     // สาเหตุที่เคยตัดผ่ากลางบรรทัด: เดิมทุกแผ่นใส่ทั้งเอกสารแล้วเลื่อนด้วย margin-top ติดลบ → ตอนพรีวิวถูกซูม (CSS zoom ที่ไม่ใช่ 1) ความสูงบรรทัด/ย่อหน้าถูกปัดเศษทีละ ~1/64px
@@ -141,12 +140,34 @@ function sheetsOf(sec, doc) {
       if (cl.matches?.('table.tbl')) {
         // เก็บเฉพาะแถวที่อยู่ในแผ่นนี้; แผ่นต่อ = แถวหัวตารางซ้ำที่ขอบบนของแผ่น แล้วตามด้วยแถวต่อเนื่อง
         const mine = atoms.slice(pg.b, pg.e + 1).filter((x) => x.pid === ci + 1).map((x) => x.ri);
-        [...cl.tBodies[0].rows].forEach((tr, ri) => { if (ri < mine[0] || ri > mine[mine.length - 1]) tr.remove(); });
+        const rows = [...cl.tBodies[0].rows];
+        rows.forEach((tr, ri) => { if (ri < mine[0] || ri > mine[mine.length - 1]) tr.remove(); });
         if (mine[0] > 0) cl.style.top = `${-kids[ci].mt}px`;
+        // ตารางไหลต่อแผ่นถัดไป: ปิดท้ายด้วยเส้นล่างของแถวสุดท้าย — ทึบเหมือนเส้นคั่นแถวที่เบราว์เซอร์วาดจริง (ขอบบนทึบของแถวถัดไปชนะขอบล่างประของแถวนี้ในโหมด collapse;
+        // พอแถวถัดไปถูกตัดออก ขอบล่างประของตัวเองจะโผล่แทน จึงต้องกำหนดทึบเอง)
+        if (mine[mine.length - 1] < rows.length - 1) {
+          closes = true;
+          for (const td of rows[mine[mine.length - 1]].cells) td.style.borderBottom = '1px solid #000';
+          // ให้ตารางเป็นตัวกำหนดความสูงของหน้าต่างตัดเอง (ไหลตามปกติแทน absolute, ขอบบนเท่าเดิม) → ขอบล่างของหน้าต่าง = ขอบล่างของตารางจริงเสมอ
+          // ตอนพรีวิวซูม ความสูงแถวถูกปัดเศษ/เส้นขอบถูกปัดเป็นพิกเซลจอ ตารางจึงยาวกว่าที่วัดไว้ได้หลายพิกเซล (วัดได้ ~2px ที่ซูม 0.7) หน้าต่างสูงคงที่จะตัดเส้นปิดท้ายทิ้ง
+          cl.style.marginTop = `${round2(parseFloat(cl.style.top) + kids[ci].mt)}px`;
+          cl.style.marginBottom = '0';
+          cl.style.position = 'static';
+          cl.style.top = '';
+        }
       }
       if (cl.classList?.contains('pb')) cl.style.breakAfter = 'auto'; // แบ่งหน้าแล้ว ไม่ต้องให้ตัวพิมพ์แบ่งซ้ำ
       flow.appendChild(cl);
     }
+    const bodyH = Math.max(1, round2(pg.end - pg.start + hdr)); //ไม่ปัดเป็นจำนวนเต็ม: ปัดแล้วหน้าต่างตัดเลื่อนได้ถึง 0.5px ซึ่งกินช่องว่างระหว่างบรรทัดที่มีแค่ ~5px
+    if (closes) {
+      // แผ่นที่จบกลางตาราง: เส้นปิดท้าย (ขอบล่างแถวสุดท้าย) เดิมคร่อมอยู่บนขอบหน้าต่างพอดีจึงถูกตัด ตารางดูขาด → ความสูงหน้าต่างตามตาราง + CLOSE_PX ให้ครึ่งเส้นล่างอยู่ในหน้าต่าง
+      // (ใต้แถวสุดท้ายไม่มีเนื้อหาอื่นในแผ่นนี้ — แถวถัดไปถูกตัดออกจากสำเนาแล้ว; ส่วนที่เพิ่มอยู่ในขอบล่างของกระดาษ)
+      flow.style.display = 'flow-root'; // กัน margin-top ของตารางทะลุออกนอก .flow
+      clip.style.paddingBottom = `${CLOSE_PX}px`;
+      if (i === 0) { clip.style.top = '0'; clip.style.paddingTop = `${padT}px`; }
+    } else if (i === 0) { clip.style.top = '0'; clip.style.paddingTop = `${padT}px`; clip.style.height = `${round2(bodyH + padT)}px`; } // แผ่นแรก: เห็นขอบบนกระดาษด้วย (ตราครุฑเลื่อนขึ้นไปในขอบได้)
+    else clip.style.height = `${bodyH}px`;
     clip.appendChild(flow);
     sheet.appendChild(clip);
     return sheet;
