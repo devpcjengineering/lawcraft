@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { inviteEmail } from '../supabase/functions/invite-email/template.js';
 
-const base = { appUrl: 'https://lawcraft.pcjengineering.co.th', caseUrl: 'https://lawcraft.pcjengineering.co.th/workspace/case/abc123/case', inviter: 'owner@example.com', title: 'นายสมชาย ใจดี ฟ้อง นายสมศักดิ์ ตัวอย่าง', court: 'ศาลจังหวัดธัญบุรี', type: 'criminal', to: 'friend@gmail.com' };
+const base = { appUrl: 'https://www.law-craft.co', caseUrl: 'https://www.law-craft.co/workspace/case/abc123/case', inviter: 'owner@example.com', title: 'นายสมชาย ใจดี ฟ้อง นายสมศักดิ์ ตัวอย่าง', court: 'ศาลจังหวัดธัญบุรี', type: 'criminal', to: 'friend@gmail.com' };
 const m = inviteEmail(base);
 assert.match(m.subject, /owner@example\.com เชิญคุณร่วมตรวจสอบ\/แก้ไขคำฟ้อง/);
 for (const s of [base.caseUrl, 'นายสมชาย ใจดี ฟ้อง', 'ศาลจังหวัดธัญบุรี', 'friend@gmail.com', 'owner@example.com', 'เปิดคดีนี้']) assert.ok(m.html.includes(s), `html ต้องมี ${s}`);

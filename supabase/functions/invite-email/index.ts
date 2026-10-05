@@ -2,7 +2,7 @@
 // POST /functions/v1/invite-email  body { caseId, email }  header Authorization: Bearer <access_token ของเจ้าของคดี/แอดมิน>
 // ป้องกันการใช้เป็นเครื่องส่งสแปม: ต้องเป็นเจ้าของคดี (is_case_owner) + อีเมลปลายทางต้องอยู่ในรายชื่อผู้ร่วมแก้ไขของคดีนั้นแล้ว
 // + ส่งซ้ำถึงคนเดิมได้ไม่เกิน 1 ครั้งต่อ 2 นาที ; ลิงก์ในอีเมลมาจาก APP_URL (secret) ไม่รับจากไคลเอนต์ (กันแปะลิงก์ฟิชชิง)
-// secrets: RESEND_API_KEY (จำเป็น) · MAIL_FROM (ค่าเริ่มต้น alert@lawcraft.pcjengineering.co.th) · MAIL_FROM_NAME (Law Craft) · APP_URL (https://lawcraft.pcjengineering.co.th)
+// secrets: RESEND_API_KEY (จำเป็น) · MAIL_FROM (ค่าเริ่มต้น alert@law-craft.co) · MAIL_FROM_FALLBACK (ผู้ส่งสำรองที่ยืนยันใน Resend แล้ว ใช้เมื่อโดเมน MAIL_FROM ยังไม่ยืนยัน) · MAIL_FROM_NAME (Law Craft) · APP_URL (https://www.law-craft.co)
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { inviteEmail } from './template.js';
 
@@ -20,8 +20,9 @@ Deno.serve(async (req) => {
   try {
     const apiKey = Deno.env.get('RESEND_API_KEY');
     if (!apiKey) return json({ error: 'ยังไม่ได้ตั้งค่าบริการส่งอีเมล (RESEND_API_KEY)' }, 500);
-    const appUrl = (Deno.env.get('APP_URL') || 'https://lawcraft.pcjengineering.co.th').replace(/\/$/, '');
-    const from = Deno.env.get('MAIL_FROM') || 'alert@lawcraft.pcjengineering.co.th';
+    const appUrl = (Deno.env.get('APP_URL') || 'https://www.law-craft.co').replace(/\/$/, '');
+    const from = Deno.env.get('MAIL_FROM') || 'alert@law-craft.co';
+    const fallback = Deno.env.get('MAIL_FROM_FALLBACK') || '';
     const fromName = Deno.env.get('MAIL_FROM_NAME') || 'Law Craft';
 
     const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
@@ -48,12 +49,19 @@ Deno.serve(async (req) => {
     }
 
     const mail = inviteEmail({ appUrl, caseUrl: `${appUrl}/workspace/case/${encodeURIComponent(caseId)}/case`, inviter, title: c.title ?? '', court: c.court ?? '', type: c.type ?? '', to });
-    const res = await fetch('https://api.resend.com/emails', {
+    const send = (sender: string) => fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: `${fromName} <${from}>`, to: [to], reply_to: inviter, subject: mail.subject, html: mail.html, text: mail.text }),
+      body: JSON.stringify({ from: `${fromName} <${sender}>`, to: [to], reply_to: inviter, subject: mail.subject, html: mail.html, text: mail.text }),
     });
-    const out = await res.json().catch(() => ({}));
+    let res = await send(from);
+    let out = await res.json().catch(() => ({}));
+    // โดเมนผู้ส่งใหม่ยังไม่ยืนยันใน Resend → ถอยไปใช้ผู้ส่งสำรอง (MAIL_FROM_FALLBACK) ที่ยืนยันแล้ว ; ยืนยันโดเมนใหม่แล้วจะใช้ MAIL_FROM โดยอัตโนมัติ
+    if (!res.ok && fallback && fallback !== from && /not verified/i.test(JSON.stringify(out))) {
+      console.warn('sender domain not verified, falling back to', fallback);
+      res = await send(fallback);
+      out = await res.json().catch(() => ({}));
+    }
     if (!res.ok) {
       console.error('resend error', res.status, JSON.stringify(out));
       const hint = /not verified|domain/i.test(JSON.stringify(out)) ? ' (โดเมนผู้ส่งยังไม่ได้ยืนยันใน Resend)' : '';

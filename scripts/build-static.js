@@ -27,7 +27,7 @@ if (fs.existsSync(path.join(root, 'templates'))) cp('templates', 'templates');
 
 // หน้าข้อมูลกฎหมายแบบ HTML สถิต (/jurisdiction/ /laws/ /procedure/ /precedents/) + dist/seo-urls.json + สารบัญบนหน้าแรก
 // ต้องรันก่อนขั้นรวม CSS / ใส่ ?v= (หน้าเหล่านี้ใช้ css/bundle-seo.css ที่สร้างในขั้นนี้)
-const SITE_URL = (process.env.SITE_URL || 'https://lawcraft.pcjengineering.co.th').replace(/\/$/, '');
+const SITE_URL = (process.env.SITE_URL || 'https://www.law-craft.co').replace(/\/$/, '');
 const seo = await (await import('./build-seo-pages.js')).buildSeoPages({ root, dist, site: SITE_URL });
 
 // sitemap.xml + robots.txt สำหรับเสิร์ชเอนจิน: หน้าสาธารณะทั้งหมด + บทความทุกบท (หลังบ้าน /workspace/ ไม่ใส่)
@@ -69,7 +69,7 @@ const seo = await (await import('./build-seo-pages.js')).buildSeoPages({ root, d
 
 // llms.txt (สำหรับ AI/LLM อ่านภาพรวมเว็บ) + ai-catalog.json (/.well-known/) — สร้างจากรายการหน้า/บทความตอน build
 {
-  const SITE = (process.env.SITE_URL || 'https://lawcraft.pcjengineering.co.th').replace(/\/$/, '');
+  const SITE = (process.env.SITE_URL || 'https://www.law-craft.co').replace(/\/$/, '');
   const { packArticles } = await import('../server/articles-pack.js');
   const arts = packArticles().index;
   const one = (t) => String(t || '').replace(/\s+/g, ' ').trim();

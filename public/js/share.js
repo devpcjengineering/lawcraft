@@ -84,7 +84,7 @@ export function panelHtml() {
     ? `<div class="share-invite"><input type="email" id="share-email" placeholder="อีเมล Google ของผู้ร่วมแก้ไข เช่น name@gmail.com" autocomplete="off" aria-label="อีเมลผู้ร่วมแก้ไข">
         <button class="btn sm primary" data-act="shareInvite"${dis}>${icon('plus', { size: 15 })}<span>เชิญแก้ไขคดี</span></button></div>
       <div class="btn-group share-btns"><button class="btn sm outline" data-act="shareCopyCase">${icon('copy', { size: 15 })}<span>คัดลอกลิงก์เปิดคดี</span></button></div>
-      <p class="hint">เชิญแล้วระบบส่งอีเมลแจ้งให้อัตโนมัติ (ผู้ส่ง alert@lawcraft.pcjengineering.co.th) · ผู้ที่ถูกเชิญเข้าสู่ระบบด้วย Google ด้วยอีเมลนี้ แล้วเปิดลิงก์คดี (หรือเลือกคดีนี้จากรายการ) จะเห็นและแก้คดีนี้ได้ · ลบคดี/เชิญคนอื่นไม่ได้ · ถ้ามีคนแก้พร้อมกัน ระบบจะเตือนก่อนเขียนทับ</p>`
+      <p class="hint">เชิญแล้วระบบส่งอีเมลแจ้งให้อัตโนมัติ (ผู้ส่ง alert@law-craft.co) · ผู้ที่ถูกเชิญเข้าสู่ระบบด้วย Google ด้วยอีเมลนี้ แล้วเปิดลิงก์คดี (หรือเลือกคดีนี้จากรายการ) จะเห็นและแก้คดีนี้ได้ · ลบคดี/เชิญคนอื่นไม่ได้ · ถ้ามีคนแก้พร้อมกัน ระบบจะเตือนก่อนเขียนทับ</p>`
     : '<p class="hint">เฉพาะเจ้าของคดีหรือผู้ดูแลระบบเท่านั้นที่เชิญหรือถอนผู้ร่วมแก้ไขได้</p>';
   return `<div class="panel share-panel"><h3>PDF ชุดเอกสาร &amp; แชร์</h3>
     <p class="hint panel-note">อัปโหลด PDF รวมทั้งชุดขึ้น Supabase (ตัวอักษรเป็นเวกเตอร์ คมชัด ไฟล์เล็ก) ทับไฟล์เดิมของคดีนี้ แล้วแชร์ลิงก์ดู หรือเชิญคนอื่นเข้ามาช่วยแก้คดี</p>

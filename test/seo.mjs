@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = path.join(root, 'dist');
-const SITE = (process.env.SITE_URL || 'https://lawcraft.pcjengineering.co.th').replace(/\/$/, '');
+const SITE = (process.env.SITE_URL || 'https://www.law-craft.co').replace(/\/$/, '');
 if (!fs.existsSync(path.join(dist, 'seo-urls.json'))) {
   console.log('seo: ยังไม่มี dist/seo-urls.json — รัน build ก่อน');
   execFileSync(process.execPath, [path.join(root, 'scripts/build-static.js')], { cwd: root, stdio: 'inherit' });
