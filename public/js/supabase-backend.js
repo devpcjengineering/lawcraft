@@ -18,6 +18,11 @@ function fail(error, fallback = 'เกิดข้อผิดพลาด') {
 const must = ({ data, error }) => { if (error) fail(error); return data; };
 
 let role = 'user';
+const seen = new Map(); // id คดี → updated_at ที่เห็นล่าสุด (ใช้ตรวจว่ามีผู้อื่นบันทึกคดีเดียวกันไปก่อนหรือไม่)
+const PDF_BUCKET = 'case-pdfs';
+const pdfPath = (caseId) => `${caseId}/bundle.pdf`;
+/** ลิงก์ดู PDF สาธารณะ (Edge Function `pdf` — ต้องรู้ token เท่านั้น ปิดลิงก์แล้วใช้ไม่ได้) */
+const shareUrl = (token) => `${url}/functions/v1/pdf/${token}.pdf`;
 
 /** ข้อมูลกฎหมายสาธารณะ (law_data อ่านได้ทุกคนรวม anon) — โหมดทดลองใช้ฟังก์ชันนี้ร่วมกัน */
 export async function loadLaw() {
@@ -120,17 +125,100 @@ export const supabaseBackend = {
     });
   },
   async getCase(id) {
-    const row = must(await sb.from('cases').select('data').eq('id', id).maybeSingle());
+    const row = must(await sb.from('cases').select('data,updated_at').eq('id', id).maybeSingle());
     if (!row) { const e = new Error('ไม่พบคดี'); e.status = 404; throw e; }
+    seen.set(id, row.updated_at);
     return row.data;
   },
-  async saveCase(c) {
+  /**
+   * บันทึกคดี — คดีที่แชร์ให้ผู้อื่นแก้ได้ จึงบันทึกแบบ “ต้องยังเป็นเวอร์ชันที่เราเห็นล่าสุด” (updated_at ตรงกัน)
+   * ถ้ามีคนบันทึกไปก่อน → throw status 409 (ไม่เขียนทับ) ให้หน้าจอถามว่าจะโหลดล่าสุดหรือบันทึกทับ ; opt.force = บันทึกทับโดยตั้งใจ
+   */
+  async saveCase(c, opt = {}) {
     const now = new Date().toISOString();
-    // ไม่ส่ง user_id/owner_email: แถวใหม่ให้ DB เติมจาก auth.uid(); แถวเดิม (รวมกรณีแอดมินแก้คดีของผู้ใช้) เจ้าของไม่เปลี่ยน
-    must(await sb.from('cases').upsert({ id: c.id, title: c.title || null, type: c.type, court: c.court || null, data: { ...c, updatedAt: now, listMeta: caseListInfo(c) }, updated_at: now }, { onConflict: 'id' }));
+    // ไม่ส่ง user_id/owner_email: แถวใหม่ให้ DB เติมจาก auth.uid(); แถวเดิม (รวมกรณีแอดมิน/ผู้แก้ไขแก้คดีของผู้อื่น) เจ้าของไม่เปลี่ยน
+    const row = { id: c.id, title: c.title || null, type: c.type, court: c.court || null, data: { ...c, updatedAt: now, listMeta: caseListInfo(c) }, updated_at: now };
+    const known = seen.get(c.id);
+    if (known && !opt.force) {
+      const { id, ...patch } = row;
+      const res = await sb.from('cases').update(patch).eq('id', id).eq('updated_at', known).select('id');
+      if (res.error) fail(res.error);
+      if (!res.data.length) {
+        const cur = must(await sb.from('cases').select('updated_at').eq('id', id).maybeSingle());
+        if (!cur) { const e = new Error('คดีนี้ถูกลบแล้ว หรือคุณไม่มีสิทธิ์แก้ไขคดีนี้อีกต่อไป'); e.status = 404; throw e; }
+        const e = new Error('มีผู้อื่นบันทึกคดีนี้ไปก่อนแล้ว'); e.status = 409; e.conflict = true; throw e;
+      }
+    } else {
+      must(await sb.from('cases').upsert(row, { onConflict: 'id' }));
+    }
+    seen.set(c.id, now);
     return { ok: true, updatedAt: now };
   },
-  async deleteCase(id) { must(await sb.from('cases').delete().eq('id', id)); return { ok: true }; },
+  async deleteCase(id) {
+    // เจ้าของ/แอดมินลบคดี: ลบไฟล์ PDF ใน Storage ก่อน (หลังลบคดีแล้วนโยบาย Storage จะไม่เห็นว่าเป็นคดีของใคร) ; ผู้แก้ไขที่ไม่ใช่เจ้าของลบไม่ได้
+    const owner = await sb.rpc('is_case_owner', { cid: id });
+    if (owner.data === true) { try { await sb.storage.from(PDF_BUCKET).remove([pdfPath(id)]); } catch { /* ข้าม: ไฟล์ค้างไม่กระทบการใช้งาน */ } }
+    const rows = must(await sb.from('cases').delete().eq('id', id).select('id'));
+    if (!rows.length) { const e = new Error('ลบไม่ได้ — เฉพาะเจ้าของคดีหรือผู้ดูแลระบบ'); e.status = 403; throw e; }
+    seen.delete(id);
+    return { ok: true };
+  },
+
+  // ---------- แชร์คดี: ผู้แก้ไขที่เชิญด้วยอีเมล · PDF ชุดเอกสาร · ลิงก์ดู PDF ----------
+  canShare: true,
+  /** เจ้าของคดีหรือแอดมิน (เชิญ/ถอนผู้แก้ไข ลบคดีได้) — ผู้แก้ไขที่ถูกเชิญได้ false */
+  async isCaseOwner(caseId) { const { data, error } = await sb.rpc('is_case_owner', { cid: caseId }); if (error) fail(error); return data === true; },
+  async listMembers(caseId) {
+    return must(await sb.from('case_members').select('email,created_at').eq('case_id', caseId).order('created_at', { ascending: true }));
+  },
+  /** เชิญอีเมลเป็นผู้แก้ไขคดี (เฉพาะเจ้าของ/แอดมิน) — ผู้ถูกเชิญเห็นคดีในรายการทันทีที่เข้าสู่ระบบด้วยอีเมลนั้น */
+  async addMember(caseId, email) {
+    const em = String(email || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em) || em.length > 254) throw new Error('อีเมลไม่ถูกต้อง');
+    const { error } = await sb.from('case_members').insert({ case_id: caseId, email: em });
+    if (error) {
+      if (error.code === '23505') throw new Error('อีเมลนี้ได้รับเชิญไว้แล้ว');
+      if (error.code === '54000') throw new Error(error.message);
+      if (error.code === '42501') throw new Error('เฉพาะเจ้าของคดีหรือผู้ดูแลระบบเท่านั้นที่เชิญผู้แก้ไขได้');
+      fail(error);
+    }
+    return { email: em };
+  },
+  /** ถอนผู้แก้ไข (เจ้าของ/แอดมิน) หรือออกจากคดีที่ถูกเชิญเอง (ใส่อีเมลตนเอง) */
+  async removeMember(caseId, email) {
+    const rows = must(await sb.from('case_members').delete().eq('case_id', caseId).eq('email', String(email).toLowerCase()).select('email'));
+    if (!rows.length) { const e = new Error('ไม่มีสิทธิ์ถอนรายชื่อนี้'); e.status = 403; throw e; }
+    return { ok: true };
+  },
+  /** ข้อมูล PDF ล่าสุดของคดี (null = ยังไม่เคยอัปโหลด) พร้อมลิงก์ดูถ้าเปิดแชร์ไว้ */
+  async getCasePdf(caseId) {
+    const { data, error } = await sb.from('case_pdfs').select('size_bytes,pages,share_token,updated_at,updated_by_email').eq('case_id', caseId).maybeSingle();
+    if (error) { if (error.code === '42P01') return null; fail(error); }
+    if (!data) return null;
+    return { sizeBytes: data.size_bytes, pages: data.pages, updatedAt: data.updated_at, by: data.updated_by_email || '', shareUrl: data.share_token ? shareUrl(data.share_token) : '' };
+  },
+  /** อัปโหลด PDF ชุดเอกสาร “ทับไฟล์เดิม” (ไฟล์เดียวต่อคดี: <คดี>/bundle.pdf) แล้วบันทึกรายการให้ลิงก์ดูชี้ไฟล์ล่าสุดเสมอ */
+  async uploadCasePdf(caseId, blob, { pages = null } = {}) {
+    const up = await sb.storage.from(PDF_BUCKET).upload(pdfPath(caseId), blob, { upsert: true, contentType: 'application/pdf', cacheControl: '0' });
+    if (up.error) {
+      const e = new Error(/row-level security|not authorized|403/i.test(up.error.message || '') ? 'ไม่มีสิทธิ์อัปโหลด PDF ของคดีนี้' : (up.error.message || 'อัปโหลดไม่สำเร็จ'));
+      e.status = /row-level security|not authorized|403/i.test(up.error.message || '') ? 403 : 500; throw e;
+    }
+    must(await sb.from('case_pdfs').upsert({ case_id: caseId, path: pdfPath(caseId), size_bytes: blob.size, pages }, { onConflict: 'case_id' }));
+    return this.getCasePdf(caseId);
+  },
+  /** ลิงก์ชั่วคราว (5 นาที) สำหรับเปิดดู PDF ที่อัปโหลดไว้ในแท็บใหม่ */
+  async casePdfViewUrl(caseId) {
+    const r = await sb.storage.from(PDF_BUCKET).createSignedUrl(pdfPath(caseId), 300);
+    if (r.error) fail(r.error);
+    return r.data.signedUrl;
+  },
+  /** เปิด/ปิด/ออกลิงก์ดูใหม่ (mode = on | off | new) → คืน URL หรือ '' เมื่อปิด */
+  async setPdfShare(caseId, mode) {
+    const { data, error } = await sb.rpc('set_case_share', { cid: caseId, mode });
+    if (error) { if (error.code === 'P0002') throw new Error('ยังไม่ได้อัปโหลด PDF ของคดีนี้'); fail(error); }
+    return data ? shareUrl(data) : '';
+  },
 
   async savePerson(rec) {
     must(await sb.from('people').upsert({ id: rec.id, kind: rec.kind, label: rec.label, data: rec.data, updated_at: new Date().toISOString() }, { onConflict: 'id' }));

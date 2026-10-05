@@ -416,3 +416,4 @@ a.act-card, a.brand { color: var(--ink); }
 .case-item .ci-line b { flex: none; font-weight: 600; color: var(--muted); }
 .case-item .ci-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .case-item .ci-name em { color: var(--muted-2); font-style: normal; }
+.owner-line.shared { color: var(--blue); }

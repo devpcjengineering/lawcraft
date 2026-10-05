@@ -14,6 +14,7 @@ import { validCitizenId, isBkk, toThaiDigits } from '/shared/thai.js';
 import { confirmBox } from './modal.js';
 import { icon } from './icons.js';
 import { notify } from './notify.js';
+import { panelHtml as sharePanel } from './share.js';
 import { LAYOUT_GROUPS, resolveLayout } from '/shared/layout.js';
 
 const kindOf = () => (S.c.type === 'civil' ? 'civil' : 'criminal');
@@ -838,7 +839,8 @@ function tabExport() {
       <button class="btn outline" data-act="dlJson">${ix('download')}<span>ข้อมูลคดี (.json)</span></button></div>
       <p class="hint">เปิดดูเอกสารในหน้านี้ได้เลย ไม่ดาวน์โหลดลงเครื่อง — พอตรวจแล้วกด “พิมพ์ / บันทึกเป็น PDF” (ตั้งกระดาษ A4 และปิด “ส่วนหัวและท้ายกระดาษ”)</p></div>
     <div class="dl-sub">${filed ? 'ชุดคำฟ้อง — แยกทีละฉบับ' : 'แยกทีละฉบับ'}</div>
-    <div id="doclist"></div></div>`;
+    <div id="doclist"></div></div>
+  ${sharePanel()}`;
 }
 
 // ===================== 10) ตำรากฎหมาย =====================

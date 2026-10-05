@@ -21,6 +21,7 @@ import { showInbox } from './inbox.js';
 import { confirmBox, alertBox, issuesBox, modal } from './modal.js';
 import { notify, banner, clearBanner, mountBanners, inferType } from './notify.js';
 import * as authUi from './auth-ui.js';
+import * as share from './share.js';
 import { brandHtml, tbBtn } from './chrome.js';
 import { syncNav, closeNav } from './navdrawer.js';
 import { icon as ico2 } from './icons.js';
@@ -59,8 +60,43 @@ async function doSave() {
     saveFailed = true;
     setSaveState('บันทึกไม่สำเร็จ', 'err');
     if (e.status === 401) return showLogin();
+    if (e.status === 409) return onSaveConflict();
+    if (e.status === 404 || e.status === 403) return banner('save', { type: 'error', message: e.message || 'ไม่มีสิทธิ์บันทึกคดีนี้แล้ว', action: { label: 'กลับหน้าคดีทั้งหมด', onClick: () => go(urls.home()) } });
     banner('save', { type: 'error', message: 'บันทึกอัตโนมัติไม่สำเร็จ — ข้อมูลล่าสุดยังไม่ถูกเก็บ ตรวจการเชื่อมต่อแล้วลองอีกครั้ง', action: { label: 'ลองบันทึกใหม่', onClick: doSave } });
   }
+}
+/**
+ * คดีที่แชร์ให้ผู้อื่นแก้ได้: ถ้ามีคนบันทึกไปก่อน (backend โยน 409 โดยไม่เขียนทับ) ให้ผู้ใช้เลือกว่าจะโหลดฉบับล่าสุด หรือบันทึกทับ
+ * ระหว่างรอเลือก autosave หยุดไว้ (ไม่ยิงซ้ำ) ; “ตัดสินใจทีหลัง” = ค้างแบนเนอร์ไว้ให้กดลองใหม่
+ */
+let conflictOpen = false;
+async function onSaveConflict() {
+  if (conflictOpen || !S.c) return;
+  conflictOpen = true;
+  clearTimeout(saveTimer);
+  const id = S.c.id;
+  try {
+    const r = await modal({
+      title: 'มีผู้อื่นแก้ไขคดีนี้ไปก่อนแล้ว', tone: 'warn',
+      message: '<p>มีผู้ร่วมแก้ไข (หรือหน้าต่างอื่นของคุณ) บันทึกคดีนี้ไปหลังจากที่คุณเปิดขึ้นมา ระบบจึงยังไม่บันทึกทับให้</p><p><b>โหลดฉบับล่าสุด</b> = เห็นงานของเขา แต่การแก้ไขของคุณที่ยังไม่ได้บันทึกจะหาย<br><b>บันทึกทับ</b> = ใช้ฉบับของคุณ งานของเขาที่บันทึกไปก่อนหน้าจะหาย</p>',
+      buttons: [{ label: 'ตัดสินใจทีหลัง', value: null }, { label: 'บันทึกทับ', value: 'force', danger: true }, { label: 'โหลดฉบับล่าสุด', value: 'reload', primary: true }],
+    });
+    if (S.c?.id !== id) return;
+    if (r === 'force') {
+      await backend.saveCase(S.c, { force: true });
+      savePending = false; saveFailed = false; clearBanner('save'); setSaveState('บันทึกแล้ว', 'ok');
+      hooks.toast('บันทึกทับแล้ว', { type: 'success' });
+    } else if (r === 'reload') {
+      const c = await backend.getCase(id);
+      savePending = false; saveFailed = false; clearBanner('save'); setSaveState('', '');
+      openCase(c, S.tab);
+      hooks.toast('โหลดฉบับล่าสุดแล้ว', { type: 'success' });
+    } else {
+      banner('save', { type: 'error', message: 'ยังไม่ได้บันทึก — มีผู้อื่นแก้ไขคดีนี้ไปก่อน', action: { label: 'เลือกวิธีแก้', onClick: onSaveConflict } });
+    }
+  } catch (e) {
+    hooks.toast(e.message || 'ดำเนินการไม่สำเร็จ', { type: 'error' });
+  } finally { conflictOpen = false; }
 }
 /** ก่อนออกจากคดี: บันทึกที่ค้างอยู่ให้เสร็จ (ไม่รอ debounce) แล้วเคลียร์สถานะบันทึกของคดีนี้ */
 async function flushCase() {
@@ -207,7 +243,7 @@ async function showHome() {
         <div class="meta"><span class="m-court">${ico2('building')}<span>${esc(x.court || 'ยังไม่ได้เลือกศาล')}</span></span><span class="m-time">${ico2('clock')}<span>แก้ไขล่าสุด ${new Date(x.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}</span></span></div>
         <div class="row"><a class="btn primary sm" href="${urls.caseTab(x.id)}" data-act="openCase" data-id="${esc(x.id)}">เปิด</a>
           <button class="btn sm" data-act="dupCase" data-id="${esc(x.id)}" title="คัดลอกคู่ความ ทนาย และข้อมูลทั้งหมดไปเป็นคดีใหม่">ทำสำเนา</button>
-          <button class="btn sm danger" data-act="delCase" data-id="${esc(x.id)}">ลบ</button></div></div>`).join('')}</div>`
+          ${authUi.isSharedWithMe(x) ? `<button class="btn sm danger" data-act="leaveCase" data-id="${esc(x.id)}" title="เลิกร่วมแก้ไขคดีนี้ (ไม่ลบคดีของเจ้าของ)">ออกจากคดี</button>` : `<button class="btn sm danger" data-act="delCase" data-id="${esc(x.id)}">ลบ</button>`}</div></div>`).join('')}</div>`
       : `<div class="empty-state"><span class="es-ico">${ico2('folder')}</span><b>ยังไม่มีคดีที่บันทึกไว้</b><p>เริ่มจากกดปุ่ม “คดีอาญา” หรือ “คดีแพ่ง” ด้านบน ระบบจะบันทึกให้อัตโนมัติทุกครั้งที่แก้ไข</p></div>`}</section>
     <p class="home-foot">${ico2('info')}<span>แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม (สำนักงานศาลยุติธรรม) · ข้อมูลกฎหมายเป็นเครื่องมือช่วยร่าง ผู้ใช้ต้องตรวจสอบความถูกต้องก่อนยื่นต่อศาลทุกครั้ง</span></p>
   </main>`;
@@ -315,7 +351,14 @@ actions.dupCase = async (el) => {
 };
 actions.delCase = async (el) => {
   if (!(await confirmBox('คดีนี้และเอกสารทั้งหมดจะถูกลบถาวร กู้คืนไม่ได้', { title: 'ลบคดี', okText: 'ลบคดี', danger: true }))) return;
-  await backend.deleteCase(el.dataset.id); reloadHome();
+  try { await backend.deleteCase(el.dataset.id); } catch (e) { return alertBox(e.message || 'ลบคดีไม่สำเร็จ', { title: 'ลบคดีไม่ได้', tone: 'warn' }); }
+  reloadHome();
+};
+/** ผู้ที่ถูกเชิญให้ร่วมแก้ไข: เลิกร่วมคดีที่แชร์มา (ไม่ลบคดีของเจ้าของ) */
+actions.leaveCase = async (el) => {
+  if (!(await confirmBox('คุณจะไม่เห็นและแก้คดีนี้ได้อีก จนกว่าเจ้าของจะเชิญใหม่ (คดีของเจ้าของไม่ถูกลบ)', { title: 'ออกจากคดีที่แชร์มา', okText: 'ออกจากคดี', danger: true }))) return;
+  try { await backend.removeMember(el.dataset.id, S.email); } catch (e) { return alertBox(e.message || 'ออกจากคดีไม่สำเร็จ', { title: 'ทำรายการไม่ได้', tone: 'warn' }); }
+  reloadHome();
 };
 
 actions.wizGo = (el) => actions.goTab(el);
@@ -427,7 +470,7 @@ function renderMain(enter = false) {
   const mainHtml = provinceList() + tab.render() + wizardNav(tab.key, S.c);
   if (enter || renderMain.last !== tab.key) $('#main').innerHTML = mainHtml; else morphInto($('#main'), mainHtml);
   renderMain.last = tab.key;
-  if (tab.key === 'export') renderDocList();
+  if (tab.key === 'export') { renderDocList(); share.ensureLoaded(); }
   window.scrollTo(0, scrollY);
   if (mainTop) $('#main').scrollTop = mainTop;
   if (enter) playEnter($('#main'));
@@ -647,6 +690,12 @@ async function viewDocs(docs, title) {
   // ใช้ setTimeout เพื่อให้โหลดเสร็จก่อนค่อย focus
   setTimeout(() => { if (win) { win.focus(); win.print(); } }, 500);
 }
+share.bind({
+  backend: () => backend,
+  docs: currentDocs,
+  guard: guardExport,
+  flush: async () => { clearTimeout(saveTimer); if (savePending && S.c) await doSave(); },
+});
 actions.printAll = async () => { if (await guardExport()) viewDocs(currentDocs(), 'ชุดเอกสารทั้งหมด'); };
 actions.printDoc = async (el) => { const d = currentDocs().filter((x) => x.id === el.dataset.id); if (d.length && await guardExport()) viewDocs(d, d[0].title); };
 actions.dlJson = () => {

@@ -137,8 +137,11 @@ export function caseToolbar() {
 export function filterCases(list) {
   return isAdmin() && S.uid && S.ui.onlyMine ? list.filter((x) => x.userId === S.uid) : list;
 }
-/** แอดมิน: บรรทัดเล็ก ๆ สีเทาบอกเจ้าของคดี */
+/** คดีที่ผู้อื่นเชิญให้ร่วมแก้ไข (ผู้ใช้ทั่วไปเห็นเฉพาะคดีของตนกับคดีที่ถูกเชิญ) — แอดมินเห็นทุกคดีจึงไม่นับ */
+export const isSharedWithMe = (x) => !isAdmin() && !!S.uid && !!x.userId && x.userId !== S.uid;
+/** บรรทัดเล็ก ๆ สีเทาบอกเจ้าของคดี: แอดมินเห็นทุกคดี · ผู้ใช้ทั่วไปเห็นเฉพาะคดีที่แชร์มา */
 export function ownerLine(x) {
+  if (isSharedWithMe(x)) return `<div class="owner-line shared" title="คดีนี้เจ้าของเชิญคุณให้ร่วมแก้ไข">${icon('users')}<span>แชร์ให้คุณแก้ไข · เจ้าของ: ${x.ownerEmail ? emailHtml(x.ownerEmail) : esc('ไม่ระบุ')}</span></div>`;
   if (!isAdmin() || !S.uid) return '';
   return `<div class="owner-line" title="เจ้าของคดี">${icon('user')}<span>เจ้าของ: ${x.ownerEmail ? emailHtml(x.ownerEmail) : esc('ไม่ระบุ (ข้อมูลเดิม)')}${x.userId && x.userId === S.uid ? ' (ฉัน)' : ''}</span></div>`;
 }
