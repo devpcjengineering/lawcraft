@@ -44,9 +44,14 @@ function titleOf(el) {
 }
 
 function readSelect(sel) {
+  // รายการเอกสารในตัวอย่าง (.pv-select): “ชนิดเอกสาร – ชื่อพยาน (ลำดับที่ …)” แยกเป็น 2 บรรทัด — ชนิดเอกสารบนสุด ชื่อพยานขึ้นบรรทัดใหม่
+  const split = !!sel.closest('.pv-select');
   return [...sel.options].map((o) => {
     const g = o.parentElement?.tagName === 'OPTGROUP' ? o.parentElement : null;
-    return { value: o.value, text: (o.text || '').replace(/\s+/g, ' ').trim(), sec: '', disabled: o.disabled || !!g?.disabled, group: g ? g.label : null, selected: o.index === sel.selectedIndex, blank: o.value === '' };
+    let text = (o.text || '').replace(/\s+/g, ' ').trim(), sec = '';
+    const i = split ? text.indexOf(' – ') : -1;
+    if (i > 0) { sec = text.slice(i + 3).trim(); text = text.slice(0, i).trim(); }
+    return { value: o.value, text, sec, disabled: o.disabled || !!g?.disabled, group: g ? g.label : null, selected: o.index === sel.selectedIndex, blank: o.value === '' };
   });
 }
 
@@ -97,7 +102,7 @@ function render() {
     c.truncated = vis.length > MAX_COMBO;
     vis = vis.slice(0, MAX_COMBO);
   } else {
-    vis = q ? c.items.filter((it) => !it.blank && (it.text.toLowerCase().includes(q))) : c.items;
+    vis = q ? c.items.filter((it) => !it.blank && (it.text.toLowerCase().includes(q) || it.sec.toLowerCase().includes(q))) : c.items;
   }
   c.vis = vis;
   let html = '', grp;
