@@ -50,6 +50,36 @@
 .tw .s { display: block; font-size: 12.5px; color: var(--ink-3); }
 .tw .num { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
+/* ค้นหาฎีกา (public/site/precedent-search.js — เรียก /api/precedents) */
+.px { margin: 26px 0 8px; padding: 22px; background: var(--bg-alt); border-radius: 20px; }
+.px h2 { margin: 0 0 6px; font-size: clamp(19px, 2.4vw, 24px); }
+.px-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin: 12px 0 0; }
+.px-form input[type=search] { grid-column: 1; min-width: 0; padding: 12px 18px; font: inherit; font-size: 17px; border: 1px solid var(--line); border-radius: 99px; background: var(--card); color: var(--ink); }
+.px-form input[type=search]:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; border-color: transparent; }
+.px-form .btn-pill { grid-column: 2; }
+.px-filters { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; }
+.px-filters select { padding: 8px 14px; font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 99px; background: var(--card); color: var(--ink); }
+.px-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 0; font-size: 14px; color: var(--ink-3); }
+.px-chip { border: 0; cursor: pointer; padding: 4px 14px; border-radius: 99px; font: inherit; font-size: 14px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
+.px-chip:hover { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+#pxResults { margin-top: 16px; }
+.px-count { font-size: 14px; color: var(--ink-2); margin: 0 0 10px; }
+.px-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.px-item { background: var(--card); border-radius: 16px; padding: 16px 18px; margin: 0; box-shadow: 0 0 0 1px var(--line) inset; }
+.px-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 17px; }
+.px-snip { margin: 8px 0 8px; font-size: 15.5px; line-height: 1.7; color: var(--ink-2); overflow-wrap: anywhere; }
+.px-snip mark, .px-text mark { background: color-mix(in srgb, var(--blue) 22%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+.px-secs { margin: 0 0 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.px-detail { margin-top: 12px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.px-detail h4 { margin: 0 0 6px; font-size: 15px; color: var(--ink-2); }
+.px-text p { margin: 0 0 10px; font-size: 16px; line-height: 1.75; overflow-wrap: anywhere; }
+.px-full { margin: 10px 0; }
+.px-full summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+.px-pager { display: flex; gap: 12px; align-items: center; justify-content: center; margin: 18px 0 6px; }
+.px-load { color: var(--ink-3); margin: 8px 0; }
+.px-note { margin-top: 10px; }
+@media (max-width: 560px) { .px { padding: 16px; border-radius: 16px; } .px-form { grid-template-columns: 1fr; } .px-form .btn-pill { grid-column: 1; } }
+
 /* การ์ดลิงก์ */
 .sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin: 14px 0 8px; }
 .sp-card { display: flex; flex-direction: column; gap: 4px; background: var(--bg-alt); border-radius: 18px; padding: 16px 18px; color: var(--ink); transition: transform .2s var(--ease), box-shadow .2s; }

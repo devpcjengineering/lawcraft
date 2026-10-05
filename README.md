@@ -25,6 +25,10 @@ npm start          # http://localhost:3000     (หรือดับเบิ�
     - สร้างตาราง/นโยบาย/bucket: `supabase/migrations/20261006000000_case_sharing.sql` (รัน: `npx supabase db query --linked --project-ref <ref> -f <ไฟล์>`)
     - อีเมลแจ้งผู้ที่ถูกเชิญ: Edge Function `invite-email` (ส่งผ่าน Resend จาก alert@law-craft.co, เทมเพลต `supabase/functions/invite-email/template.js`, พรีวิว/ทดสอบ `node test/invite-email.mjs <โฟลเดอร์>`) — ตั้ง secret ด้วย `npx supabase secrets set RESEND_API_KEY=… MAIL_FROM=alert@law-craft.co MAIL_FROM_FALLBACK=<ผู้ส่งที่ยืนยันแล้ว> APP_URL=https://www.law-craft.co --project-ref <ref>` (ห้ามใส่คีย์ในไฟล์ · โดเมนผู้ส่งต้องเพิ่ม/ยืนยันใน resend.com/domains — ถ้ายังไม่ยืนยัน ฟังก์ชันถอยไปใช้ MAIL_FROM_FALLBACK อัตโนมัติ) · deploy: `npx supabase functions deploy invite-email --project-ref <ref> --use-api` · ส่งได้เฉพาะเจ้าของคดีและเฉพาะอีเมลที่เชิญไว้ ซ้ำถึงคนเดิมได้ทุก 2 นาที
     - ทดสอบสิทธิ์ (ต้องล็อกอิน supabase CLI): `node test/sharing-rls.mjs` (รัน SQL ในธุรกรรมที่ยกเลิกเอง ไม่แก้ฐานข้อมูล) · `node test/sharing-e2e.mjs` (ผู้ใช้ชั่วคราว 3 คน + Storage + ลิงก์ดู แล้วลบทิ้ง)
+- **ค้นหา/อ่านฎีกา (Aiven for PostgreSQL)** — หน้า `/precedents/` มีช่องค้นหาฎีกาทั้งคลัง ใครก็อ่านได้ ไม่ต้องสมัคร:
+  - ข้อมูลอยู่ที่ Aiven (ตาราง `precedents_full`; โหลดด้วย `scripts/deka/load-aiven.mjs` ดู `scripts/deka/README.md`); เว็บเรียกผ่าน `api/precedents.js` ด้วยบทบาท `lawcraft_reader` (SELECT อย่างเดียว)
+  - **ตั้งค่าบน Vercel** (Settings → Environment Variables): `AIVEN_READER_URL` = สตริงเชื่อมต่อของ `lawcraft_reader` (ดูใน `.env` ในเครื่อง/ไฟล์ `aiven-reader.url`) · `AIVEN_CA` (ไม่บังคับ: PEM ของ Aiven; ไม่ตั้งใช้ตัวที่ฝังใน `api/_aiven-ca.js`) แล้ว redeploy — ยังไม่ตั้ง = ช่องค้นหาแจ้งว่าระบบยังไม่พร้อม
+  - ในเครื่อง: รหัสผ่านอยู่ใน `.env` (ถูก `.gitignore`; ตัวอย่างตัวแปร `AIVEN_DATABASE_URL`, `AIVEN_READER_URL`, `AIVEN_CA_FILE`) · ทดสอบ: `node test/precedents-api.mjs`, `node test/deka-map.mjs`
 
 ## โครงสร้าง
 | ส่วน | ที่อยู่ |

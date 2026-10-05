@@ -440,6 +440,21 @@ ${fees.items.map((f) => `<tr><th scope="row">${esc(f.title)}${f.verified === fal
     <h1>ฎีกาที่เกี่ยวข้องกับข้อหาและมูลคดี</h1>
     <p class="sp-lead">รวบรวมสรุปแนวคำวินิจฉัยของศาลฎีกา ${fmt(precs.length)} รายการที่เว็บไซต์เก็บไว้ประกอบการร่างคำฟ้อง จัดตามหมวดข้อหา — เป็นสรุปโดยเว็บไซต์ ควรตรวจกับต้นฉบับจากแหล่งทางการก่อนอ้างอิง</p>
     <p class="sp-bar"><a class="link-arrow" href="/laws/">ข้อกฎหมายและมาตรา</a><a class="link-arrow" href="/articles/">บทความ</a></p>
+    <section class="px" id="pxSearch" aria-labelledby="pxT">
+      <h2 id="pxT">ค้นหาฎีกาจากคลังคำพิพากษาศาลฎีกา</h2>
+      <p class="fine">ค้นจากคำพิพากษาย่อที่ศาลเผยแพร่ ด้วยคำสำคัญ เลขฎีกา (เช่น 10029/2560) หรือกรองตามปีและประเภทคดี — อ่านได้ทุกคน ไม่ต้องสมัครสมาชิก</p>
+      <form class="px-form" role="search" action="/precedents/" method="get">
+        <input type="search" name="q" maxlength="200" autocomplete="off" placeholder="เช่น มรดก ที่ดิน · ฉ้อโกง · เช็ค · 10029/2560" aria-label="คำค้นฎีกา">
+        <button class="btn-pill primary" type="submit">ค้นหา</button>
+        <div class="px-filters">
+          <select name="year" aria-label="ปี พ.ศ."><option value="">ทุกปี</option></select>
+          <select name="type" aria-label="ประเภทคดี"><option value="">ทุกประเภท</option><option>อาญา</option><option>แพ่ง</option><option>แพ่งและอาญา</option></select>
+        </div>
+      </form>
+      <p class="px-chips">ลองค้น: ${['มรดก', 'ที่ดิน', 'ฉ้อโกง', 'ยักยอก', 'หมิ่นประมาท', 'เช็ค', 'ละเมิด', 'ค่าจ้าง'].map((w) => `<button type="button" class="px-chip" data-q="${w}">${w}</button>`).join('')}</p>
+      <div id="pxResults" aria-live="polite"><noscript><p class="fine">การค้นหาฎีกาต้องเปิดใช้ JavaScript</p></noscript></div>
+    </section>
+    <script type="module" src="/site/precedent-search.js"></script>
     <div class="note warn"><p><b>ข้อสงวน</b> — เนื้อหาในแต่ละหน้าเป็นเพียงสรุปประเด็น/แนวคำวินิจฉัยที่เราเรียบเรียงเอง ไม่ใช่ข้อความคำพิพากษาฉบับเต็ม ${fmt(precs.filter((p) => p.verified === false).length)} รายการยังไม่ผ่านการตรวจกับแหล่งอ้างอิง (ระบุป้ายไว้ในหน้าของแต่ละฎีกา)</p></div>
     ${order.filter((k) => group.has(k)).map((k) => `<h2>${esc(k)}</h2>${[...group.get(k).entries()].sort((a, b) => b[1].length - a[1].length).map(([cat, arr]) => `<h3>${esc(cat)} <small class="fine">(${fmt(arr.length)})</small></h3>
     <ul class="sp-links">${arr.sort((x, y) => (y.year || 0) - (x.year || 0)).map((p) => `<li>${A(precPath(p), `<b class="w">${esc(p.no)}</b><span>${esc(trunc(p.topic, 90))}</span>`)}</li>`).join('')}</ul>`).join('\n')}`).join('\n')}
@@ -692,12 +707,13 @@ function injectHome({ dist, site, items, provs, lawIds, lawSlug, lawClean, lawSh
       <header class="sec-head">
         <p class="eyebrow">สารบัญข้อมูลกฎหมาย</p>
         <h2 id="dirTitle">ข้อมูลกฎหมายทั้งหมด.<br>แยกเป็นหน้า ค้นง่าย.</h2>
-        <p class="lead">มาตรา ระวางโทษ อายุความ เขตอำนาจศาลรายจังหวัด และขั้นตอนฟ้องคดี — เปิดอ่านได้ทุกหน้า แชร์ลิงก์ได้</p>
+        <p class="lead">มาตรา ระวางโทษ อายุความ เขตอำนาจศาลรายจังหวัด ขั้นตอนฟ้องคดี และฎีกา — เปิดอ่านได้ทุกหน้า แชร์ลิงก์ได้</p>
       </header>
       <div class="sp-grid">
         <a class="sp-card" href="/laws/"><b>ข้อกฎหมายและมาตรา</b><span>${fmt(items.length)} มาตรา จาก ${fmt(lawIds.length)} ฉบับ พร้อมระวางโทษ อายุความ</span><small>ดูทั้งหมด ›</small></a>
         <a class="sp-card" href="/jurisdiction/"><b>เขตอำนาจศาล</b><span>ศาลที่รับฟ้องรายอำเภอ/เขต ${fmt(provs.length)} จังหวัด พร้อมเบอร์โทรศัพท์ศาล</span><small>ดูทั้งหมด ›</small></a>
         <a class="sp-card" href="/procedure/"><b>ขั้นตอนฟ้องคดี</b><span>จากยื่นฟ้องถึงคำพิพากษา และ ${fmt(procSections.length)} มาตราวิธีพิจารณาที่ใช้บ่อย</span><small>ดูทั้งหมด ›</small></a>
+        <a class="sp-card" href="/precedents/"><b>ฎีกา</b><span>สรุปแนวฎีกา ${fmt(precs.length)} รายการ จัดตามข้อหาและมูลคดี</span><small>ดูทั้งหมด ›</small></a>
       </div>
       ${popular.length ? `<h3>ข้อหาที่ค้นหาบ่อย</h3>
       <ul class="sp-links">${popular.map((it) => `<li><a href="${itemSlugPath(it)}"><b>ม.${esc(it.section)}</b><span>${esc(trunc(it.name, 60))} <small class="fine">${esc(lawShort(it.lawId))}</small></span></a></li>`).join('')}</ul>` : ''}
@@ -705,7 +721,7 @@ function injectHome({ dist, site, items, provs, lawIds, lawSlug, lawClean, lawSh
       <ul class="provgrid">${lawsWithPage.map((l) => `<li><a href="/laws/${lawSlug.get(l)}/"><span>${esc(lawShort(l))}</span><small>${fmt(itemsByLaw.get(l).length)} มาตรา</small></a></li>`).join('')}</ul>
       <h3>เขตอำนาจศาลตามจังหวัด</h3>
       <ul class="provgrid">${provs.map((p) => `<li><a href="${provPath(p)}"><span>${esc(p.name)}</span><small>${fmt(p.nDist)} ${p.W.d}</small></a></li>`).join('')}</ul>
-      <p class="actions" style="justify-content:flex-start"><a class="link-arrow" href="/jurisdiction/">เขตอำนาจศาลทุกจังหวัด</a><a class="link-arrow" href="/laws/">ข้อกฎหมายทั้งหมด</a><a class="link-arrow" href="/procedure/">ขั้นตอนฟ้องคดี</a></p>
+      <p class="actions" style="justify-content:flex-start"><a class="link-arrow" href="/jurisdiction/">เขตอำนาจศาลทุกจังหวัด</a><a class="link-arrow" href="/laws/">ข้อกฎหมายทั้งหมด</a><a class="link-arrow" href="/procedure/">ขั้นตอนฟ้องคดี</a><a class="link-arrow" href="/precedents/">ฎีกาทั้งหมด</a></p>
     </div>
   </section>`;
   const title = 'Law Craft · สำนักงานกฎหมาย ลอว์คราฟต์ Law Craft Legal Consultants';

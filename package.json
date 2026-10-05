@@ -7,12 +7,15 @@
   "scripts": {
     "start": "node server/index.js",
     "build": "node scripts/build-static.js",
-    "test": "node test/smoke.mjs",
+    "test": "node test/smoke.mjs && node test/followup.mjs && node test/digits.mjs && node test/frontfit.mjs && node test/seo.mjs && node test/deka-map.mjs && node test/precedents-api.mjs",
     "build:edge": "node server/build-edge.js"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.2",
     "docx": "^9.8.1",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "pg": "^8.23.1"
   },
   "engines": {
     "node": ">=20"

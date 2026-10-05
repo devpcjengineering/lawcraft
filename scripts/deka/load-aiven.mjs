@@ -18,6 +18,9 @@ import crypto from 'node:crypto';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { mapRow } from './precedent-map.mjs';
+import { loadEnv } from '../load-env.mjs';
+
+loadEnv(); // อ่าน AIVEN_DATABASE_URL / AIVEN_CA_FILE จาก .env ที่รากโปรเจกต์ (ไม่ถูก commit) ถ้ายังไม่ได้ตั้งใน environment
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const args = {};
@@ -72,6 +75,8 @@ async function runSchema(c, part) {
 }
 
 async function createReader(c) {
+  // ถ้าฐานถูก Aiven ล็อกเป็นอ่านอย่างเดียวเพราะดิสก์ใกล้เต็ม: ปิดแฟล็กเฉพาะเซสชันนี้ (วิธีที่เอกสาร Aiven ให้ผู้ดูแลใช้) — การสร้าง role เขียนข้อมูลน้อยมาก ไม่ได้โหลดข้อมูลเพิ่ม
+  await c.query('set default_transaction_read_only = off');
   const name = 'lawcraft_reader';
   const exists = (await c.query('select 1 from pg_roles where rolname=$1', [name])).rowCount > 0;
   const pass = crypto.randomBytes(24).toString('base64url');
