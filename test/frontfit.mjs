@@ -39,14 +39,15 @@ for (const type of ['criminal', 'civil']) {
   assert.ok(flip && !flip.note, `${type}: (พลิก) ไม่มีหมายเหตุ`);
   assert.match(ft, /ด้วย โจทก์ โดย .+ ทนายความ โจทก์ อ้าง/, `${type}: ด้วย โจทก์ โดย … ทนายความ …`);
   assert.match(ft, /ตามรายละเอียดท้าย(หมาย|คำสั่ง)นี้/, `${type}: ใบรับ`);
-  // ด้านหลัง: คำเตือน (ขีดเส้นใต้ ตัวหนา กลาง) → คำเตือน → หัวข้อรายละเอียด → รายการ (๑)… → เส้นประ
+  // ด้านหลัง: คำเตือน (ขีดเส้นใต้ ตัวหนา กลาง) → คำเตือน → หัวข้อรายละเอียด → รายการ (๑)… (กึ่งกลาง ไม่มีเส้นประ)
   assert.deepEqual([back[0].t, back[0].text, back[0].u, back[0].b], ['center', 'คำเตือน', true, true]);
   const head = back.find((b) => b.t === 'center' && /รายละเอียดที่ต้องจัดส่ง/.test(b.text));
   assert.equal(head.text, `รายละเอียดที่ต้องจัดส่งพยานหลักฐานตาม${type === 'civil' ? 'คำสั่งเรียก' : 'หมายเรียก'}ฉบับนี้`);
   assert.ok(head.u && head.b);
   const items = back.filter((b) => b.t === 'p' && /^\(๑\)|^\(๒\)/.test(plain(b)));
   assert.equal(items.length, 2, `${type}: รายการ (๑) (๒)`);
-  assert.ok(back.some((b) => b.t === 'lines'));
+  assert.ok(!back.some((b) => b.t === 'lines'), `${type}: ไม่มีเส้นประท้ายรายการ`);
+  assert.ok(items.every((b) => b.align === 'center'), `${type}: รายการจัดกึ่งกลาง`);
   assert.ok(back.indexOf(head) < back.indexOf(items[0]), 'หัวข้อรายละเอียดมาก่อนรายการ');
 }
 assert.ok(!/ดังกล่าวแล้ว/.test(defaultFormText('wsum.item.deliver.criminal') + defaultFormText('wsum.item.deliver.civil')), 'แม่แบบ deliver ไม่มี “ดังกล่าวแล้ว”');

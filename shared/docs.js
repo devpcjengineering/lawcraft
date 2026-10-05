@@ -560,8 +560,7 @@ function witnessSummonsDoc(c, data, g) {
     p([t(ft(crim ? 'wsum.item.warn.criminal' : 'wsum.item.warn.civil'))], { indent: 1.5, justify: true, gap: true }),
     { t: 'rule' },
     { t: 'center', text: `รายละเอียดที่ต้องจัดส่งพยานหลักฐานตาม${crim ? 'หมายเรียก' : 'คำสั่งเรียก'}ฉบับนี้`, u: true, b: true },
-    ...items.map((x, i) => p([t(items.length > 1 ? `(${i + 1}) ` : ''), val(x)], { indent: 0, justify: true })),
-    { t: 'lines', n: Math.max(3, 12 - items.length) },
+    ...items.map((x, i) => p([t(items.length > 1 ? `(${i + 1}) ` : ''), val(x)], { indent: 0, align: 'center' })),
   );
   return { id: g.id, title: g.title, fitFront: true, blocks };
 }

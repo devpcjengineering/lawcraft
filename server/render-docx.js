@@ -173,14 +173,14 @@ function blockToDocx(b) {
       while (rows.length < (b.minRows || 0)) rows.push(b.head.map(() => ''));
       const bd = { top: LINE, bottom: LINE, left: LINE, right: LINE };
       const mkCell = (t, i, head) => new TableCell({
-        borders: bd, width: { size: b.widths[i], type: WidthType.PERCENTAGE }, verticalAlign: head ? VerticalAlign.CENTER : VerticalAlign.TOP,
-        children: [new Paragraph({ alignment: head || i === 0 ? AlignmentType.CENTER : AlignmentType.LEFT, children: [txt(String(t ?? ''), { size: head ? Math.max(20, fz() - 4) : fz(), bold: !!head })] })],
+        borders: bd, width: { size: b.widths[i], type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER,
+        children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [txt(String(t ?? ''), { size: head ? Math.max(20, fz() - 4) : fz(), bold: !!head })] })],
       });
       return [new Table({
         width: { size: 100, type: WidthType.PERCENTAGE }, layout: TableLayoutType.FIXED,
         rows: [
           new TableRow({ tableHeader: true, children: b.head.map((h, i) => mkCell(h, i, true)) }),
-          ...rows.map((r) => new TableRow({ height: { value: 520, rule: 'atLeast' }, children: r.map((x, i) => mkCell(x, i, false)) })),
+          ...rows.map((r) => new TableRow({ cantSplit: true, height: { value: 520, rule: 'atLeast' }, children: r.map((x, i) => mkCell(x, i, false)) })),
         ],
       }), para([], { after: 80, opts: paraMark() })];
     }

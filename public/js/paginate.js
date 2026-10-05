@@ -44,6 +44,16 @@ function atomsOf(sec, base, doc, limit = Infinity) {
     kids.push({ top: rect.top - base, mt: parseFloat(doc.defaultView.getComputedStyle(el).marginTop) || 0 });
     // ตัวคั่นหน้า (.pb จากบล็อก pagebreak, เช่น ด้านหลังหมายเรียกพยาน “คำเตือน”): อะตอมสูง 0 ที่บังคับให้อะตอมถัดไปขึ้นแผ่นใหม่
     if (el.classList.contains('pb')) { const y = rect.top - base; atoms.push({ top: y, bottom: y, cy: y, line: false, brk: true, pid, k: 0, n: 1 }); continue; }
+    // ตาราง (บัญชีพยาน): แยกเป็นอะตอมรายแถว ให้ไหลต่อจากหัวเอกสารในแผ่นแรก ล้นแล้วค่อยขึ้นแผ่นถัดไป (แถวแรกรวมแถวหัวตาราง; แผ่นต่อไปซ้ำแถวหัวตาราง)
+    const trs = el.matches('table.tbl') && rect.height > 0 ? [...el.tBodies[0].rows] : [];
+    if (trs.length) {
+      const hdr = el.tHead.getBoundingClientRect().height;
+      trs.forEach((tr, ri) => {
+        const q = tr.getBoundingClientRect(), top = (ri ? q.top : rect.top) - base, bottom = q.bottom - base;
+        atoms.push({ top, bottom, cy: (top + bottom) / 2, line: false, pid, k: 0, n: 1, ri, hdr });
+      });
+      continue;
+    }
     if (el.matches('p.p') && rect.height > 0) {
       const lines = lineBoxes(el, doc);
       if (lines.length) { lines.forEach((l, k) => atoms.push({ top: l.top - base, bottom: l.bottom - base, cy: l.cy - base, line: true, base: l.base - base, fs: l.fs, lh: l.lh, low: l.low, pid, k, n: lines.length })); continue; }
@@ -73,13 +83,14 @@ function cutBetween(p, a) {
 function breakPoints(atoms, H) {
   if (!atoms.length) return [{ start: 0, end: H }];
   const startOf = (ps) => (ps === 0 ? 0 : cutBetween(atoms[ps - 1], atoms[ps]));
+  const hdrOf = (ps) => (atoms[ps].ri > 0 ? atoms[ps].hdr : 0); // แผ่นที่เริ่มกลางตาราง ต้องเผื่อที่ซ้ำแถวหัวตาราง
   const endOf = (i) => (i + 1 < atoms.length ? cutBetween(atoms[i], atoms[i + 1]) : Math.max(atoms[i].bottom + PAD, atoms[i].low ? atoms[i].base + 0.43 * atoms[i].fs + 1 : 0));
   const starts = [0];
   let i = 0, ps = 0; // ps = ดัชนีอะตอมแรกของแผ่นปัจจุบัน
   while (i < atoms.length) {
     if (i - 1 > ps && atoms[i - 1].brk) { starts.push(i); ps = i; continue; } // ตัวคั่นหน้า: อะตอมนี้ขึ้นแผ่นใหม่
     // แผ่นที่ลงถึงอะตอม i ยังพอดีหรือไม่
-    if (i > ps && endOf(i) - startOf(ps) > H) {
+    if (i > ps && endOf(i) - startOf(ps) + hdrOf(ps) > H) {
       let b = i; // อะตอม i ต้องขึ้นแผ่นใหม่
       const a = atoms[b], prev = atoms[b - 1];
       if (prev && a.pid === prev.pid && a.n >= 3 && b - 1 > ps) {
@@ -93,7 +104,7 @@ function breakPoints(atoms, H) {
   return starts.map((b, s) => {
     const e = (starts[s + 1] ?? atoms.length) - 1;
     const top = startOf(b);
-    return { start: top, end: Math.min(endOf(e), top + H), b, e }; // b..e = ช่วงอะตอมของแผ่นนี้
+    return { start: top, end: Math.min(endOf(e), top + H - hdrOf(b)), b, e, hdr: hdrOf(b) }; // b..e = ช่วงอะตอมของแผ่นนี้
   });
 }
 
@@ -113,7 +124,8 @@ function sheetsOf(sec, doc) {
     sheet.dataset.of = String(pages.length);
     const clip = doc.createElement('div');
     clip.className = 'flow-clip';
-    const bodyH = Math.max(1, round2(pg.end - pg.start)); // ไม่ปัดเป็นจำนวนเต็ม: ปัดแล้วหน้าต่างตัดเลื่อนได้ถึง 0.5px ซึ่งกินช่องว่างระหว่างบรรทัดที่มีแค่ ~5px
+    const hdr = pg.hdr || 0; // แผ่นต่อของตาราง: ที่สำหรับแถวหัวตารางที่ซ้ำ (ทุกอย่างในแผ่นเลื่อนลงเท่านี้)
+    const bodyH = Math.max(1, round2(pg.end - pg.start + hdr)); //ไม่ปัดเป็นจำนวนเต็ม: ปัดแล้วหน้าต่างตัดเลื่อนได้ถึง 0.5px ซึ่งกินช่องว่างระหว่างบรรทัดที่มีแค่ ~5px
     if (i === 0) { clip.style.top = '0'; clip.style.paddingTop = `${padT}px`; clip.style.height = `${round2(bodyH + padT)}px`; } // แผ่นแรก: เห็นขอบบนกระดาษด้วย (ตราครุฑเลื่อนขึ้นไปในขอบได้)
     else clip.style.height = `${bodyH}px`;
     const flow = doc.createElement('div');
@@ -125,7 +137,13 @@ function sheetsOf(sec, doc) {
     for (const [ci, ch] of [...sec.children].entries()) {
       if (ci + 1 < a0 || ci + 1 > a1) continue;
       const cl = ch.cloneNode(true);
-      cl.style.top = `${round2(kids[ci].top - kids[ci].mt - pg.start)}px`; // ขอบบนของกล่อง = top + margin-top → หัก margin-top ออกให้ขอบบนตรงตำแหน่งที่วัดไว้
+      cl.style.top = `${round2(kids[ci].top - kids[ci].mt - pg.start + hdr)}px`; // ขอบบนของกล่อง = top + margin-top → หัก margin-top ออกให้ขอบบนตรงตำแหน่งที่วัดไว้
+      if (cl.matches?.('table.tbl')) {
+        // เก็บเฉพาะแถวที่อยู่ในแผ่นนี้; แผ่นต่อ = แถวหัวตารางซ้ำที่ขอบบนของแผ่น แล้วตามด้วยแถวต่อเนื่อง
+        const mine = atoms.slice(pg.b, pg.e + 1).filter((x) => x.pid === ci + 1).map((x) => x.ri);
+        [...cl.tBodies[0].rows].forEach((tr, ri) => { if (ri < mine[0] || ri > mine[mine.length - 1]) tr.remove(); });
+        if (mine[0] > 0) cl.style.top = `${-kids[ci].mt}px`;
+      }
       if (cl.classList?.contains('pb')) cl.style.breakAfter = 'auto'; // แบ่งหน้าแล้ว ไม่ต้องให้ตัวพิมพ์แบ่งซ้ำ
       flow.appendChild(cl);
     }
