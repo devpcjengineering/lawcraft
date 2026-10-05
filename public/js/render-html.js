@@ -78,7 +78,15 @@ function blockHtml(b, doc) {
       while (rows.length < (b.minRows || 0)) rows.push(b.head.map(() => ''));
       return `<table class="tbl"><colgroup>${b.widths.map((w) => `<col style="width:${w}%">`).join('')}</colgroup>
         <thead><tr>${b.head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead>
-        <tbody>${rows.map((r) => `<tr>${r.map((cell, i) => `<td>${esc(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+        <tbody>${rows.map((r) => `<tr>${r.map((cell, i) => {
+          let val = cell;
+          let cls = '';
+          if (cell && typeof cell === 'object' && cell.text !== undefined) {
+            val = cell.text;
+            if (cell.small) cls = ' class="small"';
+          }
+          return `<td${cls}>${esc(val)}</td>`;
+        }).join('')}</tr>`).join('')}</tbody></table>`;
     }
     case 'pagebreak': return '<div class="pb"></div>';
     default: return '';

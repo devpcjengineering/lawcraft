@@ -304,7 +304,13 @@ function witnessTableRows(c, list) {
     // ชื่อพยานบุคคล = ชื่อ + ตำแหน่ง/ยศ (ถ้ามี) ; เอกสาร/วัตถุ: ผู้ครอบครอง + ตำแหน่ง ขึ้นก่อนที่อยู่ — ส่วนที่ว่างข้ามไป ไม่เหลือช่องว่าง/จุลภาคลอย
     const address = item ? [who.name, who.pos, witnessAddrText(w)].filter(Boolean).join(' ') : witnessAddrText(w);
     const auto = c.docs?.witnessSummons === false || w.self ? '' : witnessWantsSummons(w) ? 'หมายเรียก' : 'นำ';
-    return [String(no), item ? w.name + (kind === 'object' ? ' (พยานวัตถุ)' : ' (พยานเอกสาร)') : [w.name, who.pos].filter((x) => String(x ?? '').trim()).join(' '), address || '', String(w.note || '').trim() || auto];
+    const nameCol = item ? w.name + (kind === 'object' ? ' (พยานวัตถุ)' : ' (พยานเอกสาร)') : [w.name, who.pos].filter((x) => String(x ?? '').trim()).join(' ');
+    return [
+      String(no),
+      nameCol.length > 45 ? { text: nameCol, small: true } : nameCol,
+      address && address.length > 45 ? { text: address, small: true } : (address || ''),
+      String(w.note || '').trim() || auto
+    ];
   });
 }
 const WITNESS_TABLE_HEAD = ['อันดับ', 'ชื่อและสกุลพยาน', 'บ้านเลขที่ หมู่ที่ ถนน ซอย ตำบล/แขวง อำเภอ/เขต จังหวัด', 'หมายเหตุ'];
@@ -513,7 +519,7 @@ function witnessSummonsDoc(c, data, g) {
       { t: 'flip' },
       { t: 'rule' },
       { t: 'center', text: 'ใบรับหมายเรียกพยานบุคคล', u: true },
-      p([t(BLANK_DATE + ' ข้าพเจ้า '), val(name), ...(pos ? [t(' ตำแหน่ง '), val(pos)] : []), t(' ได้รับหมายเรียกพยานของศาล'), courtVal, t(' ซึ่งได้กำหนดให้ข้าพเจ้าไปเบิกความเป็นพยาน ในคดีระหว่าง '), val(pName), t(' โจทก์ '), val(allD), t(' จำเลย'), ...whenRuns(h.hd, h.time, 8), t(' ไว้แล้ว')], { indent: 1.5, justify: true }),
+      p([t(BLANK_DATE + ' ข้าพเจ้า '), val(name), ...(pos ? [t(' '), val(pos)] : []), t(' ได้รับหมายเรียกพยานของศาล'), courtVal, t(' ซึ่งได้กำหนดให้ข้าพเจ้าไปเบิกความเป็นพยาน ในคดีระหว่าง '), val(pName), t(' โจทก์ '), val(allD), t(' จำเลย'), ...whenRuns(h.hd, h.time, 8), t(' ไว้แล้ว')], { indent: 1.5, justify: true }),
       sigBlock([{ label: 'ผู้รับหมาย', name: '' }, { label: 'ผู้ส่งหมาย', name: '' }], true),
       { t: 'pagebreak' },
       { t: 'center', text: 'คำเตือนพยาน', u: true, b: true },
@@ -549,7 +555,7 @@ function witnessSummonsDoc(c, data, g) {
     { t: 'flip' },
     { t: 'rule' },
     { t: 'center', text: `ใบรับ${crim ? 'หมายเรียก' : 'คำสั่งเรียก'}พยานเอกสารหรือพยานวัตถุ`, u: true },
-    p([t(BLANK_DATE + ' ข้าพเจ้า '), holderName ? val(holderName) : dots(24), ...(holderPos ? [t(' ตำแหน่ง '), val(holderPos)] : []), t(` ได้รับ${crim ? 'หมายเรียก' : 'คำสั่งเรียก'}พยานเอกสารหรือพยานวัตถุของศาล`), courtVal, t(' ซึ่งได้กำหนดให้ข้าพเจ้าส่ง '),
+    p([t(BLANK_DATE + ' ข้าพเจ้า '), holderName ? val(holderName) : dots(24), ...(holderPos ? [t(' '), val(holderPos)] : []), t(` ได้รับ${crim ? 'หมายเรียก' : 'คำสั่งเรียก'}พยานเอกสารหรือพยานวัตถุของศาล`), courtVal, t(' ซึ่งได้กำหนดให้ข้าพเจ้าส่ง '),
       val(kindLabel), t(`ตามรายละเอียดท้าย${mark}นี้`),
       t(' ไปประกอบการพิจารณา ในคดีระหว่าง '), val(pName), t(' โจทก์ '), val(allD), t(' จำเลย ก่อน'), ...dateRuns(h.hd), t(' ไว้แล้ว')], { indent: 1.5, justify: true }),
     sigBlock([{ label: `ผู้รับ${mark}`, name: '' }, { label: `ผู้ส่ง${mark}`, name: '' }], true),

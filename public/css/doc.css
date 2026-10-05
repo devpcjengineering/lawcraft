@@ -74,7 +74,9 @@
 .page .tbl { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; table-layout: fixed; }
 .page .tbl th, .page .tbl td { border: 1px solid #000; padding: 1.5mm 2mm; vertical-align: middle; text-align: center; font-weight: 400; }
 .page .tbl th { font-weight: 700; line-height: 1.1; }
-.page .tbl td { height: 10mm; border-bottom: 1px dotted #000; }
+.page .tbl td { height: 10mm; border-bottom: 1px dotted #000; word-break: break-word; }
+.page .tbl td.small { font-size: 14pt; }
+.page .tbl tr { break-inside: avoid; }
 
 @media screen {
   .page { box-shadow: 0 1px 3px rgba(0,0,0,.18), 0 8px 24px rgba(0,0,0,.08); margin: 0 auto 18px; }

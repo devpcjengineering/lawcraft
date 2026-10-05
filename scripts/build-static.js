@@ -127,7 +127,7 @@ ${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/?a=${encodeURIComponent(
   const host = new URL(SITE).hostname;
   const catalog = {
     specVersion: '1.0',
-    host: { displayName: 'Law Craft Legal Consultants', identifier: host },
+    host: { displayName: 'Law Craft Legal Consultants', identifier: `did:web:${host}` },
     entries: [{
       identifier: `urn:air:${host}:knowledge:site-overview`,
       displayName: 'Law Craft — ภาพรวมเว็บไซต์และรายการบทความ',

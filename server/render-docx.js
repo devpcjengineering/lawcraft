@@ -172,10 +172,18 @@ function blockToDocx(b) {
       const rows = [...b.rows];
       while (rows.length < (b.minRows || 0)) rows.push(b.head.map(() => ''));
       const bd = { top: LINE, bottom: LINE, left: LINE, right: LINE };
-      const mkCell = (t, i, head) => new TableCell({
-        borders: bd, width: { size: b.widths[i], type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER,
-        children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [txt(String(t ?? ''), { size: head ? Math.max(20, fz() - 4) : fz(), bold: !!head })] })],
-      });
+      const mkCell = (t, i, head) => {
+        let size = head ? Math.max(20, fz() - 4) : fz();
+        let textStr = String(t ?? '');
+        if (t && typeof t === 'object' && t.text !== undefined) {
+          textStr = String(t.text ?? '');
+          if (t.small) size = Math.max(20, fz() - 4);
+        }
+        return new TableCell({
+          borders: bd, width: { size: b.widths[i], type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER,
+          children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [txt(textStr, { size, bold: !!head })] })],
+        });
+      };
       return [new Table({
         width: { size: 100, type: WidthType.PERCENTAGE }, layout: TableLayoutType.FIXED,
         rows: [
