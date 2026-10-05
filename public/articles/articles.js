@@ -127,7 +127,7 @@ const calloutLabel = { warn: 'ข้อควรระวัง', tip: 'คำ�
 
 function sectionHtml(s) {
   const call = s.callout ? `<aside class="ar-callout ${esc(s.callout.type)}" role="note"><b>${esc(calloutLabel[s.callout.type] || 'หมายเหตุ')}</b><p>${esc(s.callout.text)}</p></aside>` : '';
-  const tbl = s.table ? `<div class="ar-table"><table><thead><tr>${s.table.head.map((h) => `<th scope="col">${esc(h)}</th>`).join('')}</tr></thead><tbody>${s.table.rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : '';
+  const tbl = s.table ? `<div class="ar-table"><table><thead><tr>${s.table.head.map((h) => `<th scope="col">${esc(h)}</th>`).join('')}</tr></thead><tbody>${s.table.rows.map((r) => `<tr>${r.map((c, i) => `<td data-label="${esc(s.table.head[i] || '')}">${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : '';
   return `<section id="${esc(s.id)}" class="ar-sec"><h2>${esc(s.heading)}</h2>
     ${(s.paragraphs || []).map((p) => `<p>${esc(p)}</p>`).join('')}
     ${s.bullets?.length ? `<ul>${s.bullets.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>` : ''}

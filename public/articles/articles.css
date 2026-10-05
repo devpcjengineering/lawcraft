@@ -309,3 +309,15 @@
   .ar-table th, .ar-table td { min-width: 8.5em; padding: 10px 12px; }
   .ar-table.pv-table td:first-child { min-width: 7em; }
 }
+/* มือถือ (≤700px): ตารางในบทความเป็นการ์ดซ้อนแนวตั้ง ไม่ต้องเลื่อนซ้ายขวา (data-label ใส่ใน articles.js) */
+@media (max-width: 700px) {
+  .ar-table { overflow: visible; box-shadow: none; border-radius: 0; }
+  .ar-table table, .ar-table tbody, .ar-table tr, .ar-table td { display: block; min-width: 0 !important; width: 100%; }
+  .ar-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ar-table tbody tr { margin: 0 0 12px; padding: 6px 0; border-radius: 14px; background: var(--card, var(--bg-alt)); box-shadow: 0 0 0 1px var(--line) inset; }
+  .ar-table td { padding: 8px 16px !important; border-bottom: 0; white-space: normal !important; }
+  .ar-table td + td { border-top: 1px dashed color-mix(in srgb, var(--line) 80%, transparent); }
+  .ar-table td[data-label]:not([data-label=""])::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 12.5px; font-weight: 650; color: var(--ink-3, var(--muted)); }
+  .ar-table td:first-child { font-weight: 600; }
+  .ar-table td:first-child[data-label]::before { display: none !important; }
+}

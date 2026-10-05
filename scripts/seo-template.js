@@ -97,6 +97,23 @@ export function makeTemplate({ site, chrome }) {
   const breadcrumbHtml = (crumbs) => `<nav class="bc" aria-label="เส้นทางหน้า"><ol>${crumbs.map(([n, p], i) => (i === crumbs.length - 1 ? `<li><span aria-current="page">${esc(n)}</span></li>` : `<li><a href="${p}">${esc(n)}</a></li>`)).join('')}</ol></nav>`;
 
   /** หน้าเต็ม — page: {path,title,description,crumbs,nav,main,faq?,lastmod} */
+  /** ตาราง → ใส่ data-label ให้ทุกเซลล์ (ชื่อคอลัมน์) เพื่อให้มือถือแสดงเป็นการ์ดซ้อนแนวตั้งแทนการเลื่อนซ้ายขวา (CSS ใน site/seo.css) */
+  const stackTables = (html) => html.replace(/<table[\s\S]*?<\/table>/g, (t) => {
+    const thead = /<thead[\s\S]*?<\/thead>/.exec(t)?.[0] || '';
+    const head = [...thead.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/g)].map((m) => m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim());
+    if (!head.length) return t;
+    const attr = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    return t.replace(/<tbody[\s\S]*?<\/tbody>/g, (b) => b.replace(/<tr[^>]*>[\s\S]*?<\/tr>/g, (tr) => {
+      let i = 0;
+      return tr.replace(/<(td|th)([^>]*)>/g, (m, tag, attrs) => {
+        const span = +(/colspan="?(\d+)/.exec(attrs)?.[1] || 1);
+        const lab = head[i] || '';
+        i += span;
+        return `<${tag}${attrs} data-label="${attr(lab)}">`;
+      });
+    }));
+  });
+
   const layout = (page) => {
     const url = site + page.path;
     const crumbs = [['หน้าแรก', '/'], ...page.crumbs];
@@ -153,7 +170,7 @@ ${nav(page.nav)}
 <main id="main" class="sp">
   <div class="wrap">
     ${breadcrumbHtml(crumbs)}
-    ${page.main}
+    ${stackTables(page.main)}
   </div>
 </main>
 
