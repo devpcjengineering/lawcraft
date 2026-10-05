@@ -37,7 +37,7 @@
 .page .top-r { text-align: left; font-size: var(--fs, 16pt); transform: translate(var(--cn-x, 0mm), var(--cn-y, 0mm)); }
 .page .court-use { text-align: right; text-decoration: underline; margin-bottom: 2mm; }
 .page .subtitle { text-align: center; font-weight: 700; margin: -2mm 0 2mm; }
-.page .court { text-align: center; margin: var(--ct-b, 3mm) 0 var(--ct-a, 6mm); transform: translateX(var(--ct-x, 0mm)); }
+.page .court { text-align: center; margin: var(--ct-b, 3mm) 0 var(--ct-a, 6mm); padding: 0 max(0mm, calc(var(--ct-x, 0mm) * -2)) 0 max(0mm, calc(var(--ct-x, 0mm) * 2)); } /* เลื่อนกึ่งกลางไปขวา/ซ้าย ct-x ด้วย padding (ไม่ใช้ transform) → ชื่อศาลยาวมากไม่ล้นขอบขวา */
 .page .between { display: grid; grid-template-columns: 17mm 7mm 1fr; align-items: stretch; margin: var(--bt-b, 4mm) 0 var(--bt-a, 5mm); }
 .page .bt-lab { font-weight: 700; align-self: center; text-align: right; padding-right: 2mm; }
 /* ปีกกา: กล่องปีกกาเว้นขอบบน/ล่างเท่าครึ่งความสูงบรรทัดชื่อ (--bt-half) → ปลายบนอยู่กึ่งกลางบรรทัดโจทก์ ปลายล่างอยู่กึ่งกลางบรรทัดจำเลย
@@ -109,3 +109,20 @@
 
 /* บรรทัดที่ต้องอยู่บรรทัดเดียว (หมายเหตุท้ายหมาย / ผู้รับหมาย): ตัวอักษรย่อลงเองให้พอดีความกว้าง (js/paginate.js) */
 .page .p.fit1 { white-space: nowrap; overflow: visible; text-indent: 0 !important; }
+
+/* ---------- ด้านหน้าห้ามล้น (js/paginate.js fitFront): ส่วนหน้าที่ล้นถูกย่อทั้งก้อนด้วย zoom ---------- */
+.page .fitseg { display: flow-root; }
+.page .fitin { display: flow-root; } /* zoom ใส่เป็น inline โดย paginate.js */
+/* ย่อไม่พอ → บีบระยะห่างระหว่างย่อหน้า/บล็อก (ตัวอักษรไม่ถูกบีบเพิ่ม) */
+.page .fitin.tight { line-height: 1.18; }
+.page .fitin.tight .p, .page .fitin.tight .p.gap { margin-bottom: .05em; }
+.page .fitin.tight .top { margin-bottom: 2mm; }
+.page .fitin.tight .court-use { margin-bottom: 0; }
+.page .fitin.tight .court { margin: 1mm 0 2mm; }
+.page .fitin.tight .between { margin: 1.5mm 0 2.5mm; }
+.page .fitin.tight .bt-gap { height: 3mm; }
+.page .fitin.tight .sig { margin-top: 4mm; margin-bottom: 1mm; }
+.page .fitin.tight .sig.compact { margin-top: 1.5mm; }
+.page .fitin.tight .sig-row, .page .fitin.tight .sig.compact .sig-row { margin-bottom: .5mm; }
+.page .fitin.tight .flip { margin: 1mm 0 2mm; }
+.page .fitin.tight .rule { margin: 2mm 0 1.5mm; }

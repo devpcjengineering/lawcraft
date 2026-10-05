@@ -33,11 +33,12 @@ function lineBoxes(el, doc) {
   return lines;
 }
 
-function atomsOf(sec, base, doc) {
+function atomsOf(sec, base, doc, limit = Infinity) {
   const atoms = [];
   const kids = []; // ตำแหน่งขอบบน + margin-top ของลูกแต่ละตัว (ดัชนี = pid - 1) ใช้ตอนตัดเนื้อหาให้แต่ละแผ่นเก็บเฉพาะส่วนที่เกี่ยวข้อง
   let pid = 0;
   for (const el of sec.children) {
+    if (pid >= limit) break; // จำกัดจำนวนลูกที่นำมาวัด (ใช้ตอนตรวจว่าส่วนหน้าพอดีหนึ่งแผ่นหรือไม่)
     pid++;
     const rect = el.getBoundingClientRect();
     kids.push({ top: rect.top - base, mt: parseFloat(doc.defaultView.getComputedStyle(el).marginTop) || 0 });
@@ -162,14 +163,71 @@ export function initMeasureFrame() {
  * ย่อตัวอักษรของย่อหน้า .fit1 (หมายเหตุท้ายหมาย / ที่อยู่ผู้รับหมาย) ให้ข้อความทั้งหมดอยู่บรรทัดเดียวพอดีความกว้าง — ยิ่งยาวยิ่งเล็ก
  * ย่อได้ไม่เกิน 60% ของขนาดเดิม ถ้ายาวกว่านั้นให้ตัดขึ้นบรรทัดใหม่ตามปกติ (ยังอ่านได้) ผลฝังเป็น font-size ในแท็ก จึงตรงกันทั้งตัวอย่างและ PDF
  */
+function fitOne(el, doc) {
+  el.style.fontSize = ''; el.style.whiteSpace = ''; // ล้างค่าที่ย่อไว้ก่อนหน้า (เรียกซ้ำได้เมื่อความกว้างเปลี่ยน เช่น หลังย่อส่วนหน้า)
+  const avail = el.clientWidth, need = el.scrollWidth;
+  if (!avail || need <= avail + 1) return;
+  const fs0 = parseFloat(doc.defaultView.getComputedStyle(el).fontSize) || 21;
+  const k = avail / need;
+  if (k < 0.6) { el.style.fontSize = `${(fs0 * 0.6).toFixed(2)}px`; el.style.whiteSpace = 'normal'; } else el.style.fontSize = `${(fs0 * k * 0.995).toFixed(2)}px`; // 0.995 กันเศษทศนิยมล้นขอบ
+}
 function fitOneLineParagraphs(host, doc) {
-  for (const el of host.querySelectorAll('.p.fit1')) {
-    const avail = el.clientWidth, need = el.scrollWidth;
-    if (!avail || need <= avail + 1) continue;
-    const fs0 = parseFloat(doc.defaultView.getComputedStyle(el).fontSize) || 21;
-    const k = avail / need;
-    if (k < 0.6) { el.style.fontSize = `${(fs0 * 0.6).toFixed(2)}px`; el.style.whiteSpace = 'normal'; } else el.style.fontSize = `${(fs0 * k * 0.995).toFixed(2)}px`; // 0.995 กันเศษทศนิยมล้นขอบ
-  }
+  for (const el of host.querySelectorAll('.p.fit1')) fitOne(el, doc);
+}
+
+// ---------- “ด้านหน้าห้ามล้น”: ย่อส่วนหน้าของแบบที่เป็นแผ่นหน้า + pagebreak + แผ่นหลัง (หมายเรียกพยาน) / แบบแผ่นเดียว (หมายนัดไต่สวนมูลฟ้อง) ----------
+// render-html ห่อส่วนหน้าไว้ใน <div class="fitseg"> ที่นี่วัดที่ขนาดจริง (สเกล 1) ด้วยตัวตัดหน้าเดียวกับที่ใช้จริง:
+//  - พอดีหนึ่งแผ่นอยู่แล้ว → ถอดตัวห่อออก ผลลัพธ์เหมือนเดิมทุกไบต์ (k = 1)
+//  - ล้น → ย่อด้วย CSS zoom: k ทั้งส่วน (ตัวอักษร ช่องไฟ เส้นจุด ตราครุฑ ย่อพร้อมกัน; เนื้อหากว้างขึ้น 1/k เท่าในหน่วยของตัวเอง จึงขึ้นบรรทัดใหม่น้อยลงด้วย)
+//      ขั้น 1: ระยะห่างปกติ k ∈ [0.72, 1]   ขั้น 2: ถ้ายังล้น บีบระยะห่าง/ระยะบรรทัด (.tight) k ∈ [0.72, 1]
+//      ขั้น 3: ย่อต่ำกว่า 0.72 พร้อมบีบระยะห่าง (ปกติไม่ต่ำกว่า 0.6; ถ้ายังล้นอยู่ก็ย่อต่อจนพอดี — ห้ามล้นเด็ดขาด)
+//    ใช้ zoom ไม่ใช่ transform: zoom เปลี่ยนความสูงของเลย์เอาต์จริง ส่วนที่ย่อจึงไม่ล้นกรอบหน้าตอนพิมพ์ (ลอง transform แล้ว Chrome แบ่งหน้าตามความสูงก่อนย่อ ตัดท้ายเอกสารหาย — และ overflow:hidden แก้ได้แต่ตัดตราครุฑที่เลื่อนขึ้นเหนือขอบ)
+//    (แอปนี้ใช้ CSS zoom ในพรีวิวอยู่แล้ว — เบราว์เซอร์ที่รองรับ zoom เหมือนกัน)
+//    ส่วนที่ย่อแล้วเป็นอะตอมเดียวสูงเท่ากล่องที่ย่อ (ตั้ง height ตามที่วัดหลัง zoom) จึงลงแผ่นแรกพอดีเสมอ
+const FIT_SOFT = 0.72, FIT_ABS = 0.3, FIT_PAD = 4; // FIT_PAD (px) ต่อท้ายความสูงส่วนที่ย่อ: เผื่อการปัดเศษตอนพรีวิวซูม (วัดได้ ~1.6px ที่ซูม 0.7) ไม่ให้บรรทัดสุดท้ายถูกหน้าต่างตัด
+
+function fitFront(sec, doc) {
+  const seg = [...sec.children].find((x) => x.classList?.contains('fitseg'));
+  if (!seg) return;
+  const cs = doc.defaultView.getComputedStyle(sec);
+  const padT = parseFloat(cs.paddingTop) || 0;
+  const H = PAGE_H - padT - (parseFloat(cs.paddingBottom) || 0);
+  const base = sec.getBoundingClientRect().top + padT;
+  const kids = [...seg.children];
+  // 1) พอดีอยู่แล้วหรือไม่ — ถอดตัวห่อ แล้วใช้ตัวตัดหน้าจริงกับส่วนหน้า (+ตัวคั่นหน้า): พอดี ⇔ ได้แผ่นเดียว
+  seg.replaceWith(...kids);
+  const pbNext = sec.children[kids.length]?.classList.contains('pb') ? 1 : 0;
+  if (breakPoints(atomsOf(sec, base, doc, kids.length + pbNext).atoms, H).length <= 1) return;
+  // 2) ล้น → ห่อกลับ แล้วหาสเกลที่ใหญ่ที่สุดที่พอดี
+  const inner = doc.createElement('div');
+  inner.className = 'fitin';
+  inner.append(...kids);
+  seg.textContent = '';
+  seg.append(inner);
+  sec.prepend(seg);
+  const fit1 = [...inner.querySelectorAll('.p.fit1')];
+  const apply = (k, tight) => {
+    inner.className = tight ? 'fitin tight' : 'fitin';
+    inner.style.zoom = String(k);
+    for (const el of fit1) fitOne(el, doc); // ความกว้างเปลี่ยนแล้ว → คำนวณการย่อบรรทัดเดียวใหม่ (ไม่ให้ย่อซ้อนสองชั้น)
+    seg.style.height = '';
+    const h = inner.getBoundingClientRect().height; // ขนาดหลัง zoom
+    seg.style.height = `${(h + FIT_PAD).toFixed(2)}px`;
+    return seg.getBoundingClientRect().top - base + h + FIT_PAD + PAD <= H;
+  };
+  const search = (tight, lo, hi) => { // สเกลมากสุดใน [lo, hi] ที่พอดี (0 = แม้ที่ lo ก็ไม่พอดี)
+    if (!apply(lo, tight)) return 0;
+    let a = lo, b = hi;
+    for (let i = 0; i < 9; i++) { const m = (a + b) / 2; if (apply(m, tight)) a = m; else b = m; }
+    return Math.floor(a * 1000) / 1000;
+  };
+  let tight = false, k = search(false, FIT_SOFT, 1);
+  if (!k) { tight = true; k = search(true, FIT_SOFT, 1); }
+  if (!k) k = search(true, FIT_ABS, FIT_SOFT);
+  if (!k) { k = FIT_ABS; apply(k, true); } // เป็นไปไม่ได้ในทางปฏิบัติ — กันตกหล่น: ย่อสุดแล้วให้หน้าต่างตัดแทนล้น
+  else while (!apply(k, tight) && k > FIT_ABS) k = Math.floor(k * 990) / 1000; // ยืนยันซ้ำที่ค่าสุดท้าย (การแบ่งครึ่งไม่ได้เป็นเอกฐานเสมอไปเพราะการขึ้นบรรทัดเปลี่ยนตามความกว้าง)
+  seg.dataset.k = k.toFixed(3);
+  seg.dataset.tight = tight ? '1' : '0';
 }
 
 /** รับ HTML ของเอกสาร (หนึ่งหรือหลาย <section class="page">) คืน HTML ที่แบ่งเป็นแผ่น A4 แล้ว — ต้องเรียก initMeasureFrame() ให้เสร็จก่อนเพื่อผลที่ตรงกับตัวพิมพ์ */
@@ -182,6 +240,7 @@ export function paginateHtml(html) {
   doc.body.appendChild(host);
   try {
     fitOneLineParagraphs(host, doc);
+    for (const sec of host.querySelectorAll(':scope > section.page')) fitFront(sec, doc);
     const out = [];
     for (const sec of [...host.children]) {
       if (sec.matches('section.page')) for (const s of sheetsOf(sec, doc)) out.push(s.outerHTML); else out.push(sec.outerHTML);

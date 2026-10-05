@@ -87,7 +87,13 @@ function blockHtml(b, doc) {
 
 export function docHtml(doc, layout) {
   const style = layoutCssVars(resolveLayout(layout, doc.id));
-  return `<section class="page" data-doc="${escRaw(doc.id)}" style="${style}">${doc.blocks.map((b) => blockHtml(b, doc)).join('')}</section>`;
+  // “ด้านหน้าห้ามล้น”: ส่วนหน้า (บล็อกก่อน pagebreak ตัวแรก; เอกสารแผ่นเดียวที่ตั้ง fitFront = ทั้งฉบับ) ห่อด้วย .fitseg
+  // js/paginate.js วัดส่วนนี้แล้วย่อให้พอดีหนึ่งแผ่น A4 (พอดีอยู่แล้ว = ถอดตัวห่อออก ผลเหมือนเดิมทุกไบต์)
+  const bi = doc.blocks.findIndex((b) => b.t === 'pagebreak');
+  const n = bi > 0 ? bi : bi < 0 && doc.fitFront ? doc.blocks.length : 0;
+  const parts = doc.blocks.map((b) => blockHtml(b, doc));
+  const body = n ? `<div class="fitseg">${parts.slice(0, n).join('')}</div>${parts.slice(n).join('')}` : parts.join('');
+  return `<section class="page" data-doc="${escRaw(doc.id)}" style="${style}">${body}</section>`;
 }
 
 export function docsHtml(docs, layout) {

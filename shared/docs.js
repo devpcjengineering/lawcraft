@@ -413,6 +413,7 @@ function summonsDoc(c, idx, data = {}, target = null) {
   const dWord = multi ? partyLabel(c, d0) : (df.length > 1 ? 'จำเลยทั้งหมด' : 'จำเลย');
   return {
     id: multi ? `summons-${d0.id}` : 'summons',
+    fitFront: true, // แผ่นเดียวเท่านั้น: ข้อมูลยาวให้ย่อทั้งแผ่น ห้ามล้นไปแผ่นที่สอง (paginate.js)
     title: multi ? `หมายนัดไต่สวนมูลฟ้อง – ${partyLabel(c, d0)} ${partyName(d0)}` : 'หมายนัดไต่สวนมูลฟ้อง (ร่าง)',
     blocks: [
       top(c, '๑๙ ตรี', 'หมายนัด\nไต่สวนมูลฟ้อง', { courtUse: true }),
@@ -441,6 +442,8 @@ function hearingParts(c) {
   const hd = h.date ? longDate({ d: +h.date.slice(8), m: +h.date.slice(5, 7), y: +h.date.slice(0, 4) + 543 }) : '';
   return { hd, time: h.time || '' };
 }
+/** แบบ ๑๗/๑๘ ด้านหน้าไม่ลงรายการ — ชี้ไปที่รายละเอียดท้ายหมาย/คำสั่ง (ด้านหลัง) เสมอ ไม่ว่ารายการยาวแค่ไหนด้านหน้าจึงไม่ล้น */
+const ITEMS_REF = 'รายละเอียดปรากฏตามท้ายคำสั่งนี้';
 const BLANK_DATE = 'วันที่ ........ เดือน ................ พ.ศ. ..................';
 const dateRuns = (hd) => (hd ? [t('วันที่ '), val(hd)] : [t(BLANK_DATE)]);
 
@@ -525,7 +528,7 @@ function witnessSummonsDoc(c, data, g) {
       { t: 'rule' },
       p([{ text: 'หมายเหตุ', b: true, u: true }, t('  ' + ft('wsum.person.note'))], { indent: 0, small: true, justify: true }),
     );
-    return { id: g.id, title: g.title, blocks };
+    return { id: g.id, title: g.title, fitFront: true, blocks };
   }
   // เอกสาร/วัตถุ — ผู้ครอบครองรายเดียวกันรวมเป็นฉบับเดียว
   const legacyOnly = !g.holder && !witnessHasAddr(w0) && String(w0.address || '').trim();
@@ -540,27 +543,27 @@ function witnessSummonsDoc(c, data, g) {
     p([t(crim ? 'หมายถึง ' : 'ถึง '), holderName ? val(holderName) : dots(60)], { indent: 0 }),
     ...(holderPos ? [p([val(holderPos)], { indent: crim ? 1.5 : 0.9 })] : []),
     ...(legacyOnly && !String(w0.phone || '').trim() ? [] : [p(witnessAddrRuns(w0, !legacyOnly), { indent: 0, justify: true })]),
-    ...tplParas(ft('wsum.item.cite'), { items: kindLabel + ' *' }, [...citeByRunsItem(c), t(' ')]),
-    ...tplParas(ft(crim ? 'wsum.item.deliver.criminal' : 'wsum.item.deliver.civil'), { items: kindLabel, court, date: dateRuns(h.hd) }),
+    ...tplParas(ft('wsum.item.cite'), { items: [t(ITEMS_REF)] }, [...citeByRunsItem(c), t(' ')]),
+    ...tplParas(ft(crim ? 'wsum.item.deliver.criminal' : 'wsum.item.deliver.civil'), { items: [t(ITEMS_REF)], court, date: dateRuns(h.hd) }),
     sigBlock([{ label: 'ผู้พิพากษา', name: '' }], true),
     p([t('ศาล '), courtVal], { indent: 0 }),
     p([t('โทรศัพท์ '), phone ? val(phone) : dots(14)], { indent: 0 }),
-    { t: 'flip', note: `* รายละเอียดปรากฏตามด้านหลัง${mark}ฉบับนี้` },
+    { t: 'flip' },
     { t: 'rule' },
     { t: 'center', text: `ใบรับ${crim ? 'หมายเรียก' : 'คำสั่งเรียก'}พยานเอกสารหรือพยานวัตถุ`, u: true },
     p([t(BLANK_DATE + ' ข้าพเจ้า '), holderName ? val(holderName) : dots(24), ...(holderPos ? [t(' ตำแหน่ง '), val(holderPos)] : []), t(` ได้รับ${crim ? 'หมายเรียก' : 'คำสั่งเรียก'}พยานเอกสารหรือพยานวัตถุของศาล`), courtVal, t(' ซึ่งได้กำหนดให้ข้าพเจ้าส่ง '),
-      val(kindLabel), t(`ตามรายการที่ระบุด้านหลัง${mark}นี้`),
+      val(kindLabel), t(`ตามรายละเอียดท้าย${mark}นี้`),
       t(' ไปประกอบการพิจารณา ในคดีระหว่าง '), val(pName), t(' โจทก์ '), val(allD), t(' จำเลย ก่อน'), ...dateRuns(h.hd), t(' ไว้แล้ว')], { indent: 1.5, justify: true }),
     sigBlock([{ label: `ผู้รับ${mark}`, name: '' }, { label: `ผู้ส่ง${mark}`, name: '' }], true),
     { t: 'pagebreak' },
     { t: 'center', text: 'คำเตือน', u: true, b: true },
     p([t(ft(crim ? 'wsum.item.warn.criminal' : 'wsum.item.warn.civil'))], { indent: 1.5, justify: true, gap: true }),
     { t: 'rule' },
-    { t: 'center', text: `รายละเอียดพยานเอกสารและหลักฐานที่ต้องจัดส่งตาม${mark}นี้`, u: true, b: true },
+    { t: 'center', text: `รายละเอียดที่ต้องจัดส่งพยานหลักฐานตาม${crim ? 'หมายเรียก' : 'คำสั่งเรียก'}ฉบับนี้`, u: true, b: true },
     ...items.map((x, i) => p([t(items.length > 1 ? `(${i + 1}) ` : ''), val(x)], { indent: 0, justify: true })),
-    { t: 'lines', n: 12 },
+    { t: 'lines', n: Math.max(3, 12 - items.length) },
   );
-  return { id: g.id, title: g.title, blocks };
+  return { id: g.id, title: g.title, fitFront: true, blocks };
 }
 
 /** คำให้การจำเลย (แบบ ๑๑) */
