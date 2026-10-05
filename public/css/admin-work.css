@@ -379,9 +379,8 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
   .topbar:has(.nav-toggle) .brand-text > span { overflow: visible; text-overflow: clip; }
   .topbar:has(.nav-toggle) .brand-text .lt-th { font-size: clamp(10px, 3.05vw, 12px); letter-spacing: -.02em; }
   .topbar:has(.nav-toggle) .brand-text .lt-en { font-size: clamp(8.5px, 2.5vw, 10px); letter-spacing: 0; }
-  .topbar:has(.nav-toggle) .grow { flex: 0 0 0; }
+  .topbar:has(.nav-toggle) .grow { flex: 1 1 0; min-width: 0; } /* ดันกลุ่มปุ่มขวา (สถานะ/ตัวอย่าง/คดีทั้งหมด) ชิดขอบขวาตามความกว้างจอ */
   .topbar:has(.nav-toggle) > .btn, .topbar:has(.nav-toggle) > .btn:has(> .tb-i), .topbar:has(.nav-toggle) .ready-chip { min-width: 40px; padding: 0 8px; }
-  .topbar:has(.nav-toggle) > :last-child { margin-left: auto; }
 }
 /* คอม/แท็บเล็ต (≥761px): แถบ "ขั้นที่ n จาก N" + ปุ่มก่อนหน้า/ถัดไป ตรึงอยู่ล่างสุดของคอลัมน์ฟอร์มเสมอ (เต็มความกว้าง ไม่ลอย ไม่มีเงา)
    — คอลัมน์ฟอร์มเป็น flex แนวตั้ง แถบใช้ margin-top:auto จึงอยู่ล่างสุดทั้งตอนเนื้อหาสั้น (ดันลงล่าง) และยาว (sticky ติดขอบล่าง) */
