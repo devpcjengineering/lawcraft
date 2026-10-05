@@ -169,7 +169,20 @@ export const supabaseBackend = {
   /** เจ้าของคดีหรือแอดมิน (เชิญ/ถอนผู้แก้ไข ลบคดีได้) — ผู้แก้ไขที่ถูกเชิญได้ false */
   async isCaseOwner(caseId) { const { data, error } = await sb.rpc('is_case_owner', { cid: caseId }); if (error) fail(error); return data === true; },
   async listMembers(caseId) {
-    return must(await sb.from('case_members').select('email,created_at').eq('case_id', caseId).order('created_at', { ascending: true }));
+    return must(await sb.from('case_members').select('email,created_at,notified_at').eq('case_id', caseId).order('created_at', { ascending: true }));
+  },
+  /** ส่งอีเมลแจ้งผู้ที่ถูกเชิญ (Edge Function invite-email → Resend) ; ส่งซ้ำถึงคนเดิมได้ทุก 2 นาที (เกินนั้น throw status 429) */
+  async notifyMember(caseId, email) {
+    const { data } = await sb.auth.getSession();
+    if (!data.session) { const e = new Error('หมดเวลาเข้าสู่ระบบ'); e.status = 401; throw e; }
+    const res = await fetch(`${url}/functions/v1/invite-email`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${data.session.access_token}`, apikey: anonKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ caseId, email: String(email).toLowerCase() }),
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) { const e = new Error(out.error || `ส่งอีเมลไม่สำเร็จ (${res.status})`); e.status = res.status; throw e; }
+    return { ok: true, at: new Date().toISOString() };
   },
   /** เชิญอีเมลเป็นผู้แก้ไขคดี (เฉพาะเจ้าของ/แอดมิน) — ผู้ถูกเชิญเห็นคดีในรายการทันทีที่เข้าสู่ระบบด้วยอีเมลนั้น */
   async addMember(caseId, email) {

@@ -58,6 +58,12 @@ begin
   denied := false;
   begin insert into public.case_members (case_id, email) values ('tshare1', 'Bad Case@x.com'); exception when others then denied := true; end;
   res := res || jsonb_build_array(jsonb_build_object('t', 'invalid/non-lowercase email rejected', 'ok', denied));
+  denied := false;
+  begin insert into public.case_members (case_id, email, notified_at) values ('tshare1', 'forge@test.local', now()); exception when others then denied := true; end;
+  res := res || jsonb_build_array(jsonb_build_object('t', 'client cannot forge notified_at', 'ok', denied));
+  denied := false;
+  begin update public.case_members set notified_at = null where case_id = 'tshare1'; exception when others then denied := true; end;
+  res := res || jsonb_build_array(jsonb_build_object('t', 'client cannot update case_members', 'ok', denied));
   reset role;
 
   -- ===== ผู้แก้ไข =====

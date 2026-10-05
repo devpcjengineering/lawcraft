@@ -8,7 +8,8 @@ import { spawnSync } from 'node:child_process';
 
 const ref = process.argv[2] || 'rertcaxuqeuytleaqqft';
 const root = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\//, '')), '..');
-const sql = fs.readFileSync(path.join(root, 'supabase/migrations/20261006000000_case_sharing.sql'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'test/sharing-rls.sql'), 'utf8');
+const migrations = ['20261006000000_case_sharing.sql', '20261006010000_case_member_notify.sql'].map((f) => fs.readFileSync(path.join(root, 'supabase/migrations', f), 'utf8'));
+const sql = migrations.join('\n') + '\n' + fs.readFileSync(path.join(root, 'test/sharing-rls.sql'), 'utf8');
 const f = path.join(os.tmpdir(), 'sharing-rls-run.sql');
 fs.writeFileSync(f, sql);
 const r = spawnSync('npx', ['--yes', 'supabase', 'db', 'query', '--linked', '--project-ref', ref, '-f', f], { cwd: root, encoding: 'utf8', shell: true });

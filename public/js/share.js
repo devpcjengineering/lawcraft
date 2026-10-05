@@ -75,15 +75,16 @@ export function panelHtml() {
       <p class="hint">ใครมีลิงก์นี้ก็ดู PDF ได้โดยไม่ต้องล็อกอิน (ดูอย่างเดียว แก้ไม่ได้) และเห็นไฟล์ล่าสุดเสมอ — PDF มีข้อมูลส่วนบุคคลของคู่ความ ส่งให้เฉพาะคนที่ไว้ใจ</p>`
     : `<button class="btn outline" data-act="shareOn"${dis}>${icon('link', { size: 16 })}<span>เปิดลิงก์ดู PDF</span></button>
       <p class="hint">เปิดแล้วจะได้ลิงก์ที่ส่งให้ใครก็ได้ดู PDF โดยไม่ต้องล็อกอิน (ดูอย่างเดียว) — ปิดหรือออกลิงก์ใหม่ได้ทุกเมื่อ</p>`;
+  const notified = (m) => (m.notified_at ? `ส่งอีเมลแจ้งเมื่อ ${fmtTime(m.notified_at)}` : 'ยังไม่ได้ส่งอีเมลแจ้ง');
   const members = s.members.length
-    ? `<ul class="rows">${s.members.map((m) => `<li><span class="st-ico ok" aria-hidden="true">${icon('user')}</span><span class="r-main">${esc(m.email)}${m.email === s.me ? ' (ฉัน)' : ''}</span>
-        <span class="r-act">${s.owner ? `<button class="btn sm danger" data-act="shareRemove" data-email="${esc(m.email)}"${dis}>ถอนสิทธิ์</button>` : m.email === s.me ? `<button class="btn sm outline" data-act="shareLeave"${dis}>ออกจากคดีนี้</button>` : ''}</span></li>`).join('')}</ul>`
+    ? `<ul class="rows">${s.members.map((m) => `<li><span class="st-ico ok" aria-hidden="true">${icon('user')}</span><span class="r-main">${esc(m.email)}${m.email === s.me ? ' (ฉัน)' : ''}${s.owner && m.email !== s.me ? `<span class="r-note">${esc(notified(m))}</span>` : ''}</span>
+        <span class="r-act">${s.owner ? `${m.email !== s.me ? `<button class="btn sm outline" data-act="shareResend" data-email="${esc(m.email)}"${dis} title="ส่งอีเมลเชิญซ้ำ">${icon('send', { size: 14 })}<span>ส่งอีเมลอีกครั้ง</span></button> ` : ''}<button class="btn sm danger" data-act="shareRemove" data-email="${esc(m.email)}"${dis}>ถอนสิทธิ์</button>` : m.email === s.me ? `<button class="btn sm outline" data-act="shareLeave"${dis}>ออกจากคดีนี้</button>` : ''}</span></li>`).join('')}</ul>`
     : '<p class="hint">ยังไม่มีผู้ร่วมแก้ไข — คดีนี้เห็นและแก้ได้เฉพาะเจ้าของ</p>';
   const invite = s.owner
     ? `<div class="share-invite"><input type="email" id="share-email" placeholder="อีเมล Google ของผู้ร่วมแก้ไข เช่น name@gmail.com" autocomplete="off" aria-label="อีเมลผู้ร่วมแก้ไข">
         <button class="btn sm primary" data-act="shareInvite"${dis}>${icon('plus', { size: 15 })}<span>เชิญแก้ไขคดี</span></button></div>
       <div class="btn-group share-btns"><button class="btn sm outline" data-act="shareCopyCase">${icon('copy', { size: 15 })}<span>คัดลอกลิงก์เปิดคดี</span></button></div>
-      <p class="hint">ผู้ที่ถูกเชิญเข้าสู่ระบบด้วย Google ด้วยอีเมลนี้ แล้วเปิดลิงก์คดี (หรือเลือกคดีนี้จากรายการ) จะเห็นและแก้คดีนี้ได้ · ลบคดี/เชิญคนอื่นไม่ได้ · ถ้ามีคนแก้พร้อมกัน ระบบจะเตือนก่อนเขียนทับ</p>`
+      <p class="hint">เชิญแล้วระบบส่งอีเมลแจ้งให้อัตโนมัติ (ผู้ส่ง alert@lawcraft.pcjengineering.co.th) · ผู้ที่ถูกเชิญเข้าสู่ระบบด้วย Google ด้วยอีเมลนี้ แล้วเปิดลิงก์คดี (หรือเลือกคดีนี้จากรายการ) จะเห็นและแก้คดีนี้ได้ · ลบคดี/เชิญคนอื่นไม่ได้ · ถ้ามีคนแก้พร้อมกัน ระบบจะเตือนก่อนเขียนทับ</p>`
     : '<p class="hint">เฉพาะเจ้าของคดีหรือผู้ดูแลระบบเท่านั้นที่เชิญหรือถอนผู้ร่วมแก้ไขได้</p>';
   return `<div class="panel share-panel"><h3>PDF ชุดเอกสาร &amp; แชร์</h3>
     <p class="hint panel-note">อัปโหลด PDF รวมทั้งชุดขึ้น Supabase (ตัวอักษรเป็นเวกเตอร์ คมชัด ไฟล์เล็ก) ทับไฟล์เดิมของคดีนี้ แล้วแชร์ลิงก์ดู หรือเชิญคนอื่นเข้ามาช่วยแก้คดี</p>
@@ -158,9 +159,23 @@ actions.shareInvite = () => guarded('เชิญไม่สำเร็จ', a
   if (!email) { input?.focus(); return hooks.toast('กรอกอีเมลของผู้ที่จะเชิญก่อน', { type: 'warn' }); }
   await ctx.flush();
   const { email: em } = await ctx.backend().addMember(S.c.id, email);
+  if (input) input.value = '';
+  // ส่งอีเมลแจ้งทันที — ส่งไม่สำเร็จก็ยังเชิญสำเร็จแล้ว (เขาเห็นคดีเมื่อล็อกอิน) บอกให้ส่งลิงก์เองหรือกดส่งอีเมลซ้ำ
+  let mailed = true, why = '';
+  try { await ctx.backend().notifyMember(S.c.id, em); } catch (e) { mailed = false; why = e.message || ''; }
   s.members = await ctx.backend().listMembers(S.c.id);
   hooks.rerender();
-  hooks.toast(`เชิญ ${em} แล้ว — คัดลอกลิงก์เปิดคดีส่งให้เขาได้`, { type: 'success' });
+  if (mailed) hooks.toast(`เชิญ ${em} แล้ว และส่งอีเมลแจ้งเรียบร้อย`, { type: 'success' });
+  else hooks.toast(`เชิญ ${em} แล้ว แต่ส่งอีเมลแจ้งไม่สำเร็จ${why ? ` (${why})` : ''} — กด “ส่งอีเมลอีกครั้ง” หรือคัดลอกลิงก์เปิดคดีส่งให้เขาเอง`, { type: 'warn' });
+});
+
+actions.shareResend = (el) => guarded('ส่งอีเมลไม่สำเร็จ', async (s) => {
+  const email = el.dataset.email;
+  await ctx.flush();
+  await ctx.backend().notifyMember(S.c.id, email);
+  s.members = await ctx.backend().listMembers(S.c.id);
+  hooks.rerender();
+  hooks.toast(`ส่งอีเมลแจ้ง ${email} แล้ว`, { type: 'success' });
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target?.id === 'share-email') { e.preventDefault(); actions.shareInvite(); } });
 

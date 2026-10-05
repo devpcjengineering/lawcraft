@@ -112,6 +112,32 @@ try {
   ok('closing the link kills it', !res.error && (await view(tok2)).status === 404);
   ok('garbage token gives 404', (await view('z'.repeat(64))).status === 404 && (await view('abc')).status === 404);
 
+  // อีเมลแจ้งเชิญ (Edge Function invite-email → Resend) ปลายทาง delivered@resend.dev = ที่อยู่ทดสอบของ Resend (ไม่ถึงคนจริง)
+  const tokenOf = async (cl) => (await cl.auth.getSession()).data.session.access_token;
+  const mail = async (cl, email, withAuth = true) => {
+    const r = await fetch(`${url}/functions/v1/invite-email`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: anonKey, ...(withAuth ? { Authorization: `Bearer ${await tokenOf(cl)}` } : {}) }, body: JSON.stringify({ caseId, email }) });
+    return { status: r.status, body: await r.json().catch(() => ({})) };
+  };
+  const TEST_TO = 'delivered@resend.dev';
+  res = await A.from('case_members').insert({ case_id: caseId, email: TEST_TO });
+  assert.ifError(res.error);
+  let m1 = await mail(A, TEST_TO);
+  ok('owner sends invite email via Resend', m1.status === 200 && m1.body.ok === true, JSON.stringify(m1));
+  res = await A.from('case_members').select('notified_at').eq('case_id', caseId).eq('email', TEST_TO).single();
+  ok('notified_at recorded by function', !!res.data?.notified_at);
+  m1 = await mail(A, TEST_TO);
+  ok('immediate resend is rate limited (429)', m1.status === 429 && m1.body.retryAfter > 0, JSON.stringify(m1));
+  m1 = await mail(M, TEST_TO);
+  ok('member (non-owner) cannot send invite email', m1.status === 403, JSON.stringify(m1));
+  m1 = await mail(S, TEST_TO);
+  ok('stranger cannot send invite email', m1.status === 403, JSON.stringify(m1));
+  m1 = await mail(A, 'not-invited@example.com');
+  ok('cannot email an address that is not a member (404)', m1.status === 404, JSON.stringify(m1));
+  m1 = await mail(A, 'bad', true);
+  ok('invalid email rejected (400)', m1.status === 400, JSON.stringify(m1));
+  m1 = await mail(null, TEST_TO, false);
+  ok('no auth token rejected', m1.status === 401 || m1.status === 403, JSON.stringify(m1));
+
   // ผู้แก้ไขออกจากคดีเอง → ไม่เห็นอีก
   res = await M.from('case_members').delete().eq('case_id', caseId).eq('email', users.M.email).select('email');
   ok('member can leave', !res.error && res.data.length === 1);
