@@ -26,7 +26,10 @@ let typeBuf = '', typeT = 0;
 const stash = new WeakMap(); // input -> id ของ datalist ที่ถอดไว้ชั่วคราว
 
 // ---------------------------------------------------------------- ตัวช่วย
+// จอสัมผัส (มือถือ/แท็บเล็ต) ใช้ตัวเลือกเนทีฟของระบบ — iOS/Android ทำได้ดีอยู่แล้ว และการซ้อนกับแผ่นของเราทำให้เด้งสองอัน; แผ่น/ป๊อปโอเวอร์ของเราใช้กับเมาส์ (เดสก์ท็อป) เท่านั้น
+const useNative = () => matchMedia('(pointer: coarse)').matches;
 function pickSelect(t) {
+  if (useNative()) return null;
   const s = t instanceof Element ? t.closest('select') : null;
   return s && s.matches(SEL) && s.closest('#app') && !s.disabled ? s : null;
 }
