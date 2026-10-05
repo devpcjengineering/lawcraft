@@ -292,11 +292,7 @@ table.simple tr.used td { background: #f5f9ff; }
 }
 @media (max-width: 760px) {
   .work { grid-template-columns: 1fr; }
-  .steps { position: static; height: auto; display: flex; overflow-x: auto; padding: 8px; gap: 4px; -webkit-overflow-scrolling: touch; }
-  .nav-group { display: contents; }
-  .nav-head { display: none; }
-  .steps .nav-item { width: auto; white-space: nowrap; flex: none; }
-  .steps .nav-item.on { background: #fff; }
+  /* เมนูขั้นตอนบนมือถือเป็นลิ้นชักแนวตั้ง — ดูกฎ “เมนูคดี” ท้าย admin-work.css */
   .main { padding: 16px 16px 80px; }
   .main h2 { font-size: 21px; }
   .work.live { grid-template-columns: 1fr; }
@@ -349,24 +345,14 @@ a, button, select, input, textarea, label, summary { touch-action: manipulation;
   body { overflow-wrap: break-word; }
 
 
-  /* ---------- เมนูขั้นตอน: แถบเลื่อนแนวนอน ติดใต้แถบบน ---------- */
-  .steps { position: sticky; top: var(--tb-h); z-index: 14; align-self: start; height: auto; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; overflow-x: auto; overflow-y: hidden;
-    padding: 6px max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left)); background: #ebebef; box-shadow: 0 1px 0 rgba(0, 0, 0, .08); overscroll-behavior-x: contain; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding: 0 24px; }
-  .steps::-webkit-scrollbar { display: none; }
-  .nav-group { display: flex; flex: none; align-items: center; gap: 4px; margin: 0; }
-  .nav-group + .nav-group { margin-left: 4px; padding-left: 10px; border-left: 1px solid #cdcdd4; }
-  .steps .nav-item { min-height: 44px; padding: 0 14px 0 10px; gap: 8px; font-size: 15px; border-radius: 22px; scroll-snap-align: center; }
-  .steps .nav-item .nav-label { flex: none; }
-  .steps .nav-item .lock { margin-left: 0; }
-  .nav-ico { width: 24px; height: 24px; font-size: 12px; }
-  .nav-count, .steps .badge { font-size: 13px; }
+  /* ---------- เมนูขั้นตอน: ลิ้นชักแนวตั้งเลื่อนเข้าจากซ้าย (กฎอยู่ท้าย admin-work.css) ---------- */
 
   /* ---------- เนื้อหา ---------- */
   .work { min-height: calc(100vh - var(--tb-h)); min-height: calc(100dvh - var(--tb-h)); }
   .main { padding: 16px var(--gutter) calc(24px + env(safe-area-inset-bottom, 0px)); }
   .main:has(> .wiz-nav) { padding-bottom: 0; }
   /* ช่องที่ถูกโฟกัส/เลื่อนไปหา ต้องไม่ไปซ่อนใต้แถบบน+แถบเมนูที่ติดอยู่ หรือแถบปุ่มล่าง */
-  .main :is(input, select, textarea, summary, .panel, details) { scroll-margin-top: calc(var(--tb-h) + 72px); scroll-margin-bottom: 140px; }
+  .main :is(input, select, textarea, summary, .panel, details) { scroll-margin-top: calc(var(--tb-h) + 16px); scroll-margin-bottom: 140px; }
   .main h2 { font-size: 22px; }
   .main .sub { font-size: 15px; margin-bottom: 18px; }
   .panel { border-radius: 14px; margin-bottom: 12px; }

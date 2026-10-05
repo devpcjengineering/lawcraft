@@ -90,6 +90,10 @@
 .row.snip-row, .snip-row { margin-top: 16px; }
 .snip-wrap { margin-top: 16px; }
 .dt-row { gap: 8px; }
+/* เลขคดี “เลข / ปี” (ดำและแดงมีปีของตัวเองแยกกัน) */
+.cn-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 92px; gap: 8px; align-items: center; }
+.cn-row>* { min-width: 0; }
+.cn-sl { color: var(--muted, #6e6e73); font-weight: 600; }
 
 /* สถานะเลขบัตร: ชิปเล็ก ๆ ใต้ช่อง */
 .idok { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; line-height: 1.4; }
@@ -237,15 +241,6 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
   .main { padding: 32px 28px 120px; }
 }
 @media (max-width: 760px) {
-  .work > .steps { border-right: 0; border-bottom: 1px solid var(--hair-2); background: #fff; padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); box-shadow: none; }
-  .nav-group + .nav-group { border-left-color: var(--hair-2); }
-  .nav-head { display: none; }
-  .work > .steps { scrollbar-width: none; }
-  .steps .nav-item { width: auto; flex: none; white-space: nowrap; }
-  .steps .nav-item { min-height: 44px; padding: 0 14px 0 10px; gap: 8px; border-radius: 22px; font-size: 15px; background: var(--surface-2); }
-  .steps .nav-item.on { background: var(--blue-soft); }
-  .nav-ico { width: 24px; height: 24px; }
-  .dot, .nav-count, .badge, .nav-item .lock { margin-left: 2px; }
   .main { padding: 20px var(--gutter, 16px) calc(24px + env(safe-area-inset-bottom, 0px)); }
   .main:has(> .wiz-nav) { padding-bottom: 0; }
   .main h2 { font-size: 23px; }
@@ -295,6 +290,83 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
 .wiz-miss.soft .wiz-miss-h .ico { color: var(--muted); }
 @media (max-width: 760px) {
   .topbar .filed-chip { display: none; }
-  .nav-filed { flex: none; margin: 0 4px 0 0; padding: 0 14px 0 10px; min-height: 44px; border-radius: 22px; white-space: nowrap; }
   .panel.post-filing .pf-go .btn { flex: 1 1 100%; justify-content: center; }
 }
+
+/* ---------- มือถือ (≤ 760px): เมนูคดีเป็นลิ้นชักแนวตั้ง เปิดด้วยปุ่ม 4 ขีดที่แถบบน ----------
+   nav#steps อยู่ใน .work ตามเดิม แต่เป็น position:fixed ชิดซ้าย เลื่อนเข้า/ออกด้วย transform ; .work.navopen = เปิดอยู่ (ตั้งโดย js/navdrawer.js)
+   ชั้น: แถบบน 20 → (ขณะเปิดถูกลดเหลือ 1 เพื่อให้พื้นหลังทึบคลุมแถบบนด้วย) · wiz-nav 12 · ตัวอย่างเต็มจอ 60 · พื้นหลังทึบ 65 · ลิ้นชัก 70 · toast 90 */
+.nav-toggle, .steps-head, .steps-backdrop { display: none; }
+@media (max-width: 760px) {
+  .nav-toggle { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; margin: 0 0 0 -8px; padding: 0; border: 0; border-radius: 12px; background: transparent; color: var(--ink); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color .15s, color .15s; }
+  .nav-toggle:active { background: var(--surface-3); }
+  .nav-toggle[aria-expanded=true] { background: var(--blue-soft); color: var(--blue); }
+  .nav-toggle:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+  .nav-toggle .ico { width: 24px; height: 24px; }
+  .topbar:has(.nav-toggle) { transition: z-index 0s linear .3s; }
+  body:has(.work.navopen) .topbar { z-index: 1; transition-delay: 0s; }
+  html:has(.work.navopen), body:has(.work.navopen) { overflow: hidden; }
+
+  .work > .steps {
+    position: fixed; z-index: 70; top: 0; bottom: 0; left: 0; width: min(320px, 86vw); height: auto; min-height: 0;
+    display: flex; flex-direction: column; padding: 0 0 calc(16px + env(safe-area-inset-bottom, 0px));
+    background: #fff; border: 0; box-shadow: 10px 0 36px rgba(16, 24, 40, .2);
+    overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+    transform: translateX(-104%); visibility: hidden; transition: transform .3s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .3s;
+  }
+  .work.navopen > .steps { transform: none; visibility: visible; transition: transform .3s cubic-bezier(.2, .8, .2, 1), visibility 0s; }
+  .work > .steps-backdrop { display: block; position: fixed; inset: 0; z-index: 65; background: rgba(16, 24, 40, .46); opacity: 0; visibility: hidden; -webkit-tap-highlight-color: transparent; transition: opacity .3s ease, visibility 0s linear .3s; }
+  .work.navopen > .steps-backdrop { opacity: 1; visibility: visible; transition: opacity .3s ease, visibility 0s; }
+
+  .steps-head { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 8px; position: sticky; top: 0; z-index: 2; min-height: 60px; padding: calc(8px + env(safe-area-inset-top, 0px)) 8px 8px calc(20px + env(safe-area-inset-left, 0px)); background: #fff; border-bottom: 1px solid var(--hair-2); }
+  .steps-head b { font-size: 18px; font-weight: 700; letter-spacing: -.005em; color: var(--ink); }
+  .steps-x { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 12px; background: transparent; color: var(--ink-2); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .steps-x:active { background: var(--surface-3); }
+  .steps-x:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+  .work > .steps .nav-group { margin: 0; padding: 0 calc(8px + env(safe-area-inset-right, 0px)) 4px calc(8px + env(safe-area-inset-left, 0px)); }
+  .work > .steps .nav-group + .nav-group { border-top: 1px solid var(--hair); padding-top: 4px; }
+  .work > .steps .nav-head { padding: 14px 12px 6px; font-size: 13.5px; }
+  .work > .steps .nav-item { min-height: 52px; padding: 4px 12px; gap: 12px; border-radius: 14px; font-size: 16px; white-space: normal; background: transparent; }
+  .work > .steps .nav-item:active { background: var(--surface-3); }
+  .work > .steps .nav-item.on { background: var(--blue-soft); }
+  .work > .steps .nav-ico { width: 28px; height: 28px; }
+  .work > .steps .nav-ico .ico { width: 22px; height: 22px; }
+  .work > .steps .nav-item .lock { margin-left: auto; }
+  .work > .steps .nav-filed { margin: 12px 16px 4px; padding: 10px 12px; border-radius: 12px; white-space: normal; }
+}
+
+/* ---------- แท็บบัญชีพยาน ---------- */
+/* ปุ่มเพิ่มพยานทุกปุ่มกว้าง/สูงเท่ากัน (กริดคอลัมน์เท่ากัน) · ช่อง “เพิ่มจากรายชื่อคู่ความ” ลงแถวถัดไป */
+.toolbar.wit-add { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-items: stretch; }
+.toolbar.wit-add.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.toolbar.wit-add > .btn { width: 100%; min-width: 0; min-height: 44px; padding: 0 12px; justify-content: center; text-align: center; white-space: nowrap; }
+.toolbar.wit-add > .wit-from { grid-column: span 2; width: 100%; min-width: 0; max-width: none; min-height: 44px; font-size: 15px; }
+.toolbar.wit-add.n3 > .wit-from { grid-column: span 2; }
+/* ประเภทพยาน: 3 ตัวเลือกกว้างเท่ากันเต็มความกว้าง */
+.f.wit-kind > .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; align-self: stretch; }
+.f.wit-kind > .seg label { width: 100%; min-width: 0; text-align: center; }
+.sum-pos { flex: 0 1 auto; }
+.wit-addr .wit-phone { margin-top: 16px; }
+@media (max-width: 760px) {
+  .toolbar.wit-add { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .toolbar.wit-add.n3 { grid-template-columns: minmax(0, 1fr); }
+  .toolbar.wit-add > .btn { min-height: 48px; }
+  .toolbar.wit-add > .wit-from, .toolbar.wit-add.n3 > .wit-from { grid-column: 1 / -1; min-height: 48px; font-size: 16px; }
+  .panel > h3 .chk.sw { min-height: 44px; }
+}
+.wit-panel > h3 > .ico { flex: none; }
+.wit-panel > h3 > .h-t { flex: 1 1 14em; min-width: 0; }
+.wit-panel > h3 > .chk { flex: none; }
+.wit-panel .rows .r-act .btn { min-width: 128px; justify-content: center; }
+@media (max-width: 760px) {
+  .wit-panel > h3 > .grow { display: none; }
+  .wit-panel > h3 > .chk { flex: 1 1 100%; }
+  .main .wit-panel .rows .r-act { justify-self: stretch; }
+  .wit-panel .rows .r-act .btn { width: 100%; min-height: 44px; }
+  /* แถบบนของคดี: ปุ่มเมนูเพิ่มมา 1 ปุ่ม → ชื่อสำนักงานย่อด้วย … แทนการล้นไปทับปุ่มด้านขวา */
+  .topbar:has(.nav-toggle) .brand { overflow: hidden; margin-left: 0; padding-left: 4px; }
+  .topbar:has(.nav-toggle) .brand-text { min-width: 0; overflow: hidden; }
+  .topbar:has(.nav-toggle) .brand-text > span { overflow: hidden; text-overflow: ellipsis; }
+}
+.f.wit-kind > .seg label { padding: 0 6px; white-space: nowrap; }

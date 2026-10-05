@@ -2,12 +2,12 @@
 // แล้วให้ render-html (พรีวิว/พิมพ์ PDF) และ render-docx (ไฟล์ Word) แปลงต่อ จึงแก้เนื้อหาที่เดียวได้ผลทั้งสองแบบ
 import { ft, setFormTextOverrides } from './formtext.js';
 import {
-  toThaiDigits, longDate, isoToThaiLong, formatCitizenId, addressText, isBkk, courtShort, THAI_MONTHS,
+  thaiDigitsDoc, toNum, longDate, isoToThaiLong, formatCitizenId, addressText, isBkk, courtShort, THAI_MONTHS,
 } from './thai.js';
 import {
   indexLaw, plaintiffs, defendants, partyLabel, partyName, groupName, chargeSectionsText, chargeNamesText,
   resolveRuns, runsToText, chargeItem, reservedValue, tailFacts, serviceFeeInfo,
-  witnessList, witnessSummonsPlan, witnessAddr, witnessHasAddr, witnessAddrText, witnessWantsSummons, witnessKind, isItemWitness,
+  witnessList, witnessSummonsPlan, witnessAddr, witnessHasAddr, witnessAddrText, witnessWantsSummons, witnessKind, isItemWitness, witnessWho,
   caseNoParts, isFiled,
 } from './model.js';
 
@@ -79,8 +79,9 @@ const p = (runs, o = {}) => ({ t: 'p', runs: runs.filter(Boolean), ...o });
 
 function top(c, formNo, title, o = {}) {
   // เลขคดีดำ/แดง + ปี ที่ศาลให้ — พิมพ์บนหัวเอกสารทุกฉบับ (เอกสารหลังยื่นฟ้องทั้งหมดผ่านฟังก์ชันนี้)
+  // เลขดำและเลขแดงมีปีของตัวเองแยกกัน ; ไม่มีเลขคดี = ช่องจุดไข่ปลาให้เขียนเติม (ไม่บล็อกการออกเอกสาร)
   const no = caseNoParts(c);
-  return { t: 'top', formNo: formNo ? `(${formNo})` : '', title, black: no.black, red: no.red, year: no.year, showRed: o.showRed !== false, courtUse: !!o.courtUse, noEmblem: !!o.noEmblem, kinds: o.kinds || null };
+  return { t: 'top', formNo: formNo ? `(${formNo})` : '', title, black: no.black, yearBlack: no.yearBlack, red: no.red, yearRed: no.yearRed, showRed: o.showRed !== false, courtUse: !!o.courtUse, noEmblem: !!o.noEmblem, kinds: o.kinds || null };
 }
 
 function courtBlock(c, kindOverride) {
@@ -88,7 +89,7 @@ function courtBlock(c, kindOverride) {
   return {
     t: 'court',
     court: courtShort(c.court),
-    day: d.d, month: THAI_MONTHS[+d.m - 1] || '', year: d.y,
+    day: d.d, month: THAI_MONTHS[toNum(d.m) - 1] || '', year: d.y,
     kind: kindOverride || (c.type === 'civil' ? 'แพ่ง' : 'อาญา'),
   };
 }
@@ -217,7 +218,7 @@ function complaintDoc(c, idx) {
   ];
   {
     // แบบ ๔ มีช่อง “จำนวนทุนทรัพย์” ทั้งคดีแพ่งและคดีอาญา — ไม่มีให้ขีดจุด
-    blocks.push({ t: 'amount', baht: c.amount.baht ? Number(c.amount.baht).toLocaleString('en-US') : '', satang: c.amount.baht ? String(c.amount.satang || '00') : '' });
+    blocks.push({ t: 'amount', baht: c.amount.baht ? (toNum(c.amount.baht) || 0).toLocaleString('en-US') : '', satang: c.amount.baht ? String(c.amount.satang || '00') : '' });
   }
   blocks.push(...sideIntro(c, 'plaintiff', true), ...sideIntro(c, 'defendant', true));
   blocks.push(p([t('มีข้อความตามที่จะกล่าวต่อไปนี้')], { indent: 0 }));
@@ -299,10 +300,11 @@ function motionDoc(c, idx, m, n) {
 function witnessTableRows(c, list) {
   // พยานเอกสาร/วัตถุ: คอลัมน์ที่อยู่ = ผู้ครอบครอง + ที่อยู่/ที่เก็บ · หมายเหตุว่าง = “หมายเรียก” (ระบบออกหมายให้) หรือ “นำ” (ปิดหมายรายนี้)
   return list.map(({ no, w }) => {
-    const item = isItemWitness(w), holder = String(w.holder || '').trim(), kind = witnessKind(w);
-    const address = item ? [holder, witnessAddrText(w)].filter(Boolean).join(' ') : witnessAddrText(w);
+    const item = isItemWitness(w), who = witnessWho(w), kind = witnessKind(w);
+    // ชื่อพยานบุคคล = ชื่อ + ตำแหน่ง/ยศ (ถ้ามี) ; เอกสาร/วัตถุ: ผู้ครอบครอง + ตำแหน่ง ขึ้นก่อนที่อยู่ — ส่วนที่ว่างข้ามไป ไม่เหลือช่องว่าง/จุลภาคลอย
+    const address = item ? [who.name, who.pos, witnessAddrText(w)].filter(Boolean).join(' ') : witnessAddrText(w);
     const auto = c.docs?.witnessSummons === false || w.self ? '' : witnessWantsSummons(w) ? 'หมายเรียก' : 'นำ';
-    return [String(no), w.name + (kind === 'object' ? ' (พยานวัตถุ)' : kind === 'document' ? ' (พยานเอกสาร)' : ''), address || '', String(w.note || '').trim() || auto];
+    return [String(no), item ? w.name + (kind === 'object' ? ' (พยานวัตถุ)' : ' (พยานเอกสาร)') : [w.name, who.pos].filter((x) => String(x ?? '').trim()).join(' '), address || '', String(w.note || '').trim() || auto];
   });
 }
 const WITNESS_TABLE_HEAD = ['อันดับ', 'ชื่อและสกุลพยาน', 'บ้านเลขที่ หมู่ที่ ถนน ซอย ตำบล/แขวง อำเภอ/เขต จังหวัด', 'หมายเหตุ'];
@@ -490,9 +492,10 @@ function witnessSummonsDoc(c, data, g) {
     betweenBlock(c),
   ];
   if (person) {
-    const name = w0.name.trim();
+    const name = w0.name.trim(), pos = witnessWho(w0).pos;
     blocks.push(
       p([t('หมายถึง '), val(name)], { indent: 0 }),
+      ...(pos ? [p([val(pos)], { indent: 1.5 })] : []), // บรรทัดที่ 2 = ตำแหน่ง/ยศ (ว่าง = ไม่พิมพ์บรรทัดนี้)
       p(witnessAddrRuns(w0), { indent: 0, justify: true }),
       ...tplParas(ft('wsum.person.cite'), { when: whenRuns(h.hd, h.time, 10) }, [...citeByRuns(c), t(' ')]),
       sigBlock([{ label: 'ผู้พิพากษา', name: '' }], true),
@@ -501,7 +504,7 @@ function witnessSummonsDoc(c, data, g) {
       { t: 'flip' },
       { t: 'rule' },
       { t: 'center', text: 'ใบรับหมายเรียกพยานบุคคล', u: true },
-      p([t(BLANK_DATE + ' ข้าพเจ้า '), val(name), t(' ได้รับหมายเรียกพยานของศาล'), courtVal, t(' ซึ่งได้กำหนดให้ข้าพเจ้าไปเบิกความเป็นพยาน ในคดีระหว่าง '), val(pName), t(' โจทก์ '), val(allD), t(' จำเลย'), ...whenRuns(h.hd, h.time, 8), t(' ไว้แล้ว')], { indent: 1.5, justify: true }),
+      p([t(BLANK_DATE + ' ข้าพเจ้า '), val(name), ...(pos ? [t(' ตำแหน่ง '), val(pos)] : []), t(' ได้รับหมายเรียกพยานของศาล'), courtVal, t(' ซึ่งได้กำหนดให้ข้าพเจ้าไปเบิกความเป็นพยาน ในคดีระหว่าง '), val(pName), t(' โจทก์ '), val(allD), t(' จำเลย'), ...whenRuns(h.hd, h.time, 8), t(' ไว้แล้ว')], { indent: 1.5, justify: true }),
       sigBlock([{ label: 'ผู้รับหมาย', name: '' }, { label: 'ผู้ส่งหมาย', name: '' }], true),
       { t: 'pagebreak' },
       { t: 'center', text: 'คำเตือนพยาน', u: true, b: true },
@@ -520,11 +523,13 @@ function witnessSummonsDoc(c, data, g) {
   // เอกสาร/วัตถุ — ผู้ครอบครองรายเดียวกันรวมเป็นฉบับเดียว
   const legacyOnly = !g.holder && !witnessHasAddr(w0) && String(w0.address || '').trim();
   const holderName = g.holder || legacyOnly || '';
+  const holderPos = (g.holder && g.holderPos) || ''; // ตำแหน่งมีความหมายเมื่อมีชื่อผู้ครอบครองเท่านั้น
   const items = g.rows.map((r) => r.w.name.trim());
   const itemsText = items.length > 1 ? items.map((x, i) => `(${i + 1}) ${x}`).join(' ') : items[0];
   const mark = crim ? 'หมาย' : 'คำสั่ง';
   blocks.push(
     p([t(crim ? 'หมายถึง ' : 'ถึง '), holderName ? val(holderName) : dots(60)], { indent: 0 }),
+    ...(holderPos ? [p([val(holderPos)], { indent: crim ? 1.5 : 0.9 })] : []),
     ...(legacyOnly && !String(w0.phone || '').trim() ? [] : [p(witnessAddrRuns(w0, !legacyOnly), { indent: 0, justify: true })]),
     ...tplParas(ft('wsum.item.cite'), { items: itemsText }, [...citeByRuns(c), t(' ')]),
     ...tplParas(ft(crim ? 'wsum.item.deliver.criminal' : 'wsum.item.deliver.civil'), { items: itemsText, court, date: dateRuns(h.hd) }),
@@ -534,7 +539,7 @@ function witnessSummonsDoc(c, data, g) {
     { t: 'flip' },
     { t: 'rule' },
     { t: 'center', text: `ใบรับ${crim ? 'หมายเรียก' : 'คำสั่งเรียก'}พยานเอกสารหรือพยานวัตถุ`, u: true },
-    p([t(BLANK_DATE + ' ข้าพเจ้า '), holderName ? val(holderName) : dots(24), t(` ได้รับ${crim ? 'หมายเรียก' : 'คำสั่งเรียก'}พยานเอกสารหรือพยานวัตถุของศาล`), courtVal, t(' ซึ่งได้กำหนดให้ข้าพเจ้าส่ง '),
+    p([t(BLANK_DATE + ' ข้าพเจ้า '), holderName ? val(holderName) : dots(24), ...(holderPos ? [t(' ตำแหน่ง '), val(holderPos)] : []), t(` ได้รับ${crim ? 'หมายเรียก' : 'คำสั่งเรียก'}พยานเอกสารหรือพยานวัตถุของศาล`), courtVal, t(' ซึ่งได้กำหนดให้ข้าพเจ้าส่ง '),
       ...(itemsText.length > 110 ? [t(`ตามรายการที่ระบุใน${mark}นี้`)] : [val(itemsText)]),
       t(' ไปประกอบการพิจารณา ในคดีระหว่าง '), val(pName), t(' โจทก์ '), val(allD), t(' จำเลย ก่อน'), ...dateRuns(h.hd), t(' ไว้แล้ว')], { indent: 1.5, justify: true }),
     sigBlock([{ label: `ผู้รับ${mark}`, name: '' }, { label: `ผู้ส่ง${mark}`, name: '' }], true),
@@ -671,8 +676,9 @@ export const isPostFilingDoc = (d) => /^(witnessSummons-|motion-)/.test(d.id) ||
 /** ลำดับกลุ่มหลังยื่นฟ้อง: หมายเรียกพยาน → บัญชีพยานเพิ่มเติม → คำร้อง/คำแถลง → (ชุดคำฟ้อง) */
 const postRank = (d) => (d.id.startsWith('witnessSummons-') ? 0 : d.id === 'witnessExtra' ? 1 : d.id.startsWith('motion-') ? 2 : 3);
 
+/** เลขไทยบังคับในเอกสารทุกชนิด (แบบพิมพ์ศาลใช้เลขไทย) : แปลงข้อความที่มองเห็นทั้งหมดที่จุดเดียวนี้ — เว้นอีเมล/ที่อยู่เว็บ ; ข้อมูลคดีที่เก็บไว้ไม่ถูกแก้ */
 function deepDigits(o) {
-  if (typeof o === 'string') return /@/.test(o) ? o : toThaiDigits(o);
+  if (typeof o === 'string') return thaiDigitsDoc(o);
   if (Array.isArray(o)) return o.map(deepDigits);
   if (o && typeof o === 'object') {
     const r = {};
@@ -709,7 +715,7 @@ export function buildDocuments(c, data, only) {
   // คดีที่ฟ้องแล้ว: เอกสารหลังยื่นฟ้องมาก่อน (คงลำดับเดิมในกลุ่ม) ตามกลุ่มบนหน้าออกเอกสาร
   if (!only && isFiled(c)) docs.sort((a, b) => postRank(a) - postRank(b));
   const clean = docs.map((d) => ({ ...d, blocks: d.blocks.map((b) => (b.runs ? { ...b, runs: b.runs.filter(Boolean) } : b)) }));
-  return c.options?.thaiDigits === false ? clean : clean.map(deepDigits);
+  return clean.map(deepDigits);
 }
 
 

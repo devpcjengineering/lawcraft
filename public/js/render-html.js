@@ -1,7 +1,10 @@
 ﻿import { resolveLayout, layoutCssVars } from '/shared/layout.js';
+import { thaiDigitsDoc } from '/shared/thai.js';
 // แปลง blocks → HTML สำหรับพรีวิวและพิมพ์ PDF (ฟอนต์ TH Sarabun IT๙ ตามแบบฟอร์มศาล)
 
-const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const escRaw = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+/** ข้อความที่มองเห็นในเอกสาร: เลขไทยเสมอ (เว้นอีเมล/ที่อยู่เว็บ) — buildDocuments แปลงแล้ว ที่นี่กันซ้ำอีกชั้น (idempotent) */
+const esc = (s) => escRaw(thaiDigitsDoc(s));
 
 function runHtml(r) {
   if (r.kind === 'dots') return `<span class="dots" style="min-width:${(r.len || 20) * 0.28}em"></span>`;
@@ -34,8 +37,8 @@ function blockHtml(b, doc) {
         <div class="top-l"><span class="circle"></span><div><div>${b.formNo ? esc(b.formNo) : '&nbsp;'}</div><div class="top-title">${b.kinds ? `<div>${b.kinds.all.map((k) => `<span class="${k === b.kinds.on ? '' : 'strike'}">${esc(k)}</span>`).join(' / ')}</div>` : ''}${b.title ? esc(b.title).replace(/\n/g, '<br>') : ''}</div></div></div>
         <div class="top-c">${b.noEmblem ? '' : '<img src="/garuda.png" alt="ตราครุฑ">'}</div>
         <div class="top-r">${b.courtUse ? '<div class="court-use">สำหรับศาลใช้</div>' : ''}
-          ${b.noEmblem && !b.black ? '' : `<div>คดีหมายเลขดำที่ ${dotField(b.black, 4.5)}/${dotField(b.year, 3)}</div>`}
-          ${b.showRed && !b.noEmblem ? `<div>คดีหมายเลขแดงที่ ${dotField(b.red, 4.5)}/${dotField(b.year, 3)}</div>` : ''}
+          ${b.noEmblem && !b.black ? '' : `<div>คดีหมายเลขดำที่ ${dotField(b.black, 4.5)}/${dotField(b.yearBlack, 3)}</div>`}
+          ${b.showRed && !b.noEmblem ? `<div>คดีหมายเลขแดงที่ ${dotField(b.red, 4.5)}/${dotField(b.yearRed, 3)}</div>` : ''}
         </div></div>`;
     case 'leader': return `<div class="ldr"><span>${esc(b.label)}</span><span class="ldr-fill"></span></div>`;
     case 'amount': return `<div class="ldr"><span>จำนวนทุนทรัพย์</span><span class="ldr-fill">${esc(b.baht)}</span><span>บาท</span><span class="ldr-fill s">${esc(b.satang)}</span><span>สตางค์</span></div>`;
@@ -84,7 +87,7 @@ function blockHtml(b, doc) {
 
 export function docHtml(doc, layout) {
   const style = layoutCssVars(resolveLayout(layout, doc.id));
-  return `<section class="page" data-doc="${esc(doc.id)}" style="${style}">${doc.blocks.map((b) => blockHtml(b, doc)).join('')}</section>`;
+  return `<section class="page" data-doc="${escRaw(doc.id)}" style="${style}">${doc.blocks.map((b) => blockHtml(b, doc)).join('')}</section>`;
 }
 
 export function docsHtml(docs, layout) {

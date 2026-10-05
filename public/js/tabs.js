@@ -3,7 +3,7 @@ import { S, esc, actions, hooks } from './store.js';
 import { idField, field, select, check, seg, dateFields, addressFields, badge, pageHead, group, disclose, more } from './ui.js';
 import {
   newParty, uid, plaintiffs, defendants, partyLabel, partyName, collectVars, validateCase, chargeItem, chargeSectionsText, chargeNamesText, serviceAdvice, ensureBasePrayer, tailFacts, resolveRuns, serviceFeeInfo,
-  WITNESS_KINDS, newWitness, emptyAddress, witnessKind, witnessSummonsPlan, witnessWantsSummons, witnessAddrText,
+  WITNESS_KINDS, newWitness, emptyAddress, witnessKind, witnessSummonsPlan, witnessWantsSummons, witnessAddrText, witnessWho,
   witnessList, isFiled, filedBadge,
 } from '/shared/model.js';
 import { serviceMotionText, serviceMode, DOC_TYPES, MOTION_KINDS_ALL, POST_FILING_KEYS } from '/shared/docs.js';
@@ -33,19 +33,27 @@ function courtOptions() {
 }
 
 /** ข้อความสถานะบนการ์ด “หลังยื่นฟ้อง” (ใช้ซ้ำตอนอัปเดตสดจาก app.js) */
-export const postFilingState = (c) => (isFiled(c) ? { tone: 'ok', text: filedBadge(c) } : { tone: '', text: 'ยังไม่ได้ใส่เลขคดี — ร่างคำฟ้อง' });
+export const postFilingState = (c) => (isFiled(c) ? { tone: 'ok', text: filedBadge(c) } : { tone: '', text: 'ยังไม่มีเลขคดี (ไม่บังคับ)' });
 
-/** การ์ด “หลังยื่นฟ้อง”: ใส่เลขคดีดำ/แดงที่ศาลให้ → คดีเปลี่ยนเป็น “ฟ้องแล้ว” และเลขพิมพ์บนหัวเอกสารทุกฉบับ */
+/** คู่ช่อง “เลข / ปี” ของเลขคดีหนึ่งเลข (ดำหรือแดง) — แต่ละเลขมีปีของตัวเอง ; พิมพ์ “อ.123/2569” ในช่องเลขก็ได้ ระบบแยกปีให้ */
+function caseNoPair(label, kind, ph) {
+  const v = (p) => esc(String(S.c[p] ?? ''));
+  return `<div class="f s6 cn-pair" role="group" aria-label="${esc(label)}"><span>${esc(label)}</span><div class="cn-row">
+    <input type="text" data-bind="caseNo${kind}" data-caseno="${kind}" value="${v('caseNo' + kind)}" placeholder="${esc(ph)}" aria-label="${esc(label)} (เลข)" autocomplete="off">
+    <b class="cn-sl" aria-hidden="true">/</b>
+    <input type="text" data-bind="caseYear${kind}" value="${v('caseYear' + kind)}" placeholder="ปี พ.ศ." inputmode="numeric" maxlength="4" aria-label="${esc(label)} (ปี พ.ศ.)" autocomplete="off"></div></div>`;
+}
+
+/** การ์ด “เลขคดี”: ศาลให้เลขเมื่อไรก็เติมได้ — ไม่บังคับและไม่มีผลต่อการออกเอกสาร (ไม่ใส่ = เว้นจุดไข่ปลาที่หัวเอกสาร) */
 function postFilingCard() {
   const st = postFilingState(S.c);
   return `<div class="panel post-filing${isFiled(S.c) ? ' is-filed' : ''}" id="post-filing">
-    <h3>${icon('gavel', { size: 18 })}หลังยื่นฟ้อง — ใส่เลขคดีที่ศาลให้<span class="grow"></span><span class="pill ${st.tone}" id="pf-state" role="status">${esc(st.text)}</span></h3>
-    <p class="hint panel-note">เมื่อศาลรับคำฟ้องและให้เลขคดีแล้ว ใส่เลขที่นี่ ระบบจะ<b>พิมพ์เลขคดีบนหัวเอกสารทุกฉบับ</b> (หมายเรียกพยาน บัญชีพยานเพิ่มเติม คำร้อง คำแถลง) และทำเครื่องหมายคดีเป็น “ฟ้องแล้ว” — คดีที่ฟ้องแล้วเปิดหน้าใดก็ได้โดยไม่ต้องกรอกข้อมูลฉบับร่างให้ครบ · เลขแดงใส่ภายหลังได้เมื่อศาลพิพากษา</p>
-    ${group('เลขคดี (ศาลเป็นผู้กรอก — เว้นว่างได้ถ้ายังไม่ยื่นฟ้อง)', `
-      ${field('คดีหมายเลขดำที่', 'caseNoBlack', { cls: 's4', ph: 'เช่น อ.123' })}
-      ${field('คดีหมายเลขแดงที่', 'caseNoRed', { cls: 's4' })}
-      ${field('ปี (พ.ศ.)', 'caseYear', { cls: 's4', ph: 'เช่น 2569' })}`)}
-    <p class="hint hint-row flush">วันที่พิมพ์บนเอกสารฉบับใหม่ปรับได้ที่ “วันที่ยื่นเอกสาร” ด้านล่าง · พิมพ์ “อ.123/2569” ในช่องเลขดำก็ได้ ระบบแยกปีให้</p>
+    <h3>${icon('gavel', { size: 18 })}เลขคดีที่ศาลให้ (ถ้ามี)<span class="grow"></span><span class="pill ${st.tone}" id="pf-state" role="status">${esc(st.text)}</span></h3>
+    <p class="hint panel-note">ใส่เลขคดีเมื่อศาลให้แล้ว ระบบจะ<b>เติมเลขลงช่องหัวเอกสารทุกฉบับ</b> (หมายเรียกพยาน บัญชีพยานเพิ่มเติม คำร้อง คำแถลง ฯลฯ) · ไม่ใส่ก็ออกเอกสารได้ทุกฉบับ ช่องเลขคดีจะเป็นจุดไข่ปลาให้เขียนเติม · เลขดำและเลขแดงมี “ปี” ของตัวเองแยกกัน เลขแดงใส่ภายหลังได้เมื่อศาลพิพากษา</p>
+    ${group('เลขคดี (ศาลเป็นผู้กรอก — เว้นว่างได้)', `
+      ${caseNoPair('คดีหมายเลขดำที่', 'Black', 'เช่น อ.123')}
+      ${caseNoPair('คดีหมายเลขแดงที่', 'Red', 'เช่น พ.456')}`)}
+    <p class="hint hint-row flush">วันที่พิมพ์บนเอกสารฉบับใหม่ปรับได้ที่ “วันที่ยื่นเอกสาร” ด้านล่าง · พิมพ์ “อ.123/2569” ในช่องเลขก็ได้ ระบบแยกปีไปช่องปีของเลขนั้นให้ · พิมพ์เลขไทยหรือเลขอารบิกก็ได้ เอกสารจะออกเป็นเลขไทย</p>
     <div class="toolbar tight pf-go">
       <button type="button" class="btn outline" data-act="goTab" data-tab="witness">${icon('plus', { size: 16 })}พยาน / บัญชีพยานเพิ่มเติม</button>
       <button type="button" class="btn outline" data-act="goTab" data-tab="motions">${icon('file', { size: 16 })}คำร้อง / คำแถลง</button>
@@ -81,7 +89,6 @@ function tabCase() {
       ${field('สตางค์', 'amount.satang', { cls: 's6', ph: '00' })}
       ${crim ? '' : field('เรื่อง/มูลคดี (ถ้าไม่เลือกจากรายการข้อหา)', 'civilCause', { cls: 's12', ph: 'เช่น ผิดสัญญากู้ยืมเงิน' })}
       ${crim ? '<p class="hint hint-row flush">ถ้าคดีอาญามีมูลค่าทรัพย์ (เช่น ฉ้อโกง ยักยอก) ใส่ได้ ถ้าไม่มีปล่อยว่าง ระบบขีดจุดไว้ตามแบบพิมพ์</p>' : ''}`)}
-    ${group('ตัวเลือกเอกสาร', `<div class="f s12">${check('ใช้เลขไทย (๑ ๒ ๓) ในเอกสาร ตามธรรมเนียมแบบพิมพ์ศาล', 'options.thaiDigits', { sw: true })}</div>`)}
   </div>`;
 }
 
@@ -591,10 +598,10 @@ const witLacksAddr = (x) => witOn(x) && (witnessKind(x) === 'person' ? !witnessA
 /** ลำดับในบัญชีพยาน (รวมเดิม+เพิ่มเติม) ของพยานแต่ละรายการ — ใช้โชว์เลขอันดับที่จะพิมพ์ */
 const witNo = (x) => witnessList(S.c).find((r) => r.w === x)?.no;
 function witSummary(x) {
-  const k = witnessKind(x), named = (x.name || '').trim(), no = named ? witNo(x) : null;
+  const k = witnessKind(x), named = (x.name || '').trim(), no = named ? witNo(x) : null, pos = witnessWho(x).pos;
   const meta = (x.note || '').trim() || (witOn(x) ? 'ออกหมายเรียก' : '');
   return `<span class="pill ${k === 'person' ? 'info' : ''}">${WIT_KIND[k]}</span>${x.extra ? badge('เพิ่มเติม', 'warn') : ''}
-    <span class="sum-name">${named ? esc(x.name) : '<em>ยังไม่ระบุ</em>'}</span>${no ? `<span class="sum-meta">อันดับ ${no}${meta ? ' · ' + esc(meta) : ''}</span>` : (meta ? `<span class="sum-meta">${esc(meta)}</span>` : '')}${witLacksAddr(x) ? badge('ยังไม่มีที่อยู่', 'warn') : ''}`;
+    <span class="sum-name">${named ? esc(x.name) : '<em>ยังไม่ระบุ</em>'}</span>${pos ? `<span class="sum-meta sum-pos">${esc(pos)}</span>` : ''}${no ? `<span class="sum-meta">อันดับ ${no}${meta ? ' · ' + esc(meta) : ''}</span>` : (meta ? `<span class="sum-meta">${esc(meta)}</span>` : '')}${witLacksAddr(x) ? badge('ยังไม่มีที่อยู่', 'warn') : ''}`;
 }
 
 /** กล่อง “บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ)”: พยานที่ติดธง “เพิ่มเติมภายหลังยื่นฟ้อง” + สวิตช์ + ดูตัวอย่าง */
@@ -603,9 +610,9 @@ function witnessExtraPanel() {
   const filed = isFiled(c);
   const hint = filed
     ? 'คดีนี้ฟ้องแล้ว — พยานที่เพิ่มใหม่ในหน้านี้จะเข้า “บัญชีพยานเพิ่มเติม” โดยอัตโนมัติ (ปิดสวิตช์ “เพิ่มเติมภายหลังยื่นฟ้อง” ของรายนั้นได้ถ้าต้องการลงบัญชีเดิม)'
-    : 'พยานที่ติดธง “เพิ่มเติมภายหลังยื่นฟ้อง” จะไม่อยู่ในบัญชีพยานเดิม แต่ไปลงบัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ) โดยนับอันดับต่อจากบัญชีเดิม · ใส่เลขคดีที่ศาลให้ในหน้า “ข้อมูลคดี” เพื่อพิมพ์บนหัวเอกสาร';
-  return `<div class="panel">
-    <h3>${icon('file', { size: 18 })}บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ): ${on ? extra.length : 0} รายการ<span class="grow"></span>${check('สร้างบัญชีพยานเพิ่มเติมอัตโนมัติ', 'docs.witnessExtra', { sw: true, rerender: true })}</h3>
+    : 'พยานที่ติดธง “เพิ่มเติมภายหลังยื่นฟ้อง” จะไม่อยู่ในบัญชีพยานเดิม แต่ไปลงบัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ) โดยนับอันดับต่อจากบัญชีเดิม · เลขคดีที่ศาลให้ (ถ้ามี) ใส่ในหน้า “ข้อมูลคดี” เพื่อเติมลงหัวเอกสาร ไม่ใส่ก็ออกเอกสารได้ เว้นจุดไข่ปลาไว้ให้เขียนเติม';
+  return `<div class="panel wit-panel">
+    <h3>${icon('file', { size: 18 })}<span class="h-t">บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ): ${on ? extra.length : 0} รายการ</span><span class="grow"></span>${check('สร้างบัญชีพยานเพิ่มเติมอัตโนมัติ', 'docs.witnessExtra', { sw: true, rerender: true })}</h3>
     <p class="hint">${hint}</p>
     ${!on ? `<div class="empty">${icon('file', { size: 22 })}<span>ปิดอยู่ — ไม่สร้างบัญชีพยานเพิ่มเติมในชุดเอกสาร</span></div>`
     : extra.length ? `<ul class="rows"><li><span class="st-ico ok" aria-hidden="true">${icon('check', { size: 15 })}</span>
@@ -626,8 +633,8 @@ function witnessSummonsPanel() {
       <span class="r-main">${esc(toThaiDigits(g.title))}<span class="r-note">${esc(formName(g))}${g.rows.length > 1 ? ` · รวม ${g.rows.length} รายการของผู้ครอบครองรายเดียวกัน` : ''}${lack ? ' · ยังไม่ระบุที่อยู่ (จะเว้นว่างให้เขียนเติม)' : ''}</span></span>
       <span class="r-act"><button type="button" class="btn sm outline" data-act="pvDoc" data-id="${esc(g.id)}">${icon('eye', { size: 15 })}<span>ดูตัวอย่าง</span></button></span></li>`;
   };
-  return `<div class="panel">
-    <h3>${icon('send', { size: 18 })}ระบบสร้างหมายเรียกให้อัตโนมัติ: ${on ? plan.length : 0} ฉบับ<span class="grow"></span>${check('สร้างหมายเรียกพยานอัตโนมัติ', 'docs.witnessSummons', { sw: true, rerender: true })}</h3>
+  return `<div class="panel wit-panel">
+    <h3>${icon('send', { size: 18 })}<span class="h-t">ระบบสร้างหมายเรียกให้อัตโนมัติ: ${on ? plan.length : 0} ฉบับ</span><span class="grow"></span>${check('สร้างหมายเรียกพยานอัตโนมัติ', 'docs.witnessSummons', { sw: true, rerender: true })}</h3>
     <p class="hint">ระบบสร้างให้ฉบับละพยาน (พยานบุคคล = แบบ ๑๖ · เอกสาร/วัตถุ = ${civil ? 'แบบ ๑๘' : 'แบบ ๑๗'} ผู้ครอบครองรายเดียวกันรวมเป็นฉบับเดียว) ดึงศาล คู่ความ ทนายความ และวัน-เวลานัดมาเติมเอง · ถ้าโจทก์นำพยานมาเอง ให้ปิดสวิตช์ “ขอให้ศาลออกหมายเรียก” ของรายนั้น</p>
     ${!on ? `<div class="empty">${icon('send', { size: 22 })}<span>ปิดอยู่ — ไม่สร้างหมายเรียกพยานในชุดเอกสาร</span></div>`
     : plan.length ? `<ul class="rows">${plan.map(row).join('')}</ul>` : `<div class="empty">${icon('send', { size: 22 })}<span>ยังไม่มีพยานที่ต้องออกหมายเรียก — เพิ่มพยานบุคคล เอกสาร หรือวัตถุด้านล่าง (ต้องระบุชื่อ/รายการก่อน)</span></div>`}
@@ -636,13 +643,19 @@ function witnessSummonsPanel() {
 
 function witnessFields(x, i) {
   const k = witnessKind(x), person = k === 'person', base = `witnesses.${i}`;
+  const posHint = 'พิมพ์ในหมายเรียกเป็นบรรทัดใต้ชื่อ · ไม่บังคับ (เว้นว่าง = ไม่พิมพ์บรรทัดนี้)';
+  // ชื่อ | ตำแหน่ง/ยศ แยกช่องกัน (จอกว้างอยู่แถวเดียวกัน 2 คอลัมน์) · ที่อยู่เป็นกลุ่มช่องของตัวเองด้านล่าง · โทรศัพท์ต่อท้ายกลุ่มที่อยู่
   return `<div class="grid">
-      ${select('ประเภท', `${base}.kind`, [['person', 'พยานบุคคล'], ['document', 'พยานเอกสาร'], ['object', 'พยานวัตถุ']], { cls: 's4', rerender: true })}
-      ${field(person ? 'ชื่อและสกุลพยาน' : k === 'document' ? 'รายการเอกสาร (ชื่อ/ลักษณะเอกสาร)' : 'รายการวัตถุ (ชื่อ/ลักษณะวัตถุ)', `${base}.name`, { cls: 's8', required: true, ph: person ? 'เช่น นายสมมติ ทดลอง' : k === 'document' ? 'เช่น สัญญาเช่าฉบับลงวันที่ …' : 'เช่น โทรศัพท์มือถือ 1 เครื่อง' })}
-      ${person ? '' : field('ผู้ครอบครอง (ผู้รับหมาย)', `${base}.holder`, { cls: 's8', ph: 'ชื่อบุคคล/หน่วยงานที่เก็บรักษา', hint: 'รายการที่ผู้ครอบครองและที่อยู่ตรงกัน ระบบรวมเป็นหมายฉบับเดียว' })}
-      ${field('โทรศัพท์', `${base}.phone`, { cls: person ? 's4' : 's4' })}
+      <div class="f s12 wit-kind" role="group" aria-label="ประเภทพยาน"><span>ประเภทพยาน</span>${seg(`${base}.kind`, [['person', 'พยานบุคคล'], ['document', 'พยานเอกสาร'], ['object', 'พยานวัตถุ']], { rerender: true, label: 'ประเภทพยาน' })}</div>
+      ${person
+    ? `${field('ชื่อและสกุลพยาน (ยศ/คำนำหน้า ถ้ามี)', `${base}.name`, { cls: 's6', required: true, ph: 'เช่น ร.ต.อ. ศุภชัย แช่มช้อย' })}
+      ${field('ตำแหน่ง', `${base}.position`, { cls: 's6', ph: 'เช่น พนักงานสอบสวน สถานีตำรวจภูธร…', hint: posHint })}`
+    : `${field(k === 'document' ? 'รายการเอกสาร (ชื่อ/ลักษณะเอกสาร)' : 'รายการวัตถุ (ชื่อ/ลักษณะวัตถุ)', `${base}.name`, { cls: 's12', required: true, ph: k === 'document' ? 'เช่น สัญญาเช่าฉบับลงวันที่ …' : 'เช่น โทรศัพท์มือถือ 1 เครื่อง' })}
+      ${field('ผู้ครอบครอง (ผู้รับหมาย)', `${base}.holder`, { cls: 's6', ph: 'ชื่อบุคคล/หน่วยงานที่เก็บรักษา', hint: 'รายการที่ผู้ครอบครอง ตำแหน่ง และที่อยู่ตรงกัน ระบบรวมเป็นหมายฉบับเดียว' })}
+      ${field('ตำแหน่งของผู้ครอบครอง', `${base}.holderPos`, { cls: 's6', ph: 'เช่น ผู้จัดการ บริษัท …', hint: posHint })}`}
     </div>
-    <section class="grp">${addressFields(`${base}.addr`, { title: person ? 'ที่อยู่พยาน (ใช้ในหมายเรียก)' : 'ที่อยู่ผู้ครอบครอง / ที่เก็บรักษา (ใช้ในหมายเรียก)', building: false })}</section>
+    <section class="grp wit-addr">${addressFields(`${base}.addr`, { title: person ? 'ที่อยู่พยาน (ใช้ในหมายเรียก)' : 'ที่อยู่ผู้ครอบครอง / ที่เก็บรักษา (ใช้ในหมายเรียก)', building: false })}
+      <div class="grid wit-phone">${field('โทรศัพท์', `${base}.phone`, { cls: 's6' })}</div></section>
     ${(x.address || '').trim() ? `<section class="grp"><div class="grid">${field('ที่อยู่แบบข้อความรวม (ข้อมูลเดิม — ใช้เมื่อไม่ได้กรอกช่องที่อยู่ด้านบน)', `${base}.address`, { cls: 's12' })}</div></section>` : ''}
     <section class="grp"><div class="grid">
       ${person ? field('ประเด็นที่จะให้พยานเบิกความ (ไม่บังคับ — พิมพ์ลงช่องว่างด้านหลังหมายเรียก)', `${base}.purpose`, { cls: 's12', type: 'textarea', rows: 2 }) : ''}
@@ -660,13 +673,12 @@ function tabWitness() {
   const filed = isFiled(S.c), nExtra = w.filter((x) => x.extra).length;
   return `${pageHead('บัญชีพยาน', 'แบบ ๑๕ — พยานบุคคลลงตาราง พยานเอกสาร/วัตถุแยกตาราง · พยานเพิ่มเติมหลังยื่นฟ้องลงแบบ ๑๕ ทวิ · ระบบสร้างหมายเรียกพยาน (แบบ ๑๖ · ๑๗ · ๑๘) ให้อัตโนมัติ')}
   <datalist id="dl-wnote"><option value="นำ"><option value="หมายเรียก"><option value="เด็กอายุไม่เกิน 18 ปี"></datalist>
-  <div class="toolbar">
-    <button class="btn outline" data-act="addWit" data-kind="person">${icon('plus', { size: 16 })}${filed ? 'เพิ่มพยานบุคคล (เพิ่มเติม)' : 'พยานบุคคล'}</button>
-    <button class="btn outline" data-act="addWit" data-kind="document">${icon('plus', { size: 16 })}พยานเอกสาร</button>
-    <button class="btn outline" data-act="addWit" data-kind="object">${icon('plus', { size: 16 })}พยานวัตถุ</button>
-    ${filed ? '' : `<button class="btn outline" data-act="addWit" data-kind="person" data-extra="1">${icon('plus', { size: 16 })}เพิ่มพยานเพิ่มเติม</button>`}
-    <span class="grow"></span>
-    <select class="sel-inline" data-onchange="witFromParty" aria-label="เพิ่มพยานจากรายชื่อคู่ความ"><option value="">เพิ่มจากรายชื่อคู่ความ…</option>${S.c.parties.map((p) => `<option value="${esc(p.id)}">${esc(partyLabel(S.c, p))}: ${esc(partyName(p))}</option>`).join('')}</select>
+  <div class="toolbar wit-add n${filed ? 3 : 4}" role="group" aria-label="เพิ่มพยาน">
+    <button class="btn outline" data-act="addWit" data-kind="person">${icon('plus', { size: 16 })}<span>พยานบุคคล</span></button>
+    <button class="btn outline" data-act="addWit" data-kind="document">${icon('plus', { size: 16 })}<span>พยานเอกสาร</span></button>
+    <button class="btn outline" data-act="addWit" data-kind="object">${icon('plus', { size: 16 })}<span>พยานวัตถุ</span></button>
+    ${filed ? '' : `<button class="btn outline" data-act="addWit" data-kind="person" data-extra="1" title="พยานที่เพิ่มภายหลังยื่นฟ้อง — ลงบัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ)">${icon('plus', { size: 16 })}<span>พยานเพิ่มเติม</span></button>`}
+    <select class="sel-inline wit-from" data-onchange="witFromParty" aria-label="เพิ่มพยานจากรายชื่อคู่ความ"><option value="">เพิ่มจากรายชื่อคู่ความ…</option>${S.c.parties.map((p) => `<option value="${esc(p.id)}">${esc(partyLabel(S.c, p))}: ${esc(partyName(p))}</option>`).join('')}</select>
   </div>
   <div class="panel compact">${check('โจทก์อ้างตนเองเป็นพยาน (ค่าเริ่มต้น — ใส่ชื่อโจทก์เป็นลำดับแรกในบัญชีพยานให้อัตโนมัติ)', 'options.selfWitness', { rerender: true, sw: true })}</div>
   ${witnessExtraPanel()}

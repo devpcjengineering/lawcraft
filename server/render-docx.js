@@ -7,6 +7,7 @@ import {
   ImageRun, TabStopType, PageBreak, VerticalAlign, TableLayoutType,
 } from 'docx';
 import { resolveLayout, mmToTwip, mmToPx } from '../shared/layout.js';
+import { thaiDigitsDoc as TD } from '../shared/thai.js';
 import BRACE_PNG from './brace-fallback.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -35,16 +36,16 @@ function getEmblem() {
 function run(r, base = {}) {
   if (r.kind === 'dots') return new TextRun({ text: '.'.repeat(Math.round((r.len || 20) * 1.1)), font: FONT, size: fz() });
   return new TextRun({
-    text: r.text, font: FONT, size: base.size || fz(), bold: !!(r.b || base.bold), underline: r.kind === 'val' || r.u || base.underline ? { type: r.kind === 'val' ? 'dotted' : 'single' } : undefined,
+    text: TD(r.text), font: FONT, size: base.size || fz(), bold: !!(r.b || base.bold), underline: r.kind === 'val' || r.u || base.underline ? { type: r.kind === 'val' ? 'dotted' : 'single' } : undefined,
     highlight: r.kind === 'ph' ? 'yellow' : undefined,
   });
 }
 
 const para = (children, o = {}) => new Paragraph({ children, spacing: { after: o.after ?? 60, line: lineSp() }, ...o.opts });
-const txt = (text, extra = {}) => new TextRun({ text, font: FONT, size: fz(), ...extra });
+const txt = (text, extra = {}) => new TextRun({ text: TD(text), font: FONT, size: fz(), ...extra });
 
 function dotted(text, size) {
-  return text ? new TextRun({ text, font: FONT, size: size || fz(), underline: { type: 'dotted' } }) : new TextRun({ text: '.'.repeat(18), font: FONT, size: size || fz() });
+  return text ? new TextRun({ text: TD(text), font: FONT, size: size || fz(), underline: { type: 'dotted' } }) : new TextRun({ text: '.'.repeat(18), font: FONT, size: size || fz() });
 }
 
 function cell(children, o = {}) {
@@ -91,8 +92,8 @@ function blockToDocx(b) {
         right.push(new Paragraph({ ...cn, ...o, spacing: { before: first ? mmToTwip(Math.max(0, L['caseNo.dy'])) : 0, after: 0, line: lineSp() }, children })); first = false;
       };
       if (b.courtUse) push([txt('สำหรับศาลใช้', { underline: {} })], { alignment: AlignmentType.RIGHT });
-      if (!(b.noEmblem && !b.black)) push([txt('คดีหมายเลขดำที่ '), dotted(b.black), txt(' / '), dotted(b.year)]);
-      if (b.showRed && !b.noEmblem) push([txt('คดีหมายเลขแดงที่ '), dotted(b.red), txt(' / '), dotted(b.year)]);
+      if (!(b.noEmblem && !b.black)) push([txt('คดีหมายเลขดำที่ '), dotted(b.black), txt(' / '), dotted(b.yearBlack)]);
+      if (b.showRed && !b.noEmblem) push([txt('คดีหมายเลขแดงที่ '), dotted(b.red), txt(' / '), dotted(b.yearRed)]);
       const midW = Math.max(25, Math.round(((L['emblem.width'] + 8) / textWidthMm()) * 100));
       return [new Table({
         width: { size: 100, type: WidthType.PERCENTAGE }, borders: NOBORDERS,

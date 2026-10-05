@@ -2,7 +2,7 @@
 import { S, esc, actions, hooks, setPath } from './store.js';
 import { NAV, TABS, postFilingState } from './tabs.js';
 import { provinceList, refreshGeo, idStateHtml } from './ui.js';
-import { newCase, indexLaw, caseTitle, caseLabel, validateCase, newParty, uid, applyServiceAuto, isFiled, filedBadge, newWitness } from '/shared/model.js';
+import { newCase, indexLaw, caseTitle, caseLabel, validateCase, newParty, uid, applyServiceAuto, isFiled, filedBadge, newWitness, splitCaseNo, migrateCaseYears } from '/shared/model.js';
 import { buildDocuments, isPostFilingDoc } from '/shared/docs.js';
 import { resolveLayout, layoutCssVars } from '/shared/layout.js';
 import { docsHtml, docHtml } from './render-html.js';
@@ -22,6 +22,7 @@ import { confirmBox, alertBox, issuesBox, modal } from './modal.js';
 import { notify, banner, clearBanner, mountBanners, inferType } from './notify.js';
 import * as authUi from './auth-ui.js';
 import { brandHtml, tbBtn } from './chrome.js';
+import { syncNav, closeNav } from './navdrawer.js';
 import { icon as ico2 } from './icons.js';
 import { showLoading, hideLoading, withLoading } from './loading.js';
 import './dropdown.js';
@@ -234,7 +235,7 @@ function normalizeCase(c) {
     merged.service.mode = c.service.crossDistrict && c.service.postNotice ? 'cross-post' : c.service.crossDistrict ? 'cross' : c.service.postNotice ? 'post' : 'post';
   }
   merged.parties = (c.parties || base.parties).map((p) => ({ ...newParty(p.role), ...p, address: { ...newParty().address, ...p.address } }));
-  return merged;
+  return migrateCaseYears(merged); // ข้อมูลเก่ามีปีช่องเดียว (caseYear) → แยกเป็นปีของเลขดำ/เลขแดง
 }
 
 const TAB_ALIAS = { charges: 'complaint', facts: 'complaint' };
@@ -282,6 +283,7 @@ function createCase(type, charge = '') {
 
 /** เปลี่ยนหน้าภายในคดีเดิม (ไม่โหลดคดีใหม่) */
 function switchTab(tab) {
+  closeNav({ restore: false }); // เปลี่ยนหน้า (รวมย้อนกลับ/ลิงก์ตรง) → ปิดลิ้นชักเมนูบนมือถือ
   const t = resolveTab(tab);
   if (t.adminOnly) hooks.toast(ADMIN_ONLY_MSG, { type: 'warn' });
   else if (t.blk) WIZ_NOTE(t.blk);
@@ -308,7 +310,7 @@ actions.newCase = (el) => { go(urls.newCase(el.dataset.type)); };
 actions.openCase = (el) => { go(urls.caseTab(el.dataset.id)); };
 actions.dupCase = async (el) => {
   const c = await backend.getCase(el.dataset.id);
-  c.id = uid(); c.caseNoBlack = ''; c.caseNoRed = ''; c.caseYear = ''; c.createdAt = new Date().toISOString();
+  c.id = uid(); c.caseNoBlack = ''; c.caseYearBlack = ''; c.caseNoRed = ''; c.caseYearRed = ''; delete c.caseYear; c.createdAt = new Date().toISOString();
   await backend.saveCase(c); hooks.toast('ทำสำเนาแล้ว'); reloadHome();
 };
 actions.delCase = async (el) => {
@@ -344,15 +346,16 @@ function syncPreviewDoc() {
 // ---------------- พื้นที่ทำงาน ----------------
 function showWorkspace() {
   app.innerHTML = `
-  <header class="topbar">${brandHtml('ระบบร่างคำฟ้อง')}
+  <header class="topbar"><button type="button" class="nav-toggle" id="nav-toggle" data-act="toggleNav" aria-label="เมนูคดี" title="เมนูคดี" aria-controls="steps" aria-expanded="false" aria-haspopup="dialog">${ico2('menu4', { size: 24 })}</button>${brandHtml('ระบบร่างคำฟ้อง')}
     <span class="case-name">${esc(S.c.title || caseTitle(S.c))}</span><span class="filed-chip" id="filed-chip" title="คดีนี้ยื่นฟ้องแล้ว — มีเลขคดีที่ศาลให้" ${isFiled(S.c) ? '' : 'hidden'}>${esc(filedBadge(S.c))}</span><span class="grow"></span>
     <button class="ready-chip" id="ready-chip" data-act="showReadiness" type="button"></button>
     <span class="save-state" id="save-state" data-tone="">${esc(saveState)}</span>
     ${tbBtn({ ico: 'eye', text: 'ตัวอย่างเอกสาร', act: 'togglePreview' })}
     ${tbBtn({ ico: 'folder', text: 'คดีทั้งหมด', act: 'goHome', href: urls.home() })}${authUi.userBar()}</header>
-  <div class="work" id="work"><nav class="steps" id="steps" aria-label="เมนูเอกสารและขั้นตอน"></nav><main class="main" id="main"></main>
+  <div class="work" id="work"><nav class="steps" id="steps" aria-label="เมนูเอกสารและขั้นตอน"></nav><div class="steps-backdrop" id="steps-backdrop" data-act="closeNav" aria-hidden="true"></div><main class="main" id="main"></main>
     <aside class="preview" id="preview"><div class="pv-bar" id="pv-bar"></div><div class="pv-scroll" id="pv-scroll"><div class="pv-inner" id="pv-inner"></div></div></aside></div>`;
   renderShell();
+  syncNav();
   schedulePreview(true);
   mountBanners($('.topbar'));
   updateReady();
@@ -369,7 +372,9 @@ function renderSteps() {
   const navGroups = NAV.filter(authUi.navGroupVisible);
   if (filed) { const i = navGroups.findIndex((g) => g.group === 'เพิ่มเติม'), j = navGroups.findIndex((g) => g.group === 'เอกสารในชุดฟ้อง'); if (i > j && j >= 0) navGroups.splice(j, 0, ...navGroups.splice(i, 1)); }
   const filedNav = filed ? `<div class="nav-filed" title="คดีนี้ยื่นฟ้องแล้ว — เลขคดีพิมพ์บนหัวเอกสารทุกฉบับ">${ico2('gavel', { size: 15 })}<span>${esc(filedBadge(S.c))}</span></div>` : '';
-  const stepsHtml = filedNav + navGroups.map((g) => {
+  // หัวลิ้นชักเมนูบนมือถือ (จอใหญ่ซ่อนด้วย CSS) — อยู่ในรายการที่ morph ได้ จึงคงอยู่ตอนวาดเมนูใหม่
+  const drawerHead = `<div class="steps-head"><b id="steps-title">เมนูคดี</b><button type="button" class="steps-x" data-act="closeNav" aria-label="ปิดเมนูคดี">${ico2('x', { size: 22 })}</button></div>`;
+  const stepsHtml = drawerHead + filedNav + navGroups.map((g) => {
     const items = g.items.filter((t) => authUi.navItemVisible(t) && (!t.only || t.only === S.c.type || (t.only === 'criminal' && crim)));
     const hint = filed && g.group === 'เพิ่มเติม' ? 'หลังยื่นฟ้อง' : g.hint;
     return `<div class="nav-group"><div class="nav-head">${esc(g.group)}${hint ? `<small>${esc(hint)}</small>` : ''}</div>${items.map((t) => {
@@ -387,9 +392,7 @@ function renderSteps() {
   updateReady();
   updateFiledUi();
   refreshWizard(S.tab, S.c);
-  // มือถือ: เมนูขั้นตอนเป็นแถบเลื่อนแนวนอน → เลื่อนให้ปุ่มที่เปิดอยู่มาอยู่กลางแถบ
-  const on = el.querySelector('.nav-item.on');
-  if (on && el.scrollWidth > el.clientWidth) el.scrollLeft = Math.max(0, on.offsetLeft - (el.clientWidth - on.offsetWidth) / 2);
+  syncNav();
 }
 function updateReady() {
   const chip = $('#ready-chip');
@@ -686,6 +689,13 @@ document.addEventListener('change', (e) => {
   if (el.dataset.onchange) { actions[el.dataset.onchange]?.(el); return; }
   if (!S.c || !el.dataset.bind) return;
   if (!handleBind(el)) return;
+  if (el.dataset.caseno) { // พิมพ์ "อ.123/2569" ในช่องเลข → แยกปีไปช่องปีของเลขนั้น (ถ้าช่องปียังว่าง)
+    const k = el.dataset.caseno, [n, y] = splitCaseNo(S.c['caseNo' + k]);
+    if (y && !String(S.c['caseYear' + k] || '').trim()) {
+      S.c['caseNo' + k] = n; S.c['caseYear' + k] = y; el.value = n;
+      const ye = document.querySelector('[data-bind="caseYear' + k + '"]'); if (ye) ye.value = y;
+    }
+  }
   if (el.dataset.age && el.value) {
     const scope = el.dataset.bind.replace(/\.birth$/, '');
     const age = ageFromBirth(el.value);

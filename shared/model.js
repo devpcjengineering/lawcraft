@@ -1,5 +1,5 @@
 // โมเดลข้อมูลคดี + ตัวช่วยที่ใช้ร่วมกันทั้งหน้าเว็บและเซิร์ฟเวอร์
-import { todayParts, fullName, courtShort, sectionsJoin, validCitizenId, addressText, isBkk, toThaiDigits } from './thai.js';
+import { todayParts, fullName, courtShort, sectionsJoin, validCitizenId, addressText, isBkk, toThaiDigits, toArabicDigits, toNum } from './thai.js';
 
 export function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -18,7 +18,7 @@ export function newParty(role = 'plaintiff') {
 export function newCase(type = 'criminal') {
   return {
     id: uid(), title: '', type, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-    court: '', caseNoBlack: '', caseNoRed: '', caseYear: '',
+    court: '', caseNoBlack: '', caseYearBlack: '', caseNoRed: '', caseYearRed: '',
     date: todayParts(),
     amount: { baht: '', satang: '' },
     parties: [newParty('plaintiff'), newParty('defendant')],
@@ -86,14 +86,22 @@ export const emptyAddress = () => ({ no: '', moo: '', building: '', soi: '', roa
 
 /**
  * พยานหนึ่งรายการ
- *  - person: name = ชื่อ-สกุลพยาน · addr/address = ที่อยู่พยาน · phone · purpose = ประเด็นที่จะให้เบิกความ (พิมพ์ลงช่องว่างหลังหมาย)
- *  - object/document: name = รายการเอกสาร/วัตถุ · holder = ผู้ครอบครอง · addr/address = ที่อยู่ผู้ครอบครอง/ที่เก็บ
+ *  - person: name = ชื่อ-สกุลพยาน · position = ตำแหน่ง/ยศ (ไม่บังคับ) · addr/address = ที่อยู่พยาน · phone · purpose = ประเด็นที่จะให้เบิกความ (พิมพ์ลงช่องว่างหลังหมาย)
+ *  - object/document: name = รายการเอกสาร/วัตถุ · holder = ผู้ครอบครอง · holderPos = ตำแหน่งผู้ครอบครอง · addr/address = ที่อยู่ผู้ครอบครอง/ที่เก็บ
  *  - summons: false = ไม่ขอให้ศาลออกหมายเรียกรายนี้ (เช่น โจทก์นำมาเอง)
  *  - extra: true = พยานที่เพิ่มภายหลังยื่นฟ้อง → ลงเฉพาะ “บัญชีพยานเพิ่มเติม (แบบ ๑๕ ทวิ)” ไม่อยู่ในบัญชีพยานเดิม (แบบ ๑๕)
  *  address เป็นข้อความรวมช่องเดียว (ข้อมูลเดิม) ส่วน addr เป็นที่อยู่แยกช่องตามแบบพิมพ์ศาล — ถ้ามี addr จะใช้ addr ก่อน
  */
 export function newWitness(kind = 'person', extra = false) {
-  return { id: uid(), kind: kind === 'object' || kind === 'document' ? kind : 'person', name: '', holder: '', address: '', addr: emptyAddress(), phone: '', purpose: '', note: '', summons: true, extra: !!extra };
+  return { id: uid(), kind: kind === 'object' || kind === 'document' ? kind : 'person', name: '', position: '', holder: '', holderPos: '', address: '', addr: emptyAddress(), phone: '', purpose: '', note: '', summons: true, extra: !!extra };
+}
+/**
+ * ผู้รับหมายเรียก แยกชื่อ / ตำแหน่ง (ยศ) ออกจากกัน — พยานบุคคล: name + position ; เอกสาร/วัตถุ: holder (ผู้ครอบครอง) + holderPos
+ * ข้อมูลเดิมที่มีแต่ name ก็ใช้ได้ (position ว่าง) · คืน {name, pos} ที่ตัดช่องว่างแล้ว
+ */
+export function witnessWho(w) {
+  const s = (v) => String(v ?? '').trim();
+  return witnessKind(w) === 'person' ? { name: s(w?.name), pos: s(w?.position) } : { name: s(w?.holder), pos: s(w?.holderPos) };
 }
 export const witnessKind = (w) => (w?.kind === 'object' || w?.kind === 'document' ? w.kind : 'person');
 export const isItemWitness = (w) => witnessKind(w) !== 'person';
@@ -140,19 +148,19 @@ export function witnessSummonsPlan(c, force = false) {
   }
   const groups = new Map();
   for (const r of rows.filter((x) => isItemWitness(x.w))) {
-    const holder = String(r.w.holder || '').trim(), addr = witnessAddrText(r.w);
-    const key = holder || addr ? `${holder}|${addr}|${String(r.w.phone || '').trim()}` : `solo:${r.w.id || r.no}`;
+    const holder = String(r.w.holder || '').trim(), holderPos = String(r.w.holderPos || '').trim(), addr = witnessAddrText(r.w);
+    const key = holder || addr ? `${holder}|${holderPos}|${addr}|${String(r.w.phone || '').trim()}` : `solo:${r.w.id || r.no}`;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(r);
   }
   for (const list of groups.values()) {
     const kinds = new Set(list.map((r) => witnessKind(r.w)));
     const noun = kinds.size > 1 ? 'พยานเอกสาร/วัตถุ' : kinds.has('document') ? 'พยานเอกสาร' : 'พยานวัตถุ';
-    const holder = String(list[0].w.holder || '').trim();
+    const holder = String(list[0].w.holder || '').trim(), holderPos = String(list[0].w.holderPos || '').trim();
     const name = holder || list[0].w.name.trim();
     const nos = list.map((r) => r.no);
     plan.push({
-      id: `witnessSummons-i-${list[0].w.id || list[0].no}`, kind: 'item', form: civil ? '18' : '17', rows: list, nos, name, holder,
+      id: `witnessSummons-i-${list[0].w.id || list[0].no}`, kind: 'item', form: civil ? '18' : '17', rows: list, nos, name, holder, holderPos,
       title: `${civil ? 'คำสั่งเรียก' : 'หมายเรียก'}${noun} – ${name} (ลำดับที่ ${nos.join(', ')})`,
     });
   }
@@ -298,7 +306,7 @@ export function validateCase(c, idx) {
   if (c.type === 'civil' && !c.civilCause && !c.charges.length) add('warn', 'ยังไม่ได้ระบุมูลคดีแพ่ง', 'charges');
   if (!c.facts.some((f) => (f.text || '').trim())) add('error', 'ยังไม่มีข้อเท็จจริงในคำฟ้อง', 'facts');
   if (!c.prayers.some((f) => (f.text || '').trim())) add('warn', 'ยังไม่มีคำขอท้ายฟ้อง', 'prayer');
-  if (c.type === 'civil' && !(+c.amount.baht > 0)) add('warn', 'คดีแพ่ง: ยังไม่ได้ระบุทุนทรัพย์ (ใช้คำนวณค่าขึ้นศาล)', 'case');
+  if (c.type === 'civil' && !(toNum(c.amount.baht) > 0)) add('warn', 'คดีแพ่ง: ยังไม่ได้ระบุทุนทรัพย์ (ใช้คำนวณค่าขึ้นศาล)', 'case');
   const missing = collectVars(c).filter((v) => !(c.vars?.[v] ?? '').trim());
   if (missing.length) add('warn', `ยังมีช่องข้อมูลที่ยังไม่ได้กรอก ${missing.length} ช่อง: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? ' ...' : ''}`, 'facts');
   // ความผิดต่อส่วนตัว: ร้องทุกข์/ฟ้องภายใน 3 เดือน (ป.อ. ม.96)
@@ -333,8 +341,7 @@ export function validateCase(c, idx) {
       if (g.kind === 'item' && !wFilled(r.w.holder) && !witnessAddrText(r.w)) add('warn', `${lbl}: ยังไม่ระบุผู้ครอบครอง/ที่อยู่ — หมายเรียกจะเว้นไว้ให้เขียนเติมเอง`, 'witness');
     }
   }
-  const nExtra = witnessList(c, 'extra').length;
-  if (nExtra && !isFiled(c)) add('warn', `มีพยานเพิ่มเติมภายหลังยื่นฟ้อง ${nExtra} ราย แต่ยังไม่ได้ใส่เลขคดีที่ศาลให้ — บัญชีพยานเพิ่มเติมและหมายเรียกจะเว้นเลขคดีไว้ให้เขียนเติม`, 'case');
+  // เลขคดีไม่บังคับและไม่เตือน: ใส่เมื่อไรก็แค่เติมลงช่องหัวเอกสาร ไม่ใส่ก็เว้นจุดไข่ปลาไว้ให้เขียนเติม
   const nW = witnessSummonsPlan(c).length;
   if (nW && !c.hearing?.date) add('info', `หมายเรียกพยาน ${nW} ฉบับจะเว้นวัน-เวลานัดไว้ให้เขียนเติม (ยังไม่ระบุวันนัด)`, 'case');
   return out;
@@ -343,39 +350,59 @@ export function validateCase(c, idx) {
 /** ชื่อคดีที่แสดงในรายการ/หัวหน้า: ใช้ "หมายเลขคำฟ้อง" แทนชื่อคู่ความ (ไม่เปิดเผยชื่อบุคคลบนหน้ารวม)
  *  = เลขคดีดำ/แดงที่ศาลให้ (ถ้ามี) ไม่เช่นนั้นเลขอ้างอิงของระบบ (อักษร 8 ตัวแรกของรหัสคดี) */
 export function caseLabel(c) {
-  const black = String(c?.caseNoBlack || '').trim(), red = String(c?.caseNoRed || '').trim(), yr = String(c?.caseYear || '').trim();
-  const withYr = (n) => (yr && !n.includes('/') ? `${n}/${yr}` : n);
-  if (black) return `คดีหมายเลขดำที่ ${withYr(black)}`;
-  if (red) return `คดีหมายเลขแดงที่ ${withYr(red)}`;
+  const p = caseNoParts(c);
+  const withYr = (n, yr) => (yr && !n.includes('/') ? `${n}/${yr}` : n);
+  if (p.black) return `คดีหมายเลขดำที่ ${withYr(p.black, p.yearBlack)}`;
+  if (p.red) return `คดีหมายเลขแดงที่ ${withYr(p.red, p.yearRed)}`;
   return `คำฟ้อง ${String(c?.id || '').slice(0, 8).toUpperCase() || '—'}`;
 }
 
 const filledStr = (v) => String(v ?? '').trim();
 
-/** คดีที่ยื่นฟ้องแล้ว = ศาลให้เลขคดีดำหรือแดงแล้ว (ใส่เลขในหน้า “ข้อมูลคดี”) — ไม่มีสวิตช์แยก */
+/** คดีที่ศาลให้เลขคดีดำหรือแดงแล้ว (ใส่ในหน้า “ข้อมูลคดี”) — ใช้เป็นป้ายสถานะ/ลำดับเอกสารเท่านั้น ไม่ใช้บล็อกหรือเตือนการออกเอกสาร */
 export function isFiled(c) { return !!(filledStr(c?.caseNoBlack) || filledStr(c?.caseNoRed)); }
 
 /**
- * เลขคดีสำหรับพิมพ์บนหัวเอกสาร: { black, red, year }
- * รับทั้งแบบแยกช่อง (เลข + ปี) และแบบพิมพ์รวมในช่องเลข เช่น “อ.123/2569” → black “อ.123”, year “2569” (ถ้าช่องปีว่าง)
+ * เลขคดีสำหรับพิมพ์บนหัวเอกสาร: { black, yearBlack, red, yearRed } — เลขดำและเลขแดงมี “ปี” ของตัวเองแยกกัน
+ * รับทั้งแบบแยกช่อง (เลข + ปี) และแบบพิมพ์รวมในช่องเลข เช่น “อ.123/2569” → black “อ.123”, yearBlack “2569” (ถ้าช่องปีของเลขนั้นว่าง)
+ * ข้อมูลเก่าที่มีปีช่องเดียว (caseYear) ใช้เป็นปีของเลขที่มีอยู่ (เลขที่ไม่มีค่า = ไม่มีปี)
  */
+export function splitCaseNo(v) {
+  const s = filledStr(v), m = /^(.*?)\s*\/\s*([0-9๐-๙]{2,4})$/.exec(s);
+  return m ? [m[1].trim(), m[2]] : [s, ''];
+}
 export function caseNoParts(c) {
-  const split = (v) => {
-    const s = filledStr(v), m = /^(.*?)\s*\/\s*([0-9๐-๙]{2,4})$/.exec(s);
-    return m ? [m[1].trim(), m[2]] : [s, ''];
+  const legacy = filledStr(c?.caseYear);
+  const one = (no, yr) => {
+    const [n, typed] = splitCaseNo(no);
+    return [n, n ? (filledStr(yr) || typed || legacy) : filledStr(yr)];
   };
-  const [black, by] = split(c?.caseNoBlack), [red, ry] = split(c?.caseNoRed);
-  return { black, red, year: filledStr(c?.caseYear) || by || ry };
+  const [black, yearBlack] = one(c?.caseNoBlack, c?.caseYearBlack), [red, yearRed] = one(c?.caseNoRed, c?.caseYearRed);
+  return { black, yearBlack, red, yearRed };
 }
 
-/** ป้ายสั้น “ดำ ๑๒๓/๖๙” สำหรับป้ายสถานะ (ดำก่อน ถ้าไม่มีใช้แดง) — ว่าง = ยังไม่ได้ฟ้อง */
+/** โหลดคดีเก่า: ปีช่องเดียว (caseYear) → แยกเป็น caseYearBlack / caseYearRed ตามเลขที่มีอยู่ แล้วเลิกเขียน caseYear ; คืนคดีเดิม (แก้ในที่) */
+export function migrateCaseYears(c) {
+  if (!c || typeof c !== 'object') return c;
+  const legacy = filledStr(c.caseYear);
+  c.caseYearBlack = filledStr(c.caseYearBlack);
+  c.caseYearRed = filledStr(c.caseYearRed);
+  if (legacy) {
+    if (!c.caseYearBlack && filledStr(c.caseNoBlack)) c.caseYearBlack = legacy;
+    if (!c.caseYearRed && filledStr(c.caseNoRed)) c.caseYearRed = legacy;
+  }
+  delete c.caseYear;
+  return c;
+}
+
+/** ป้ายสั้น “ดำ ๑๒๓/๖๙” สำหรับป้ายสถานะ (ดำก่อน ถ้าไม่มีใช้แดง) — ว่าง = ยังไม่ได้ใส่เลขคดี */
 export function filedNoText(c) {
-  const { black, red, year } = caseNoParts(c);
-  const n = black || red;
+  const { black, yearBlack, red, yearRed } = caseNoParts(c);
+  const n = black || red, year = black ? yearBlack : yearRed;
   return n ? `${black ? 'ดำ' : 'แดง'} ${n}${year ? '/' + year : ''}` : '';
 }
 
-/** ป้ายสถานะ “ฟ้องแล้ว · ดำ ๑๒๓/๖๙” (เลขไทยตามตัวเลือกของคดี) — ว่าง = ยังเป็นร่าง */
+/** ป้ายสถานะ “ฟ้องแล้ว · ดำ ๑๒๓/๖๙” (เลขไทยตามตัวเลือกของคดี) — ว่าง = ยังไม่ได้ใส่เลขคดี */
 export function filedBadge(c) {
   const n = filedNoText(c);
   if (!n) return '';
@@ -393,16 +420,16 @@ export function caseListInfo(c) {
     return { name: list.map(partyName).find(Boolean) || '', more: Math.max(0, list.length - 1) };
   };
   const pl = side('plaintiff'), df = side('defendant');
+  const no = caseNoParts(c);
   return {
-    caseNoBlack: filledStr(c?.caseNoBlack), caseNoRed: filledStr(c?.caseNoRed), caseYear: filledStr(c?.caseYear), filed: isFiled(c),
+    caseNoBlack: filledStr(c?.caseNoBlack), caseYearBlack: no.yearBlack, caseNoRed: filledStr(c?.caseNoRed), caseYearRed: no.yearRed, filed: isFiled(c),
     plName: pl.name, plMore: pl.more, dfName: df.name, dfMore: df.more,
   };
 }
-
 /** ค่านำหมาย/ปิดหมาย: จำเลยหลายคน = บวกค่านำหมายของจำเลยแต่ละคน (ไม่ให้แก้ยอดรวมเอง) — unit = อัตราต่อจำเลย 1 คน */
 export function serviceFeeInfo(c) {
   const n = Math.max(1, defendants(c).length);
-  const unit = Number(String(c?.service?.fee ?? '').replace(/[^\d.]/g, '')) || 0;
+  const unit = Number(toArabicDigits(c?.service?.fee ?? '').replace(/[^\d.]/g, '')) || 0;
   return { n, unit, total: unit * n, multi: n > 1 };
 }
 

@@ -42,6 +42,14 @@ console.log('ตรวจสอบ:', validateCase(c, idx).map((i) => `${i.level
 const flat = JSON.stringify(docs);
 if (/\{\{/.test(flat)) throw new Error('ยังมี {{ }} ค้างในเอกสาร');
 if (!/๒๕๖/.test(flat)) throw new Error('ไม่แปลงเป็นเลขไทย');
+// เลขไทยบังคับ: ข้อความที่มองเห็นทุกบล็อกต้องไม่มีเลขอารบิก (ข้ามคีย์ t/kind/id) ; ไม่มีเลขคดีก็ต้องออกเอกสารครบ ไม่มีคำเตือนเรื่องเลขคดี
+const visibleDigits = (o, k = '') => (typeof o === 'string' ? (!['t', 'kind', 'id'].includes(k) && /[0-9]/.test(o) ? [o] : [])
+  : Array.isArray(o) ? o.flatMap((x) => visibleDigits(x, k)) : o && typeof o === 'object' ? Object.entries(o).flatMap(([kk, v]) => visibleDigits(v, kk)) : []);
+const bad = visibleDigits(docs.map((d) => d.blocks));
+if (bad.length) throw new Error('เหลือเลขอารบิกในเอกสาร: ' + bad.slice(0, 3).join(' | '));
+if (c.caseNoBlack || c.caseNoRed) throw new Error('smoke ควรทดสอบกรณีไม่มีเลขคดี');
+if (!docs.some((d) => d.id.startsWith('witnessSummons-')) || !docs.some((d) => d.id.startsWith('motion-'))) throw new Error('ไม่มีเลขคดีก็ต้องออกหมายเรียกพยานและคำร้อง');
+if (validateCase(c, idx).some((i) => /เลขคดี/.test(i.msg))) throw new Error('ต้องไม่มีคำเตือนเรื่องเลขคดี');
 const buf = await renderDocx(docs, 'ทดสอบ');
 fs.writeFileSync(path.join(out, 'smoke.docx'), buf);
 console.log('docx bytes:', buf.length);

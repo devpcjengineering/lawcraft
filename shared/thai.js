@@ -15,9 +15,34 @@ export function toArabicDigits(s) {
   return String(s ?? '').replace(/[๐-๙]/g, (d) => String(TH_DIGITS.indexOf(d)));
 }
 
+/** ข้อความที่ต้องคงเป็นตัวเลข/ตัวอักษรละติน: อีเมล · ที่อยู่เว็บ (http(s)://… www.… หรือโดเมนที่ลงท้าย .com .co.th ฯลฯ) */
+const KEEP_ASCII_RE = /(?:[a-z][a-z0-9+.-]*:\/\/|www\.)[^\s<>"')\]]+|[\w.+-]+@[\w-]+(?:\.[\w-]+)+|\b(?:[a-z0-9-]+\.)+(?:com|net|org|edu|gov|info|biz|io|co|th|app|me|dev|asia)\b(?:\/[^\s<>"')\]]*)?/gi;
+
+/**
+ * แปลงเลขอารบิกเป็นเลขไทยในข้อความที่พิมพ์ลงเอกสาร — เว้นอีเมลและที่อยู่เว็บไว้ตามเดิม
+ * ใช้ซ้ำได้ (idempotent) ; ข้อมูลที่เก็บไว้ไม่ถูกแก้ ใช้ตอนสร้าง/แสดงเอกสารเท่านั้น
+ */
+export function thaiDigitsDoc(s) {
+  const str = String(s ?? '');
+  if (!/[0-9]/.test(str)) return str;
+  let out = '', last = 0, m;
+  KEEP_ASCII_RE.lastIndex = 0;
+  while ((m = KEEP_ASCII_RE.exec(str))) {
+    out += toThaiDigits(str.slice(last, m.index)) + m[0];
+    last = m.index + m[0].length;
+  }
+  return out + toThaiDigits(str.slice(last));
+}
+
+/** ตัวเลขจากข้อความที่ผู้ใช้พิมพ์ (รับเลขไทย ๐–๙ และเครื่องหมายคั่นหลักพัน) — ไม่ใช่ตัวเลข = NaN */
+export function toNum(v) {
+  const s = toArabicDigits(v).replace(/[,\s]/g, '').trim();
+  return s === '' ? NaN : Number(s);
+}
+
 /** ปีที่เป็นเลขในช่วงปี ค.ศ. → พ.ศ. (ถ้ามากกว่า 2400 ถือว่าเป็น พ.ศ. อยู่แล้ว) */
 export function toBE(y) {
-  y = +y;
+  y = toNum(y);
   if (!y) return '';
   return y > 2400 ? y : y + 543;
 }
@@ -29,7 +54,7 @@ export function todayParts(now = new Date()) {
 /** "6 ตุลาคม 2569" จาก {d,m,y} (m เป็นเลข 1-12) */
 export function longDate({ d, m, y } = {}) {
   if (!d || !m || !y) return '';
-  return `${d} ${THAI_MONTHS[+m - 1] || ''} ${toBE(y)}`;
+  return `${d} ${THAI_MONTHS[toNum(m) - 1] || ''} ${toBE(y)}`;
 }
 
 /** แปลงสตริงวันที่ ISO (YYYY-MM-DD, ค.ศ.) เป็น {d,m,y(พ.ศ.)} */
