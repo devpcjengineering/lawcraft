@@ -165,27 +165,10 @@
         <h2>ฟ้องที่ศาลไหน.<br>รู้ได้ในไม่กี่วินาที.</h2>
         <p class="lead">เลือกประเภทคดี จังหวัด และอำเภอ ระบบแสดงศาลที่เกี่ยวข้อง พร้อมหลักกฎหมายว่าด้วยเขตอำนาจ</p>
       </header>
-      <div class="finder reveal">
-        <div class="finder-top">
-          <div class="seg" role="radiogroup" aria-label="ประเภทคดี">
-            <label><input type="radio" name="jt" value="criminal" checked><span>คดีอาญา</span></label>
-            <label><input type="radio" name="jt" value="civil"><span>คดีแพ่ง</span></label>
-          </div>
-          <button type="button" class="btn-pill ghost sm" id="jReset" hidden>ล้างค่า</button>
-        </div>
-        <div class="fields">
-          <label class="sel"><span>จังหวัด<small id="provHint">ที่เกิดเหตุ / ภูมิลำเนาจำเลย</small></span>
-            <select id="prov" disabled><option value="">กำลังโหลดรายชื่อจังหวัด…</option></select></label>
-          <label class="sel"><span><b id="distLabel">อำเภอ/เขต</b><small>ใช้กำหนดศาลที่มีเขตอำนาจ</small></span>
-            <select id="dist" disabled><option value="">เลือกจังหวัดก่อน</option></select></label>
-          <label class="sel"><span><b id="subLabel">ตำบล/แขวง</b><small>ไม่บังคับ — ใช้แสดงรหัสไปรษณีย์</small></span>
-            <select id="sub" disabled><option value="">เลือกอำเภอ/เขตก่อน</option></select></label>
-        </div>
-        <div id="courtOut" class="court-out"></div>
-        <p class="sr-only" id="jStatus" role="status" aria-live="polite"></p>
-      </div>
-      <div class="rules reveal" id="rules"></div>
-      <p class="more"><a class="link-arrow" href="/jurisdiction/">ดูเขตอำนาจศาลรายจังหวัดทั้ง 77 จังหวัด</a></p>
+      <!-- เครื่องมือค้นหาเขตอำนาจศาล: สร้างโดย /site/jurisdiction-tool.js (ใช้ตัวเดียวกับหน้า /jurisdiction/) -->
+      <div id="jurTool"><noscript><p class="fine">เครื่องมือค้นหาเขตอำนาจศาลต้องเปิดใช้ JavaScript — <a href="/jurisdiction/">ดูหน้าเขตอำนาจศาลฉบับเต็ม</a> เพื่อเลือกจังหวัดและอ่านหลักเลือกศาล</p></noscript></div>
+      <div class="rules" id="rules"></div>
+      <p class="more"><a class="link-arrow" href="/jurisdiction/">ดูหน้าเขตอำนาจศาลฉบับเต็ม — ค้นหาครบ 77 จังหวัด</a></p>
       <p class="fine">หมายเหตุ: ศาลมีเขตอำนาจกำหนดที่ระดับอำเภอ/เขต การเลือกตำบล/แขวงเป็นเพียงการแสดงที่อยู่และรหัสไปรษณีย์ ข้อมูลที่ยังไม่ยืนยันหรือจับคู่จากชื่อศาล ให้ตรวจสอบกับสำนักงานศาลยุติธรรมก่อนยื่นฟ้องทุกครั้ง</p>
     </div>
   </section>

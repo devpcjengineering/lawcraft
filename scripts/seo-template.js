@@ -161,7 +161,7 @@ ${footer()}
 
 <script type="module" src="/site/nav.js"></script>
 <script type="module" src="/site/footer.js"></script>
-<script type="module" src="/site/live-pages.js"></script>
+<script type="module" src="/site/live-pages.js"></script>${(page.scripts || []).map((s) => `\n<script type="module" src="${s}"></script>`).join('')}
 <script src="/js/smooth.js" defer></script>
 </body>
 </html>

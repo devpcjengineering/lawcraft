@@ -42,6 +42,14 @@ export async function loadGeo() {
   return (await rows('key=eq.geo')).geo || { provinces: [] };
 }
 
+/** รายชื่อศาลอย่างเดียว (เครื่องมือค้นหาเขตอำนาจศาลบนหน้า SEO ไม่ต้องโหลดข้อมูลกฎหมายทั้งชุด) — ไม่เคยโยนข้อผิดพลาด */
+export async function loadCourts() {
+  try {
+    if (!useSb) { const r = await fetch('/api/data'); return r.ok ? ((await r.json()).courts || null) : null; }
+    return (await rows('key=eq.courts')).courts || null;
+  } catch { return null; }
+}
+
 export async function loadJurisdiction() {
   try {
     if (!useSb) { const r = await fetch('/api/jurisdiction'); return r.ok ? await r.json() : null; }
