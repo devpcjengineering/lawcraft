@@ -99,6 +99,15 @@ export async function showLogin(msg = '', { reset = false } = {}) {
     <a class="login-back" href="/">${icon('arrowLeft')}กลับเว็บไซต์</a></form></div>`; app.querySelector('#loginForm').addEventListener('submit', (e) => e.preventDefault());
 }
 
+/** สลับบัญชี: ออกจากระบบแต่จำหน้าที่ขอไว้ (เช่นลิงก์คดีที่ถูกเชิญ) เพื่อกลับไปเปิดหลังล็อกอินด้วยอีเมลใหม่ */
+export async function switchAccount(returnUrl) {
+  const b = ctx.getBackend();
+  try { await b.signOut(); } catch (e) { console.error(e); }
+  ss.del(NOTE_KEY);
+  if (returnUrl) ss.set(RETURN_KEY, returnUrl);
+  return showLogin();
+}
+
 /** เข้าสู่ระบบ/ออกจากระบบ/ออกจากโหมดทดลอง → กลับหน้าเข้าสู่ระบบ */
 export async function signOut() {
   const b = ctx.getBackend();

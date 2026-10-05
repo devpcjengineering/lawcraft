@@ -20,6 +20,7 @@ function init() {
   };
   const para = (s) => String(s ?? '').split(/\n{2,}/).map((x) => `<p>${esc(x).replace(/\n/g, '<br>')}</p>`).join('');
 
+  const SKEL = '<div class="px-skel" aria-hidden="true"><i></i><i></i><i></i></div><span class="sr-only" role="status">กำลังค้นหา…</span>';
   let seq = 0;
   const state = () => ({ q: qIn.value.trim(), year: yearSel.value, type: typeSel.value, law: lawSel.value, page: 1 });
   const qs = (s) => { const p = new URLSearchParams(); for (const k of ['q', 'year', 'type', 'law']) if (s[k]) p.set(k, s[k]); if (s.page > 1) p.set('page', String(s.page)); if (s.id) p.set('id', String(s.id)); return p; };
@@ -31,11 +32,12 @@ function init() {
     if (!r.ok) throw Object.assign(new Error(body.error || `ผิดพลาด (${r.status})`), { status: r.status });
     return body;
   }
-  const fail = (e) => { out.innerHTML = `<div class="note warn" role="alert"><p>${esc(e.message || 'ค้นหาไม่สำเร็จ')}</p></div>`; };
+  const fail = (e) => { out.removeAttribute('aria-busy'); out.innerHTML =`<div class="note warn" role="alert"><p>${esc(e.message || 'ค้นหาไม่สำเร็จ')}</p></div>`; };
 
   async function search(s) {
     const my = ++seq;
-    out.innerHTML = '<p class="px-load" role="status">กำลังค้นหา…</p>';
+    out.setAttribute('aria-busy', 'true');
+    if (!out.querySelector('.px-skel')) out.innerHTML = SKEL; // โครงรอโหลดสูงเท่าผลลัพธ์ ไม่ให้กล่องขยับ
     try {
       const d = await api(qs(s));
       if (my !== seq) return;
@@ -64,6 +66,7 @@ function init() {
         <button type="button" class="btn-pill sm ghost" data-p="${d.page + 1}" ${lastPage ? '' : 'disabled'}>ถัดไป ›</button></nav>
       <p class="fine px-note">${esc(d.notice)}</p>`;
     out.dataset.tokens = JSON.stringify(d.tokens || []);
+    out.removeAttribute('aria-busy');
   }
 
   async function openDetail(li, btn) {

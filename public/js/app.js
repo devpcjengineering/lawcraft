@@ -818,6 +818,21 @@ async function dispatch(r, source = 'nav') {
   } finally { if (!stale(seq)) hideLoading(); }
 }
 
+/**
+ * เปิดลิงก์คดีไม่ได้ (ไม่พบ/ไม่มีสิทธิ์): สาเหตุที่พบบ่อยคือล็อกอินด้วยบัญชี Google คนละอีเมลกับที่เจ้าของคดีเชิญไว้
+ * → บอกอีเมลที่ล็อกอินอยู่ + ปุ่ม “สลับบัญชี” (ออกจากระบบ แล้วกลับมาเปิดคดีนี้หลังเข้าด้วยอีเมลที่ได้รับเชิญ)
+ */
+async function caseNotAccessible(returnUrl) {
+  const who = S.email ? `<p>บัญชีที่เข้าสู่ระบบอยู่: <b>${esc(S.email)}</b></p>` : '';
+  const r = await modal({
+    title: 'เปิดคดีนี้ไม่ได้', tone: 'warn',
+    message: `${who}<p>ไม่พบคดีนี้ในบัญชีนี้ — คดีอาจถูกลบแล้ว หรือเจ้าของคดียังไม่ได้เชิญอีเมลนี้ให้ร่วมแก้ไข</p>
+      <p>ถ้าคุณได้รับอีเมลเชิญ ให้ <b>สลับไปเข้าสู่ระบบด้วยอีเมลที่ได้รับเชิญ</b> (อาจเป็นคนละบัญชี Google กับที่ล็อกอินอยู่) ระบบจะพากลับมาเปิดคดีนี้ให้</p>`,
+    buttons: [{ label: 'ปิด', value: null }, { label: 'สลับบัญชี Google', value: 'switch', primary: true }],
+  });
+  if (r === 'switch') { await leaveCurrent(); await authUi.switchAccount(returnUrl); }
+}
+
 function normalizeUrl(r) {
   const [p, q] = r.canonical.split('?');
   if (location.pathname !== p) replaceUrl(p + (q ? '?' + q : location.search) + location.hash);
@@ -839,8 +854,11 @@ async function runRoute(r, seq) {
       try { c = await backend.getCase(r.id); } catch (e) {
         if (e.status === 401) throw e;
         if (stale(seq)) return;
-        hooks.toast('เปิดคดีไม่สำเร็จ — ไม่พบคดีนี้หรือไม่มีสิทธิ์เข้าถึง', { type: 'error' });
-        replaceUrl(urls.home()); return runRoute(parseRoute(), seq);
+        const gone = e.status === 404 || e.status === 403;
+        if (!gone) hooks.toast('เปิดคดีไม่สำเร็จ — ตรวจการเชื่อมต่อแล้วลองอีกครั้ง', { type: 'error' });
+        replaceUrl(urls.home()); await runRoute(parseRoute(), seq);
+        if (gone && !stale(seq)) caseNotAccessible(r.canonical); // หน้าแรกขึ้นก่อน แล้วกล่องอธิบายเด้งทับ
+        return;
       }
       if (stale(seq)) return;
       openCase(c, r.tab); return;

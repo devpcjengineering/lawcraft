@@ -10,7 +10,7 @@
 .ar-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0, 0, 0, .09); }
 .ar-card h2, .ar-card h3 { font-size: 21px; line-height: 1.35; letter-spacing: -.01em; }
 .ar-card p { margin: 0; color: var(--ink-2); font-size: 15px; line-height: 1.55; }
-.ar-cat { align-self: flex-start; font-size: 12.5px; font-weight: 600; color: var(--blue); background: color-mix(in srgb, var(--blue) 12%, transparent); padding: 2px 11px; border-radius: 99px; }
+.ar-cat { align-self: flex-start; font-size: 12.5px; font-weight: 600; color: #fff; background: var(--blue); padding: 2px 11px; border-radius: 99px; } /* หมวดหมู่ = น้ำเงินทึบ ตัวอักษรขาว */
 .ar-refs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .ar-refs i { font-style: normal; font-size: 12.5px; color: var(--ink-2); padding: 1px 9px; border-radius: 99px; box-shadow: 0 0 0 1px var(--line) inset; }
 .ar-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 0 0 28px; }
@@ -35,11 +35,13 @@
 .ar-review { margin: 12px 0 0; }
 /* ป้ายสถานะการตรวจ: ร่าง = เหลือง · ตรวจแล้ว = เขียว · ตรวจแล้วโดยนักกฎหมาย = ฟ้า */
 .ar-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
-.ar-rv { --rv: #a15c00; display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600; line-height: 1.5; padding: 2px 10px 2px 8px; border-radius: 99px; color: var(--rv); background: color-mix(in srgb, var(--rv) 13%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--rv) 22%, transparent) inset; }
+.ar-rv { --rv: #a15c00; display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600; line-height: 1.5; padding: 2px 10px 2px 8px; border-radius: 99px; color: #3a2400; background: #ffb020; box-shadow: none; } /* ร่าง = เหลืองอำพันสด ตัวอักษรเข้ม */
 .ar-rv svg { flex: none; }
 .ar-rv.full { font-size: 14px; padding: 4px 14px 4px 11px; gap: 7px; }
-.ar-rv.checked { --rv: var(--ok); }
-.ar-rv.lawyer { --rv: var(--link); }
+.ar-rv.checked { --rv: var(--ok); color: #fff; background: var(--ok); box-shadow: none; } /* ตรวจแล้ว = เขียวทึบ ตัวอักษรขาว */
+@media (prefers-color-scheme: dark) { :root:not([data-theme=light]) .ar-rv.checked { color: #04210f; } }
+:root[data-theme=dark] .ar-rv.checked { color: #04210f; }
+.ar-rv.lawyer { --rv: var(--link); color: #fff; background: var(--blue); } /* ตรวจแล้วโดยนักกฎหมาย = น้ำเงินทึบ */
 @media (prefers-color-scheme: dark) { :root:not([data-theme=light]) .ar-rv.draft { --rv: #ffb340; } }
 :root[data-theme=dark] .ar-rv.draft { --rv: #ffb340; }
 

@@ -202,11 +202,11 @@ $('#results').addEventListener('click', (e) => {
     const flags = [it.privateOffence && '<span class="tag warn">ความผิดต่อส่วนตัว — ต้องร้องทุกข์/ฟ้องภายใน 3 เดือน (ป.อ. มาตรา 96)</span>', it.compoundable && '<span class="tag warn">ยอมความได้</span>'].filter(Boolean).join(' ');
     if (flags) html += `<div class="box">${flags}</div>`;
     if (it.caution) html += `<div class="box">⚠ ${esc(it.caution)}</div>`;
-    html += `<p class="fine" style="margin-top:16px">${it.verified === false ? 'ข้อมูลนี้ยังไม่ผ่านการตรวจกับแหล่งทางการ โปรดตรวจสอบตัวบทก่อนใช้' : 'ตรวจกับแหล่งอ้างอิงแล้ว'}${it.source ? ' · แหล่งอ้างอิง: ' + (/^https?:/.test(it.source) ? `<a href="${esc(it.source)}" target="_blank" rel="noopener">${esc(new URL(it.source).hostname)}</a>` : esc(it.source)) : ''}</p>`;
+    html += `<p class="fine" style="margin-top:16px">${it.verified === false ? 'ข้อมูลนี้ยังไม่ผ่านการตรวจกับแหล่งทางการ โปรดตรวจสอบตัวบทก่อนใช้' : '<span class="badge ok">✓ ตรวจกับแหล่งอ้างอิงแล้ว</span>'}${it.source ? ' · แหล่งอ้างอิง: ' + (/^https?:/.test(it.source) ? `<a href="${esc(it.source)}" target="_blank" rel="noopener">${esc(new URL(it.source).hostname)}</a>` : esc(it.source)) : ''}</p>`;
     html += `<div class="cta"><a class="btn-pill primary" href="/workspace/">ใช้ข้อหานี้ร่างคำฟ้อง</a></div>`;
   } else if (s) {
     html += dl([['สาระสำคัญ', s.summary], ['ใช้ในเอกสาร', s.usedIn]]);
-    html += `<p class="fine" style="margin-top:16px">${s.verified === false ? 'ยังไม่ผ่านการตรวจกับแหล่งทางการ' : 'ตรวจกับแหล่งอ้างอิงแล้ว'}${s.source ? ' · ' + (/^https?:/.test(s.source) ? `<a href="${esc(s.source)}" target="_blank" rel="noopener">แหล่งอ้างอิง</a>` : esc(s.source)) : ''}</p>`;
+    html += `<p class="fine" style="margin-top:16px">${s.verified === false ? 'ยังไม่ผ่านการตรวจกับแหล่งทางการ' : '<span class="badge ok">✓ ตรวจกับแหล่งอ้างอิงแล้ว</span>'}${s.source ? ' · ' + (/^https?:/.test(s.source) ? `<a href="${esc(s.source)}" target="_blank" rel="noopener">แหล่งอ้างอิง</a>` : esc(s.source)) : ''}</p>`;
   }
   $('#sheetBody').innerHTML = html + '</div>';
   sheet.showModal();

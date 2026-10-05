@@ -70,7 +70,7 @@ function jurLists(jur, p, d) {
 const SCOPE_TXT = { criminal: 'รับคดีอาญา', civil: 'รับคดีแพ่ง' };
 function courtCard(c, i, W) {
   const badges = [];
-  if (c.verified === true) badges.push('<span class="badge ok">ยืนยันแล้ว</span>');
+  if (c.verified === true) badges.push('<span class="badge ok">✓ ยืนยันแล้ว</span>');
   else if (c.verified === false) badges.push('<span class="badge pending">ยังไม่ยืนยัน</span>');
   if (c.hl) badges.push(`<span class="badge match">ชื่อตรงกับ${W.d}ที่เลือก</span>`);
   const sub = [c.phone ? `โทร ${c.phone}` : '', SCOPE_TXT[c.scope], c.note].filter(Boolean);

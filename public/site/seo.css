@@ -28,7 +28,7 @@
 .note.warn { background: color-mix(in srgb, var(--crim) 9%, transparent); color: var(--ink); }
 .note p:last-child { margin-bottom: 0; }
 
-.tag.ok { color: var(--ok, #248a3d); background: color-mix(in srgb, var(--ok, #248a3d) 13%, transparent); white-space: nowrap; }
+.tag.ok { white-space: nowrap; } /* สี: ดู .badge.ok, .tag.ok ใน site.css (เขียวทึบ) */
 .note.src p { line-height: 1.8; }
 
 /* ตารางข้อเท็จจริง (dl) */
@@ -62,7 +62,6 @@
 .sp .px-form .btn-pill { grid-column: 2; }
 .sp .px-filters { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; }
 .sp .px-filters select { max-width: 100%; min-width: 0; text-overflow: ellipsis; padding: 8px 14px; font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 99px; background: var(--card); color: var(--ink); }
-.sp .px-filters select[name=law] { width: min(100%, 24em); }
 .sp .px-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 18px 0 0; font-size: 14px; color: var(--ink-3); }
 .sp .px-chip { border: 0; cursor: pointer; padding: 4px 14px; border-radius: 99px; font: inherit; font-size: 14px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
 .sp .px-chip:hover { background: color-mix(in srgb, var(--ink) 14%, transparent); }
@@ -81,6 +80,21 @@
 .sp .px-full summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
 .sp .px-pager { display: flex; gap: 12px; align-items: center; justify-content: center; margin: 18px 0 6px; }
 .sp .px-load { color: var(--ink-3); margin: 8px 0; }
+/* โหลดนิ่ม ไม่ให้กล่องกระตุก: โครงรอโหลด (skeleton) อยู่ใน HTML แรก สูงเท่าผลลัพธ์ · ช่องกรองกว้างคงที่ (ตัวเลือกจริงมาทีหลังก็ไม่ขยับ) · ผลลัพธ์ค่อย ๆ ปรากฏ */
+.sp .px-skel { display: grid; gap: 12px; }
+.sp .px-skel i { display: block; height: 132px; border-radius: 16px; box-shadow: 0 0 0 1px var(--line) inset; background: linear-gradient(100deg, var(--card) 30%, color-mix(in srgb, var(--ink) 7%, var(--card)) 50%, var(--card) 70%) 0 0 / 220% 100%; animation: px-shimmer 1.3s ease-in-out infinite; }
+.sp .px-skel i:nth-child(2) { height: 118px; animation-delay: .12s; }
+.sp .px-skel i:nth-child(3) { height: 104px; animation-delay: .24s; }
+@keyframes px-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+@keyframes px-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.sp .px-count, .sp .px-item, .sp .px-pager, .sp .px-note { animation: px-in .28s ease both; }
+.sp .px-item:nth-child(n+4) { animation-delay: .04s; }
+.sp .px-filters select { flex: none; width: 11.5em; }
+.sp .px-filters select[name=type] { width: 12.5em; }
+.sp .px-filters select[name=law] { width: min(100%, 24em); }
+#pxResults { min-height: 360px; }
+@media (max-width: 560px) { .sp .px-filters select, .sp .px-filters select[name=type] { flex: 1 1 8em; width: auto; } .sp .px-filters select[name=law] { flex: 1 1 100%; width: auto; } }
+@media (prefers-reduced-motion: reduce) { .sp .px-skel i { animation: none; } .sp .px-count, .sp .px-item, .sp .px-pager, .sp .px-note { animation: none; } }
 .sp .px-note { margin-top: 10px; }
 @media (max-width: 560px) { .sp .px { padding: 16px; border-radius: 16px; } .sp .px-form { grid-template-columns: 1fr; } .sp .px-form .btn-pill { grid-column: 1; } }
 

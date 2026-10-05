@@ -40,7 +40,7 @@ export function renderMain(it) {
     ${it.full_text ? `<h2>คำพิพากษาย่อ (ย่อยาว)</h2><div class="px-text">${para(it.full_text)}</div>` : ''}
     <h2>ข้อมูลคดี</h2>
     <dl class="facts">${fact('คู่ความ', list(it.litigants))}${fact('กฎหมายที่อ้าง', laws)}${fact('องค์คณะ', list(it.judges))}${fact('ศาลชั้นต้น/อุทธรณ์', list(it.lower_courts))}${fact('หมายเลขคดี', list(it.primary_court_nos))}${fact('แผนก', list(it.departments))}</dl>
-    <div class="note src"><p><b>ที่มาของข้อมูล</b> — ศูนย์เทคโนโลยีสารสนเทศและการสื่อสารในศาลฎีกา<br>ศาลฎีกา เลขที่ 6 ถนนราชดำเนินใน แขวงพระบรมมหาราชวัง เขตพระนคร กรุงเทพฯ 10200 <span class="tag ok">✓ ตรวจสอบแล้ว</span></p>
+    <div class="note src"><p><b>ที่มาของข้อมูล</b> — ศูนย์เทคโนโลยีสารสนเทศและการสื่อสารในศาลฎีกา<br>ศาลฎีกา เลขที่ 6 ถนนราชดำเนินใน แขวงพระบรมมหาราชวัง เขตพระนคร กรุงเทพมหานคร 10200 <span class="tag ok">✓ ตรวจสอบแล้ว</span></p>
     <p class="fine">${esc(NOTICE)} · <a href="https://deka.supremecourt.or.th/" rel="noopener noreferrer" target="_blank">ระบบสืบค้นคำพิพากษาศาลฎีกา</a></p></div>
     <p class="sp-bar"><a class="link-arrow" href="/precedents/">ค้นหาฎีกาอื่น</a><a class="link-arrow" href="/laws/">ข้อกฎหมายและมาตรา</a></p>`;
 }
