@@ -504,8 +504,7 @@ function witnessSummonsDoc(c, data, g) {
   if (person) {
     const name = w0.name.trim(), pos = witnessWho(w0).pos;
     blocks.push(
-      p([t('หมายถึง '), val(name)], { indent: 0 }),
-      ...(pos ? [p([val(pos)], { indent: 1.5 })] : []), // บรรทัดที่ 2 = ตำแหน่ง/ยศ (ว่าง = ไม่พิมพ์บรรทัดนี้)
+      p([t('หมายถึง '), val(name), ...(pos ? [t(' '), val(pos)] : [])], { indent: 0 }), // ชื่อ + ตำแหน่ง/ยศ ต่อกันบรรทัดเดียว (ไม่มีตำแหน่ง = ชื่ออย่างเดียว)
       p(witnessAddrRuns(w0), { indent: 0, justify: true }),
       ...tplParas(ft('wsum.person.cite'), { when: whenRuns(h.hd, h.time, 10) }, [...citeByRuns(c), t(' ')]),
       sigBlock([{ label: 'ผู้พิพากษา', name: '' }], true),
@@ -540,8 +539,7 @@ function witnessSummonsDoc(c, data, g) {
   const kinds = new Set(g.rows.map((r) => r.w.kind));
   const kindLabel = kinds.has('document') && kinds.has('object') ? 'พยานเอกสาร/วัตถุ' : kinds.has('object') ? 'พยานวัตถุ' : 'พยานเอกสาร';
   blocks.push(
-    p([t(crim ? 'หมายถึง ' : 'ถึง '), holderName ? val(holderName) : dots(60)], { indent: 0 }),
-    ...(holderPos ? [p([val(holderPos)], { indent: crim ? 1.5 : 0.9 })] : []),
+    p([t(crim ? 'หมายถึง ' : 'ถึง '), holderName ? val(holderName) : dots(60), ...(holderPos ? [t(' '), val(holderPos)] : [])], { indent: 0 }), // ชื่อ + ตำแหน่ง ต่อกันบรรทัดเดียว
     ...(legacyOnly && !String(w0.phone || '').trim() ? [] : [p(witnessAddrRuns(w0, !legacyOnly), { indent: 0, justify: true })]),
     ...tplParas(ft('wsum.item.cite'), { items: [t(ITEMS_REF)] }, [...citeByRunsItem(c), t(' ')]),
     ...tplParas(ft(crim ? 'wsum.item.deliver.criminal' : 'wsum.item.deliver.civil'), { items: [t(ITEMS_REF)], court, date: dateRuns(h.hd) }),
