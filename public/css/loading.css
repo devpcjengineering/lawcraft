@@ -23,9 +23,10 @@
 .lcl-text { margin: 0; font-size: 15px; color: var(--lcl-muted); }
 .lcl-text b { font-weight: 600; color: var(--lcl-ink); }
 @keyframes lcl-run { 0% { transform: translateX(-100%); } 100% { transform: translateX(280%); } }
+/* ตัวโหลดเป็นสัญญาณสถานะ ไม่ใช่ลูกเล่น: แม้เครื่องตั้งลดการเคลื่อนไหว (กฎส่วนกลางใน app.css ปิดทุกแอนิเมชันด้วย !important) แถบก็ยังต้องวิ่งซ้ายไปขวา — แค่ช้าลงและนุ่มลง */
 @media (prefers-reduced-motion: reduce) {
-  .lcl-track::after { animation: none; width: 100%; opacity: .5; transform: none; }
-  .lcl { transition: none; }
+  .lcl-track::after { animation: lcl-run 1.9s linear infinite !important; }
+  .lcl { transition: none !important; }
 }
 
 /* หน้าเว็บสาธารณะ: โผล่เฉพาะเมื่อโหลดนานเกิน ~0.35 วินาที (โหลดเร็ว = ไม่เห็น) แล้วจางหายเมื่อ load เสร็จ (js/splash.js);
