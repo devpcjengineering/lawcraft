@@ -370,3 +370,16 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
   .topbar:has(.nav-toggle) .brand-text > span { overflow: hidden; text-overflow: ellipsis; }
 }
 .f.wit-kind > .seg label { padding: 0 6px; white-space: nowrap; }
+
+/* มือถือ: แถบบนของคดี (มีปุ่มเมนู 4 ขีด) — ลดขนาดตัวอักษรชื่อสำนักงานให้เห็นฉบับเต็ม ไม่ตัดด้วย … */
+@media (max-width: 760px) {
+  .topbar:has(.nav-toggle) { gap: 2px; padding-inline: max(8px, env(safe-area-inset-left, 0px)) max(8px, env(safe-area-inset-right, 0px)); }
+  .topbar:has(.nav-toggle) .brand { gap: 5px; padding-left: 2px; overflow: visible; --brand-h: 22px; }
+  .topbar:has(.nav-toggle) .brand-text { overflow: visible; min-width: max-content; }
+  .topbar:has(.nav-toggle) .brand-text > span { overflow: visible; text-overflow: clip; }
+  .topbar:has(.nav-toggle) .brand-text .lt-th { font-size: clamp(10px, 3.05vw, 12px); letter-spacing: -.02em; }
+  .topbar:has(.nav-toggle) .brand-text .lt-en { font-size: clamp(8.5px, 2.5vw, 10px); letter-spacing: 0; }
+  .topbar:has(.nav-toggle) .grow { flex: 0 0 0; }
+  .topbar:has(.nav-toggle) > .btn, .topbar:has(.nav-toggle) > .btn:has(> .tb-i), .topbar:has(.nav-toggle) .ready-chip { min-width: 40px; padding: 0 8px; }
+  .topbar:has(.nav-toggle) > :last-child { margin-left: auto; }
+}
