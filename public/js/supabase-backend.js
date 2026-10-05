@@ -171,7 +171,7 @@ export const supabaseBackend = {
   async listMembers(caseId) {
     return must(await sb.from('case_members').select('email,created_at,notified_at').eq('case_id', caseId).order('created_at', { ascending: true }));
   },
-  /** ส่งอีเมลแจ้งผู้ที่ถูกเชิญ (Edge Function invite-email → Resend) ; ส่งซ้ำถึงคนเดิมได้ทุก 2 นาที (เกินนั้น throw status 429) */
+  /** ส่งอีเมลแจ้งผู้ที่ถูกเชิญ (Edge Function invite-email → Resend) ; ส่งซ้ำถึงคนเดิมได้ทุก 30 วินาที (ถี่กว่านั้น throw status 429) */
   async notifyMember(caseId, email) {
     const { data } = await sb.auth.getSession();
     if (!data.session) { const e = new Error('หมดเวลาเข้าสู่ระบบ'); e.status = 401; throw e; }

@@ -127,6 +127,13 @@ try {
   ok('notified_at recorded by function', !!res.data?.notified_at);
   m1 = await mail(A, TEST_TO);
   ok('immediate resend is rate limited (429)', m1.status === 429 && m1.body.retryAfter > 0, JSON.stringify(m1));
+  // ส่งซ้ำได้หลายครั้ง: ผ่านช่วงพัก 30 วินาทีแล้วต้องส่งได้อีก (และบันทึกเวลาใหม่)
+  const before = (await A.from('case_members').select('notified_at').eq('case_id', caseId).eq('email', TEST_TO).single()).data.notified_at;
+  await new Promise((r) => setTimeout(r, 31_000));
+  m1 = await mail(A, TEST_TO);
+  ok('resend works again after the 30s gap (multiple sends allowed)', m1.status === 200 && m1.body.ok === true, JSON.stringify(m1));
+  const after = (await A.from('case_members').select('notified_at').eq('case_id', caseId).eq('email', TEST_TO).single()).data.notified_at;
+  ok('notified_at moves forward on resend', new Date(after) > new Date(before));
   m1 = await mail(M, TEST_TO);
   ok('member (non-owner) cannot send invite email', m1.status === 403, JSON.stringify(m1));
   m1 = await mail(S, TEST_TO);

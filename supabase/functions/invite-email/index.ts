@@ -1,7 +1,7 @@
 // Edge Function: ส่งอีเมลแจ้งผู้ที่ถูกเชิญให้ร่วมแก้ไขคดี (ผ่าน Resend)
 // POST /functions/v1/invite-email  body { caseId, email }  header Authorization: Bearer <access_token ของเจ้าของคดี/แอดมิน>
 // ป้องกันการใช้เป็นเครื่องส่งสแปม: ต้องเป็นเจ้าของคดี (is_case_owner) + อีเมลปลายทางต้องอยู่ในรายชื่อผู้ร่วมแก้ไขของคดีนั้นแล้ว
-// + ส่งซ้ำถึงคนเดิมได้ไม่เกิน 1 ครั้งต่อ 2 นาที ; ลิงก์ในอีเมลมาจาก APP_URL (secret) ไม่รับจากไคลเอนต์ (กันแปะลิงก์ฟิชชิง)
+// + ส่งซ้ำถึงคนเดิมได้ทุก 30 วินาที (ส่งได้หลายครั้ง) ; ลิงก์ในอีเมลมาจาก APP_URL (secret) ไม่รับจากไคลเอนต์ (กันแปะลิงก์ฟิชชิง)
 // secrets: RESEND_API_KEY (จำเป็น) · MAIL_FROM (ค่าเริ่มต้น alert@law-craft.co) · MAIL_FROM_FALLBACK (ผู้ส่งสำรองที่ยืนยันใน Resend แล้ว ใช้เมื่อโดเมน MAIL_FROM ยังไม่ยืนยัน) · MAIL_FROM_NAME (Law Craft) · APP_URL (https://www.law-craft.co)
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { inviteEmail } from './template.js';
@@ -12,7 +12,7 @@ const cors = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
-const COOLDOWN_MS = 2 * 60_000;
+const COOLDOWN_MS = 30_000; // ส่งซ้ำถึงคนเดิมได้ทุก 30 วินาที (กันกดรัว/ใช้เป็นเครื่องส่งสแปม) — ส่งได้หลายครั้ง ไม่จำกัดจำนวน
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });

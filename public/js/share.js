@@ -78,7 +78,7 @@ export function panelHtml() {
   const notified = (m) => (m.notified_at ? `ส่งอีเมลแจ้งเมื่อ ${fmtTime(m.notified_at)}` : 'ยังไม่ได้ส่งอีเมลแจ้ง');
   const members = s.members.length
     ? `<ul class="rows">${s.members.map((m) => `<li><span class="st-ico ok" aria-hidden="true">${icon('user')}</span><span class="r-main">${esc(m.email)}${m.email === s.me ? ' (ฉัน)' : ''}${s.owner && m.email !== s.me ? `<span class="r-note">${esc(notified(m))}</span>` : ''}</span>
-        <span class="r-act">${s.owner ? `${m.email !== s.me ? `<button class="btn sm outline" data-act="shareResend" data-email="${esc(m.email)}"${dis} title="ส่งอีเมลเชิญซ้ำ">${icon('send', { size: 14 })}<span>ส่งอีเมลอีกครั้ง</span></button> ` : ''}<button class="btn sm danger" data-act="shareRemove" data-email="${esc(m.email)}"${dis}>ถอนสิทธิ์</button>` : m.email === s.me ? `<button class="btn sm outline" data-act="shareLeave"${dis}>ออกจากคดีนี้</button>` : ''}</span></li>`).join('')}</ul>`
+        <span class="r-act">${s.owner ? `${m.email !== s.me ? `<button class="btn sm outline" data-act="shareResend" data-email="${esc(m.email)}" data-since="${esc(m.notified_at || '')}"${dis} title="ส่งอีเมลเชิญซ้ำได้หลายครั้ง (เว้นอย่างน้อย 30 วินาที)">${icon('send', { size: 14 })}<span class="rs-t">ส่งอีเมลอีกครั้ง</span></button> ` : ''}<button class="btn sm danger" data-act="shareRemove" data-email="${esc(m.email)}"${dis}>ถอนสิทธิ์</button>` : m.email === s.me ? `<button class="btn sm outline" data-act="shareLeave"${dis}>ออกจากคดีนี้</button>` : ''}</span></li>`).join('')}</ul>`
     : '<p class="hint">ยังไม่มีผู้ร่วมแก้ไข — คดีนี้เห็นและแก้ได้เฉพาะเจ้าของ</p>';
   const invite = s.owner
     ? `<div class="share-invite"><input type="email" id="share-email" placeholder="อีเมล Google ของผู้ร่วมแก้ไข เช่น name@gmail.com" autocomplete="off" aria-label="อีเมลผู้ร่วมแก้ไข">
@@ -175,7 +175,7 @@ actions.shareResend = (el) => guarded('ส่งอีเมลไม่สำ�
   await ctx.backend().notifyMember(S.c.id, email);
   s.members = await ctx.backend().listMembers(S.c.id);
   hooks.rerender();
-  hooks.toast(`ส่งอีเมลแจ้ง ${email} แล้ว`, { type: 'success' });
+  hooks.toast(`ส่งอีเมลแจ้ง ${email} แล้ว — ส่งซ้ำได้อีกหลังผ่านไป 30 วินาที`, { type: 'success' });
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target?.id === 'share-email') { e.preventDefault(); actions.shareInvite(); } });
 
@@ -194,3 +194,15 @@ actions.shareLeave = () => guarded('ออกจากคดีไม่สำ�
   hooks.toast('ออกจากคดีแล้ว', { type: 'success' });
   go(urls.home());
 });
+
+// ปุ่ม “ส่งอีเมลอีกครั้ง”: ส่งซ้ำถึงคนเดิมได้ทุก 30 วินาที — ระหว่างรอปุ่มปิดและนับถอยหลังให้เห็น (อัปเดตเฉพาะข้อความปุ่ม ไม่วาดหน้าใหม่ จึงไม่รบกวนช่องกรอกอีเมล)
+const RESEND_GAP_S = 30;
+setInterval(() => {
+  for (const b of document.querySelectorAll('button[data-act="shareResend"][data-since]')) {
+    const since = Date.parse(b.dataset.since);
+    const wait = Number.isFinite(since) ? Math.ceil(RESEND_GAP_S - (Date.now() - since) / 1000) : 0;
+    const label = b.querySelector('.rs-t');
+    if (wait > 0) { b.disabled = true; b.dataset.cool = '1'; if (label) label.textContent = `ส่งซ้ำได้ใน ${wait} วิ`; }
+    else if (b.dataset.cool) { delete b.dataset.cool; b.disabled = !!document.querySelector('#share-prog')?.textContent?.trim(); if (label) label.textContent = 'ส่งอีเมลอีกครั้ง'; }
+  }
+}, 1000);
