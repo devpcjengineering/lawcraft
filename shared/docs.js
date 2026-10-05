@@ -260,7 +260,7 @@ function prayerDoc(c, idx) {
   }
   blocks.push(p([...nRuns('prayer.copies', c.copies)], { indent: 1.5, justify: true }));
   blocks.push(sigBlock(plaintiffSigs(c)));
-  blocks.push({ t: 'flip' });
+  if (civil) blocks.push({ t: 'flip' }); // คำขอท้ายคำฟ้องอาญาไม่พิมพ์ “(พลิก)”
   blocks.push(...authorLine(c, 'คำฟ้อง'));
   return { id: 'prayer', title: civil ? 'คำขอท้ายคำฟ้อง (แพ่ง)' : 'คำขอท้ายคำฟ้อง (อาญา)', blocks };
 }
