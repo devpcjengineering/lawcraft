@@ -24,6 +24,7 @@ import * as authUi from './auth-ui.js';
 import { brandHtml, tbBtn } from './chrome.js';
 import { icon as ico2 } from './icons.js';
 import { showLoading, hideLoading, withLoading } from './loading.js';
+import './dropdown.js';
 import { go, urls, parseRoute, routeLabel, setTitle, initRouter, replaceUrl, legacyHashTarget, TAB_NAMES } from './router.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -270,7 +271,7 @@ function switchTab(tab) {
   if (S.tab === 'layout') S.ui.pvOn = true;
   syncPreviewDoc();
   setTitle(TAB_NAMES[S.tab]);
-  smoothSwap(() => { renderShell(true); window.scrollTo({ top: 0 }); });
+  smoothSwap(() => { renderShell(true); window.scrollTo({ top: 0 }); $('#main')?.scrollTo({ top: 0 }); });
 }
 
 // ---- การนำทาง: ทุกปุ่มเรียก go(url) → dispatch() ; ปุ่มย้อนกลับ/ไปข้างหน้าของเบราว์เซอร์ก็เข้า dispatch() ที่เดียวกัน ----
@@ -392,12 +393,14 @@ function renderStepsSoon() { clearTimeout(stepsTimer); stepsTimer = setTimeout(r
 
 function renderMain(enter = false) {
   const tab = TABS.find((t) => t.key === S.tab) || TABS[0];
-  const scrollY = window.scrollY;
+  // จอใหญ่: หน้าเว็บไม่เลื่อน เนื้อหาเลื่อนอยู่ใน #main เอง · มือถือ: เลื่อนทั้งหน้า — จำทั้งสองแบบ
+  const scrollY = window.scrollY, mainTop = $('#main').scrollTop;
   const mainHtml = provinceList() + tab.render() + wizardNav(tab.key, S.c);
   if (enter || renderMain.last !== tab.key) $('#main').innerHTML = mainHtml; else morphInto($('#main'), mainHtml);
   renderMain.last = tab.key;
   if (tab.key === 'export') renderDocList();
   window.scrollTo(0, scrollY);
+  if (mainTop) $('#main').scrollTop = mainTop;
   if (enter) playEnter($('#main'));
 }
 
@@ -413,6 +416,7 @@ function renderShell(enter = false) {
   renderMain(enter);
   $('#work').classList.toggle('live', S.tab === 'layout');
   $('#work').classList.toggle('nopreview', !S.ui.pvOn);
+  if ($('#pv-inner')?.dataset.doc) applyPvFit(); // แผงเพิ่งโผล่ (เช่นหน้าตั้งค่าบนจอแคบ) → ตั้งขนาดพอดีทันที ไม่ให้เฟรมแรกใช้ซูมค้างตอนซ่อน
   schedulePreview(enter);
 }
 hooks.rerender = () => { if (S.bookMode) return hooks.bookRender(); renderSteps(); renderMain(); schedulePreview(); };
@@ -441,7 +445,7 @@ function schedulePreview(now) {
 function currentDocs() { return buildDocuments(S.c, S.data); }
 
 // หน้า “ตำแหน่งตัวหนังสือ & ตราครุฑ”: เลือกแบบใดต้องเห็นเอกสารแบบนั้นทันที แม้ยังไม่ได้เปิดใช้ในชุด (เช่น ใบแต่งทนาย)
-const LAYOUT_DOCKEY = { complaint: 'complaint', prayer: 'prayer', attachment: 'attachment', service: 'service', motion: 'motions', witness: 'witness', summons: 'summons', attorney: 'attorney', proxy: 'proxy', answer: 'answer', settlement: 'settlement' };
+const LAYOUT_DOCKEY = { complaint: 'complaint', prayer: 'prayer', attachment: 'attachment', service: 'service', motion: 'motions', witness: 'witness', summons: 'summons', witnessSummons: 'witnessSummons', attorney: 'attorney', proxy: 'proxy', answer: 'answer', settlement: 'settlement' };
 const isDocOf = (d, key) => d.id === key || d.id.startsWith(key + '-') || (key === 'motions' && d.id.startsWith('motion-'));
 function previewDocs() {
   const docs = currentDocs();
@@ -465,6 +469,7 @@ function previewDocs() {
 function renderPreview() {
   const box = $('#preview');
   if (!box || !S.c) return;
+  observePreview();
   box.style.display = S.ui.pvOn ? '' : 'none';
   if (!S.ui.pvOn) return;
   const docs = previewDocs();
@@ -485,7 +490,6 @@ function renderPreview() {
   const doc = docs.find((d) => d.id === S.ui.pvDoc);
   const inner = $('#pv-inner');
   const sc = $('#pv-scroll');
-  // ขนาดพอดีหน้าจอ: ให้เห็นทั้งหน้าโดยไม่ต้องเลื่อน (คำนวณจากความสูงจริงของเอกสาร) แล้วซูมเพิ่มได้
   const same = inner.dataset.doc === doc.id;
   const keepTop = sc.scrollTop, keepLeft = sc.scrollLeft;
   const oldZoom = parseFloat(inner.style.zoom) || 1;
@@ -493,22 +497,11 @@ function renderPreview() {
   const sheets = countSheets(sheetsHtml);
   if (same) morphInto(inner, sheetsHtml, { mark: false }); else inner.innerHTML = sheetsHtml;
   inner.classList.toggle('pv-guides', !!S.ui.guides);
-  const natH = 1123; // สูง A4 หนึ่งแผ่น (297 มม.)
-  // แผงตัวอย่างถูกซ่อนอยู่ (จอแคบ) → ยังไม่คำนวณขนาดพอดี รอตอนเปิดแผง
+  // แผงตัวอย่างถูกซ่อนอยู่ (จอแคบ) → ยังไม่คำนวณขนาดพอดี รอตอนเปิดแผง (ResizeObserver จะคำนวณให้เองเมื่อแผงมีขนาด)
   if (!sc.clientWidth || !sc.clientHeight) { inner.dataset.doc = doc.id; inner.style.zoom = 0.5; return; }
-  sc.classList.remove('fit'); void sc.offsetWidth; // ล้าง fit และบังคับ layout เพื่อให้วัด clientWidth ได้เท่ากันทุกหน้า (มี scrollbar-gutter เสมอ)
-  // กว้างใช้งานคิดจากความกว้างกรอบ (offsetWidth) หัก “ช่องแถบเลื่อน” คงที่ 10px — ไม่ใช้ clientWidth ตรง ๆ เพราะแถบเลื่อนโผล่/หายตามจำนวนแผ่น
-  // (หรือเบราว์เซอร์ที่ไม่รองรับ scrollbar-gutter) จะทำให้ขนาดพอดีจอเปลี่ยนเองเมื่อสลับหน้า
-  // ความสูงก็ใช้ offsetHeight ด้วยเหตุผลเดียวกัน (ซูมเองแล้วมีแถบเลื่อนแนวนอนโผล่ → กด “พอดี” ต้องได้ขนาดเดิม)
-  const availW = sc.offsetWidth - sc.clientLeft * 2 - 10 - 24, availH = sc.offsetHeight - sc.clientTop * 2 - 24;
-  const rawFit = Math.max(0.25, Math.min(1.1, availW / 794, availH / natH));
-  const fit = Math.floor(rawFit * 1000) / 1000;
-  const manual = typeof S.ui.pvZoom === 'number';
-  const zoom = manual ? S.ui.pvZoom : fit;
-  inner.style.zoom = zoom;
   inner.style.margin = '0 12px';
-  // sc.classList.toggle('fit', sheets === 1 && (!manual || zoom <= fit + 0.001));
-  const pct = Math.round(zoom * 100);
+  const manual = typeof S.ui.pvZoom === 'number';
+  const pct = Math.round((manual ? S.ui.pvZoom : 1) * 100);
   const barHtml = `<div class="pv-nav"><button type="button" class="pv-close" data-act="togglePreview" aria-label="ปิดตัวอย่างเอกสาร">${ico2('x')}</button>
     <div class="pv-pager"><button type="button" class="pv-arrow" data-act="pvPrev" aria-label="เอกสารก่อนหน้า" ${docs.length < 2 ? 'disabled' : ''}>${ico2('chevronLeft')}</button>
     <label class="pv-select"><select data-onchange="pvSelect" aria-label="เลือกเอกสารที่แสดงในตัวอย่าง">${docs.map((d) => `<option value="${esc(d.id)}" ${d.id === S.ui.pvDoc ? 'selected' : ''}>${esc(d.title)}</option>`).join('')}</select></label>
@@ -521,10 +514,48 @@ function renderPreview() {
   // สร้างแถบใหม่เฉพาะเมื่อเนื้อหาเปลี่ยน (ไม่ให้เมนูที่เปิดอยู่ปิด/เด้งทุกครั้งที่พิมพ์)
   if (bar.dataset.sig !== barHtml) { bar.innerHTML = barHtml; bar.dataset.sig = barHtml; }
   inner.dataset.doc = doc.id;
-  inner.dataset.fit = String(fit);
+  // คำนวณขนาดหลังแถบด้านบนถูกวาดแล้วเสมอ (แถบเปลี่ยนความสูง → กรอบเลื่อนเปลี่ยนความสูงตาม) ไม่งั้นได้ขนาดค้างจากแถบเก่า
+  const zoom = applyPvFit() ?? 1;
   if (same) { sc.scrollTop = keepTop * (zoom / oldZoom); sc.scrollLeft = keepLeft; } // กดปุ่ม/พิมพ์อะไรก็ตาม ตัวอย่างต้องอยู่ที่เดิม
   else { sc.scrollTop = 0; sc.scrollLeft = 0; }
   if (!same) { inner.classList.remove('pv-swap'); void inner.offsetWidth; inner.classList.add('pv-swap'); }
+}
+
+/**
+ * ขนาด “พอดี” ของแผ่น A4 = ฟังก์ชันของขนาดกรอบเลื่อน #pv-scroll อย่างเดียว (ไม่ขึ้นกับแท็บ จำนวนแผ่น หรือแถบเลื่อนของหน้าเว็บ)
+ *  - กว้าง: clientWidth (กรอบมีแถบเลื่อนแนวตั้งแสดงเสมอ overflow-y: scroll → หักความกว้างแถบไว้แล้วและคงที่ทุกกรณี) หักขอบซ้าย-ขวาของแผ่น 12+12
+ *  - สูง: offsetHeight (ขอบนอก) ไม่ใช้ clientHeight เพื่อไม่ให้แถบเลื่อนแนวนอนที่โผล่ตอนซูมเองทำให้ “พอดี” เปลี่ยน
+ */
+const A4_W = 794, A4_H = 1123;
+function pvFitScale(sc) {
+  const availW = sc.clientWidth - 24, availH = sc.offsetHeight - sc.clientTop * 2 - 24;
+  return Math.floor(Math.max(0.25, Math.min(1.1, availW / A4_W, availH / A4_H)) * 1000) / 1000;
+}
+/** ตั้งซูมของตัวอย่าง: โหมดพอดี = ตามขนาดกรอบ · โหมดซูมเอง = ค่าที่ผู้ใช้ตั้ง (ไม่ถูกแตะ) ; คืนค่าซูมที่ใช้ (null = แผงยังถูกซ่อน) */
+function applyPvFit() {
+  const sc = $('#pv-scroll'), inner = $('#pv-inner');
+  if (!sc || !inner || !sc.clientWidth || !sc.clientHeight) return null;
+  const fit = pvFitScale(sc);
+  inner.dataset.fit = String(fit);
+  const manual = typeof S.ui.pvZoom === 'number';
+  const zoom = manual ? S.ui.pvZoom : fit;
+  if (parseFloat(inner.style.zoom) !== zoom) inner.style.zoom = zoom;
+  return zoom;
+}
+// กรอบเลื่อนเปลี่ยนขนาดด้วยเหตุใดก็ตาม (ย่อ/ขยายหน้าต่าง · เปิด/ปิดแผง · แถบด้านบนสูงขึ้น) → คำนวณพอดีใหม่ทันที และคงตำแหน่งที่อ่านอยู่
+let pvObserved = null;
+function observePreview() {
+  const sc = $('#pv-scroll');
+  if (!sc || sc === pvObserved || typeof ResizeObserver === 'undefined') return;
+  pvObserved = sc;
+  // ทำงานทันทีในรอบ layout เดียวกัน (ก่อนวาดภาพ) → ไม่มีเฟรมที่แผ่นขนาดผิดค้างให้เห็น ; ซูมไม่ได้เปลี่ยนขนาดของ sc เอง จึงไม่วนซ้ำ
+  new ResizeObserver(() => {
+    const inner = $('#pv-inner');
+    if (!inner || !inner.dataset.doc) return;
+    const old = parseFloat(inner.style.zoom) || 1, top = sc.scrollTop;
+    const z = applyPvFit();
+    if (z && Math.abs(z - old) > 1e-6) sc.scrollTop = top * (z / old);
+  }).observe(sc);
 }
 actions.pvZoom = (el) => {
   const fit = parseFloat($('#pv-inner')?.dataset.fit) || 1;
@@ -544,7 +575,6 @@ actions.pvSelect = (el) => { S.ui.pvDoc = el.value; renderPreview(); };
 const pvStep = (d) => { const docs = previewDocs(); if (!docs.length) return; const i = docs.findIndex((x) => x.id === S.ui.pvDoc); S.ui.pvDoc = docs[(i + d + docs.length) % docs.length].id; renderPreview(); };
 actions.pvPrev = () => pvStep(-1);
 actions.pvNext = () => pvStep(1);
-window.addEventListener('resize', () => schedulePreview());
 documentFontsReady().then(() => { if (S.c && S.ui.pvOn) schedulePreview(true); });
 
 // ---------------- ออกเอกสาร ----------------

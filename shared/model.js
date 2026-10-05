@@ -1,5 +1,5 @@
 // โมเดลข้อมูลคดี + ตัวช่วยที่ใช้ร่วมกันทั้งหน้าเว็บและเซิร์ฟเวอร์
-import { todayParts, fullName, courtShort, sectionsJoin, validCitizenId } from './thai.js';
+import { todayParts, fullName, courtShort, sectionsJoin, validCitizenId, addressText, isBkk } from './thai.js';
 
 export function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -36,7 +36,7 @@ export function newCase(type = 'criminal') {
     prayers: [{ id: uid(), text: 'ให้จำเลยชำระค่าฤชาธรรมเนียมศาลและค่าทนายความแทนโจทก์ด้วย', src: 'base-cost' }],   // [{id, text, src}]
     copies: '',                                   // จำนวนสำเนา
     civilCause: '',                               // คดีแพ่ง: เรื่อง/มูลคดี
-    witnesses: [],                                // [{id, kind:'person'|'document'|'object', name, address, note}]
+    witnesses: [],                                // [newWitness()] — kind: person | object | document (ดู newWitness / witnessSummonsPlan)
     motions: [],                                  // [{id, title, ids:[snippetId], text}]
     service: { auto: true, mode: 'post', custom: false, text: '', fee: '1300', court: '' },   // mode: cross-post | post | cross | none
     powers: '',
@@ -44,7 +44,7 @@ export function newCase(type = 'criminal') {
     hearing: { date: '', time: '' },
     answer: { defendantId: '', templateId: '', text: '' },               // คำให้การจำเลย (แบบ ๑๑)
     settlement: { templateId: '', subject: '', clauses: [] },            // สัญญาประนีประนอมยอมความ (แบบ ๒๙)
-    docs: { complaint: true, prayer: true, attachment: true, service: true, witness: true, summons: true, attorney: false, proxy: false, motions: true, answer: false, settlement: false },
+    docs: { complaint: true, prayer: true, attachment: true, service: true, witness: true, witnessSummons: true, summons: true, attorney: false, proxy: false, motions: true, answer: false, settlement: false },
     options: { thaiDigits: true, autoFill: true, selfWitness: true },
     closing: { mode: 'self' },                    // ข้อท้ายคำฟ้อง: self = ไม่ได้ร้องทุกข์ ประสงค์ดำเนินคดีเอง | police = ร้องทุกข์ต่อพนักงานสอบสวนแล้ว
   };
@@ -79,6 +79,79 @@ export function groupName(c, role) {
 export function partyName(p) { return p.kind === 'juristic' ? (p.name || '').trim() : fullName(p); }
 
 export function caseKindLabel(c) { return c.type === 'civil' ? 'แพ่ง' : 'อาญา'; }
+
+// ---------- พยาน (บัญชีพยาน แบบ ๑๕ + หมายเรียกพยาน แบบ ๑๖ / ๑๗ / ๑๘) ----------
+export const WITNESS_KINDS = { person: 'พยานบุคคล', document: 'พยานเอกสาร', object: 'พยานวัตถุ' };
+export const emptyAddress = () => ({ no: '', moo: '', building: '', soi: '', road: '', sub: '', district: '', province: '', zip: '' });
+
+/**
+ * พยานหนึ่งรายการ
+ *  - person: name = ชื่อ-สกุลพยาน · addr/address = ที่อยู่พยาน · phone · purpose = ประเด็นที่จะให้เบิกความ (พิมพ์ลงช่องว่างหลังหมาย)
+ *  - object/document: name = รายการเอกสาร/วัตถุ · holder = ผู้ครอบครอง · addr/address = ที่อยู่ผู้ครอบครอง/ที่เก็บ
+ *  - summons: false = ไม่ขอให้ศาลออกหมายเรียกรายนี้ (เช่น โจทก์นำมาเอง)
+ *  address เป็นข้อความรวมช่องเดียว (ข้อมูลเดิม) ส่วน addr เป็นที่อยู่แยกช่องตามแบบพิมพ์ศาล — ถ้ามี addr จะใช้ addr ก่อน
+ */
+export function newWitness(kind = 'person') {
+  return { id: uid(), kind: kind === 'object' || kind === 'document' ? kind : 'person', name: '', holder: '', address: '', addr: emptyAddress(), phone: '', purpose: '', note: '', summons: true };
+}
+export const witnessKind = (w) => (w?.kind === 'object' || w?.kind === 'document' ? w.kind : 'person');
+export const isItemWitness = (w) => witnessKind(w) !== 'person';
+const wFilled = (s) => String(s ?? '').trim().length > 0;
+/** ที่อยู่แยกช่องของพยาน (ครบทุกคีย์) */
+export const witnessAddr = (w) => ({ ...emptyAddress(), ...(w?.addr || {}) });
+export const witnessHasAddr = (w) => Object.values(witnessAddr(w)).some(wFilled);
+/** ที่อยู่เป็นข้อความ: แยกช่อง (addr) ก่อน ไม่มีใช้ข้อความรวมเดิม (address) */
+export function witnessAddrText(w) {
+  const a = witnessAddr(w);
+  return witnessHasAddr(w) ? addressText(a, isBkk(a.province)) : String(w?.address || '').trim();
+}
+/** ระบบจะออกหมายเรียกให้พยานรายนี้หรือไม่ (ปิดรายตัวได้ หรือหมายเหตุขึ้นต้น “นำ” = โจทก์นำมาเอง) */
+export const witnessWantsSummons = (w) => !!w && !w.self && w.summons !== false && !/^\s*นำ/.test(String(w.note || ''));
+
+/** บัญชีพยานตามลำดับที่ปรากฏในแบบ ๑๕: โจทก์อ้างตนเอง (ถ้าเปิด) ก่อน แล้วตามด้วยพยานที่เพิ่มเอง (เฉพาะที่ระบุชื่อ/รายการแล้ว) */
+export function witnessList(c) {
+  const own = (c.witnesses || []).filter((w) => wFilled(w.name));
+  const selfW = c.options?.selfWitness === false ? [] : plaintiffs(c)
+    .filter((x) => partyName(x) && !own.some((w) => w.name === partyName(x)))
+    .map((x) => ({ id: `self-${x.id}`, kind: 'person', name: partyName(x), addr: x.address, address: '', phone: x.phone || '', note: 'นำ', self: true }));
+  return [...selfW, ...own].map((w, i) => ({ no: i + 1, w, self: !!w.self }));
+}
+
+/**
+ * หมายเรียกพยานที่ระบบสร้างให้อัตโนมัติจากบัญชีพยาน
+ *  - พยานบุคคล 1 คน = 1 ฉบับ (แบบ ๑๖)
+ *  - พยานเอกสาร/วัตถุ: รายการที่อยู่กับผู้ครอบครองรายเดียวกัน (ชื่อ+ที่อยู่เดียวกัน) รวมเป็น 1 ฉบับ (แบบ ๑๗ คดีอาญา · แบบ ๑๘ คดีแพ่ง)
+ * คืน [{id, kind:'person'|'item', form:'16'|'17'|'18', rows:[{no,w}], nos:[ลำดับ], name, title}] เรียงตามลำดับในบัญชีพยาน
+ */
+export function witnessSummonsPlan(c, force = false) {
+  if (!force && c.docs?.witnessSummons === false) return [];
+  const civil = c.type === 'civil';
+  const rows = witnessList(c).filter((r) => !r.self && witnessWantsSummons(r.w));
+  const plan = [];
+  for (const r of rows.filter((x) => !isItemWitness(x.w))) {
+    const name = r.w.name.trim();
+    plan.push({ id: `witnessSummons-p-${r.w.id || r.no}`, kind: 'person', form: '16', rows: [r], nos: [r.no], name, title: `หมายเรียกพยานบุคคล – ${name} (ลำดับที่ ${r.no})` });
+  }
+  const groups = new Map();
+  for (const r of rows.filter((x) => isItemWitness(x.w))) {
+    const holder = String(r.w.holder || '').trim(), addr = witnessAddrText(r.w);
+    const key = holder || addr ? `${holder}|${addr}|${String(r.w.phone || '').trim()}` : `solo:${r.w.id || r.no}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(r);
+  }
+  for (const list of groups.values()) {
+    const kinds = new Set(list.map((r) => witnessKind(r.w)));
+    const noun = kinds.size > 1 ? 'พยานเอกสาร/วัตถุ' : kinds.has('document') ? 'พยานเอกสาร' : 'พยานวัตถุ';
+    const holder = String(list[0].w.holder || '').trim();
+    const name = holder || list[0].w.name.trim();
+    const nos = list.map((r) => r.no);
+    plan.push({
+      id: `witnessSummons-i-${list[0].w.id || list[0].no}`, kind: 'item', form: civil ? '18' : '17', rows: list, nos, name, holder,
+      title: `${civil ? 'คำสั่งเรียก' : 'หมายเรียก'}${noun} – ${name} (ลำดับที่ ${nos.join(', ')})`,
+    });
+  }
+  return plan.sort((a, b) => a.nos[0] - b.nos[0]);
+}
 
 /** สร้างดัชนีค้นหาข้อหาจากข้อมูลกฎหมายทั้งหมด */
 export function indexLaw(data) {
@@ -244,6 +317,18 @@ export function validateCase(c, idx) {
   }
   if (c.counsel?.enabled && String(c.counsel.idCard || '').trim() && !validCitizenId(c.counsel.idCard)) add('error', 'เลขประจำตัวประชาชนของทนายความไม่ถูกต้อง', 'counsel');
   if (c.docs.attorney && !c.counsel.enabled) add('warn', 'เลือกออกใบแต่งทนายความ แต่ยังไม่ได้กรอกข้อมูลทนายความ', 'counsel');
+  // พยาน: หมายเรียกที่ระบบสร้างให้ต้องมีชื่อ/ที่อยู่ — เป็นข้อควรตรวจ ไม่ขวางการออกเอกสาร
+  const unnamedW = (c.witnesses || []).filter((w) => !wFilled(w.name));
+  if (unnamedW.length) add('warn', `มีพยาน ${unnamedW.length} รายการที่ยังไม่ระบุชื่อ/รายการ — ยังไม่อยู่ในบัญชีพยานและไม่มีหมายเรียก`, 'witness');
+  for (const g of witnessSummonsPlan(c)) {
+    for (const r of g.rows) {
+      const lbl = `${WITNESS_KINDS[witnessKind(r.w)]}ลำดับที่ ${r.no} (${r.w.name.trim()})`;
+      if (g.kind === 'person' && !witnessAddrText(r.w)) add('warn', `${lbl}: ยังไม่ระบุที่อยู่ — หมายเรียกจะเว้นที่อยู่ไว้ให้เขียนเติมเอง`, 'witness');
+      if (g.kind === 'item' && !wFilled(r.w.holder) && !witnessAddrText(r.w)) add('warn', `${lbl}: ยังไม่ระบุผู้ครอบครอง/ที่อยู่ — หมายเรียกจะเว้นไว้ให้เขียนเติมเอง`, 'witness');
+    }
+  }
+  const nW = witnessSummonsPlan(c).length;
+  if (nW && !c.hearing?.date) add('info', `หมายเรียกพยาน ${nW} ฉบับจะเว้นวัน-เวลานัดไว้ให้เขียนเติม (ยังไม่ระบุวันนัด)`, 'case');
   return out;
 }
 

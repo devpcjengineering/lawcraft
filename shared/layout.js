@@ -60,7 +60,7 @@ export const LAYOUT_GROUPS = [
 ];
 
 /** ชื่อหน้า → คีย์สำหรับค่าเฉพาะแบบ (motion-xxxx รวมเป็น motion) */
-export const layoutKeyOf = (docId) => String(docId || '').replace(/^(motion|summons)-.*$/, '$1');
+export const layoutKeyOf = (docId) => String(docId || '').replace(/^(motion|summons|witnessSummons)-.*$/, '$1');
 
 /** ค่าที่ใช้จริง: ค่าเริ่มต้น ← ค่าทุกแบบ ← ค่าเฉพาะแบบ */
 export function resolveLayout(layout, docId) {

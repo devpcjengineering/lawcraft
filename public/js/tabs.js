@@ -3,12 +3,13 @@ import { S, esc, actions, hooks } from './store.js';
 import { idField, field, select, check, seg, dateFields, addressFields, badge, pageHead, group, disclose, more } from './ui.js';
 import {
   newParty, uid, plaintiffs, defendants, partyLabel, partyName, collectVars, validateCase, chargeItem, chargeSectionsText, chargeNamesText, serviceAdvice, ensureBasePrayer, tailFacts, resolveRuns, serviceFeeInfo,
+  WITNESS_KINDS, newWitness, emptyAddress, witnessKind, witnessSummonsPlan, witnessWantsSummons, witnessAddrText,
 } from '/shared/model.js';
 import { serviceMotionText, serviceMode, DOC_TYPES, MOTION_KINDS_ALL } from '/shared/docs.js';
 import { openViewer } from './viewer.js';
 import { icon as ix } from './icons.js';
 import { FORM_TEXT, defaultFormText } from '/shared/formtext.js';
-import { validCitizenId, isBkk } from '/shared/thai.js';
+import { validCitizenId, isBkk, toThaiDigits } from '/shared/thai.js';
 import { confirmBox } from './modal.js';
 import { icon } from './icons.js';
 import { notify } from './notify.js';
@@ -564,16 +565,59 @@ function tabPrayer() {
 }
 
 // ===================== 7) พยาน =====================
-const WIT_KIND = { person: 'พยานบุคคล', document: 'พยานเอกสาร', object: 'พยานวัตถุ' };
+const WIT_KIND = WITNESS_KINDS;
+/** พยานที่ระบบจะออกหมายเรียกให้ (เปิดสวิตช์รวม + ระบุชื่อแล้ว + ไม่ได้ปิดรายตัว/ไม่ใช่ “นำ” เอง) */
+const witOn = (x) => S.c.docs.witnessSummons !== false && !!(x.name || '').trim() && witnessWantsSummons(x);
+const witLacksAddr = (x) => witOn(x) && (witnessKind(x) === 'person' ? !witnessAddrText(x) : !(x.holder || '').trim() && !witnessAddrText(x));
 function witSummary(x) {
-  return `<span class="pill ${x.kind === 'person' ? 'info' : ''}">${WIT_KIND[x.kind] || 'พยาน'}</span>
-    <span class="sum-name">${(x.name || '').trim() ? esc(x.name) : '<em>ยังไม่ระบุ</em>'}</span>${x.note ? `<span class="sum-meta">${esc(x.note)}</span>` : ''}`;
+  const k = witnessKind(x), named = (x.name || '').trim();
+  const meta = (x.note || '').trim() || (witOn(x) ? 'ออกหมายเรียก' : '');
+  return `<span class="pill ${k === 'person' ? 'info' : ''}">${WIT_KIND[k]}</span>
+    <span class="sum-name">${named ? esc(x.name) : '<em>ยังไม่ระบุ</em>'}</span>${meta ? `<span class="sum-meta">${esc(meta)}</span>` : ''}${witLacksAddr(x) ? badge('ยังไม่มีที่อยู่', 'warn') : ''}`;
+}
+
+/** กล่อง “ระบบสร้างหมายเรียกให้อัตโนมัติ”: รายการหมายที่จะออก + สวิตช์เปิด/ปิด */
+function witnessSummonsPanel() {
+  const c = S.c, on = c.docs.witnessSummons !== false, plan = witnessSummonsPlan(c);
+  const civil = c.type === 'civil';
+  const formName = (g) => (g.kind === 'person' ? 'แบบ ๑๖ หมายเรียกพยานบุคคล' : civil ? 'แบบ ๑๘ คำสั่งเรียกพยานเอกสาร/วัตถุ (คดีแพ่ง)' : 'แบบ ๑๗ หมายเรียกพยานเอกสาร/วัตถุ (คดีอาญา)');
+  const row = (g) => {
+    const lack = g.rows.some((r) => witLacksAddr(r.w));
+    return `<li><span class="st-ico ${lack ? 'todo' : 'ok'}" aria-hidden="true">${lack ? icon('alert', { size: 15 }) : icon('check', { size: 15 })}</span>
+      <span class="r-main">${esc(toThaiDigits(g.title))}<span class="r-note">${esc(formName(g))}${g.rows.length > 1 ? ` · รวม ${g.rows.length} รายการของผู้ครอบครองรายเดียวกัน` : ''}${lack ? ' · ยังไม่ระบุที่อยู่ (จะเว้นว่างให้เขียนเติม)' : ''}</span></span>
+      <span class="r-act"><button type="button" class="btn sm outline" data-act="pvDoc" data-id="${esc(g.id)}">${icon('eye', { size: 15 })}<span>ดูตัวอย่าง</span></button></span></li>`;
+  };
+  return `<div class="panel">
+    <h3>${icon('send', { size: 18 })}ระบบสร้างหมายเรียกให้อัตโนมัติ: ${on ? plan.length : 0} ฉบับ<span class="grow"></span>${check('สร้างหมายเรียกพยานอัตโนมัติ', 'docs.witnessSummons', { sw: true, rerender: true })}</h3>
+    <p class="hint">ระบบสร้างให้ฉบับละพยาน (พยานบุคคล = แบบ ๑๖ · เอกสาร/วัตถุ = ${civil ? 'แบบ ๑๘' : 'แบบ ๑๗'} ผู้ครอบครองรายเดียวกันรวมเป็นฉบับเดียว) ดึงศาล คู่ความ ทนายความ และวัน-เวลานัดมาเติมเอง · ถ้าโจทก์นำพยานมาเอง ให้ปิดสวิตช์ “ขอให้ศาลออกหมายเรียก” ของรายนั้น</p>
+    ${!on ? `<div class="empty">${icon('send', { size: 22 })}<span>ปิดอยู่ — ไม่สร้างหมายเรียกพยานในชุดเอกสาร</span></div>`
+    : plan.length ? `<ul class="rows">${plan.map(row).join('')}</ul>` : `<div class="empty">${icon('send', { size: 22 })}<span>ยังไม่มีพยานที่ต้องออกหมายเรียก — เพิ่มพยานบุคคล เอกสาร หรือวัตถุด้านล่าง (ต้องระบุชื่อ/รายการก่อน)</span></div>`}
+  </div>`;
+}
+
+function witnessFields(x, i) {
+  const k = witnessKind(x), person = k === 'person', base = `witnesses.${i}`;
+  return `<div class="grid">
+      ${select('ประเภท', `${base}.kind`, [['person', 'พยานบุคคล'], ['document', 'พยานเอกสาร'], ['object', 'พยานวัตถุ']], { cls: 's4', rerender: true })}
+      ${field(person ? 'ชื่อและสกุลพยาน' : k === 'document' ? 'รายการเอกสาร (ชื่อ/ลักษณะเอกสาร)' : 'รายการวัตถุ (ชื่อ/ลักษณะวัตถุ)', `${base}.name`, { cls: 's8', required: true, ph: person ? 'เช่น นายสมมติ ทดลอง' : k === 'document' ? 'เช่น สัญญาเช่าฉบับลงวันที่ …' : 'เช่น โทรศัพท์มือถือ 1 เครื่อง' })}
+      ${person ? '' : field('ผู้ครอบครอง (ผู้รับหมาย)', `${base}.holder`, { cls: 's8', ph: 'ชื่อบุคคล/หน่วยงานที่เก็บรักษา', hint: 'รายการที่ผู้ครอบครองและที่อยู่ตรงกัน ระบบรวมเป็นหมายฉบับเดียว' })}
+      ${field('โทรศัพท์', `${base}.phone`, { cls: person ? 's4' : 's4' })}
+    </div>
+    <section class="grp">${addressFields(`${base}.addr`, { title: person ? 'ที่อยู่พยาน (ใช้ในหมายเรียก)' : 'ที่อยู่ผู้ครอบครอง / ที่เก็บรักษา (ใช้ในหมายเรียก)', building: false })}</section>
+    ${(x.address || '').trim() ? `<section class="grp"><div class="grid">${field('ที่อยู่แบบข้อความรวม (ข้อมูลเดิม — ใช้เมื่อไม่ได้กรอกช่องที่อยู่ด้านบน)', `${base}.address`, { cls: 's12' })}</div></section>` : ''}
+    <section class="grp"><div class="grid">
+      ${person ? field('ประเด็นที่จะให้พยานเบิกความ (ไม่บังคับ — พิมพ์ลงช่องว่างด้านหลังหมายเรียก)', `${base}.purpose`, { cls: 's12', type: 'textarea', rows: 2 }) : ''}
+      ${field('หมายเหตุ (ลงในบัญชีพยาน)', `${base}.note`, { cls: 's6', list: 'dl-wnote', ph: 'นำ / หมายเรียก', hint: person ? 'พยานเป็นเด็กอายุไม่เกิน ๑๘ ปี ให้ระบุในช่องนี้ · เว้นว่าง = ระบบเติม “หมายเรียก” หรือ “นำ” ให้ตามสวิตช์' : '' })}
+      <div class="f s6"><span>หมายเรียก</span>${check('ขอให้ศาลออกหมายเรียกพยานรายนี้', `${base}.summons`, { sw: true, rerender: true })}</div>
+    </div></section>`;
 }
 
 function tabWitness() {
   const w = S.c.witnesses;
-  const nPerson = w.filter((x) => x.kind === 'person').length;
-  return `${pageHead('บัญชีพยาน', 'แบบ ๑๕ — พยานบุคคลลงตาราง พยานเอกสาร/วัตถุแยกตาราง')}
+  for (const x of w) { if (x.summons === undefined) x.summons = true; x.addr = { ...emptyAddress(), ...x.addr }; } // ข้อมูลเดิมไม่มีช่องใหม่ → เติมค่าเริ่มต้น
+  const nPerson = w.filter((x) => witnessKind(x) === 'person').length;
+  const unnamed = w.filter((x) => !(x.name || '').trim()).length;
+  return `${pageHead('บัญชีพยาน', 'แบบ ๑๕ — พยานบุคคลลงตาราง พยานเอกสาร/วัตถุแยกตาราง · ระบบสร้างหมายเรียกพยาน (แบบ ๑๖ · ๑๗ · ๑๘) ให้อัตโนมัติ')}
   <datalist id="dl-wnote"><option value="นำ"><option value="หมายเรียก"><option value="เด็กอายุไม่เกิน 18 ปี"></datalist>
   <div class="toolbar">
     <button class="btn outline" data-act="addWit" data-kind="person">${icon('plus', { size: 16 })}พยานบุคคล</button>
@@ -583,24 +627,19 @@ function tabWitness() {
     <select class="sel-inline" data-onchange="witFromParty" aria-label="เพิ่มพยานจากรายชื่อคู่ความ"><option value="">เพิ่มจากรายชื่อคู่ความ…</option>${S.c.parties.map((p) => `<option value="${esc(p.id)}">${esc(partyLabel(S.c, p))}: ${esc(partyName(p))}</option>`).join('')}</select>
   </div>
   <div class="panel compact">${check('โจทก์อ้างตนเองเป็นพยาน (ค่าเริ่มต้น — ใส่ชื่อโจทก์เป็นลำดับแรกในบัญชีพยานให้อัตโนมัติ)', 'options.selfWitness', { rerender: true, sw: true })}</div>
-  ${w.length ? `<p class="hint list-count">${w.length} รายการที่เพิ่มเอง · พยานบุคคล ${nPerson}</p>` : ''}
+  ${witnessSummonsPanel()}
+  ${w.length ? `<p class="hint list-count">${w.length} รายการที่เพิ่มเอง · พยานบุคคล ${nPerson} · เอกสาร/วัตถุ ${w.length - nPerson}${unnamed ? ` · ยังไม่ระบุชื่อ ${unnamed} (ยังไม่นับในบัญชีและไม่ออกหมาย)` : ''}</p>` : ''}
   ${w.length ? w.map((x, i) => disclose(`w:${x.id || i}`, `<span class="sum-main">${witSummary(x)}</span>
-      <span class="sum-act"><button class="btn sm danger" data-act="delWit" data-i="${i}" aria-label="ลบพยานลำดับที่ ${i + 1}">${icon('trash', { size: 15 })}ลบ</button></span>`, `
-    <div class="grid">
-      ${select('ประเภท', `witnesses.${i}.kind`, [['person', 'พยานบุคคล'], ['document', 'พยานเอกสาร'], ['object', 'พยานวัตถุ']], { cls: 's4', rerender: true })}
-      ${field(x.kind === 'person' ? 'ชื่อและสกุลพยาน' : 'รายการเอกสาร/วัตถุ', `witnesses.${i}.name`, { cls: 's8' })}
-      ${field(x.kind === 'person' ? 'ที่อยู่พยาน' : 'ผู้ครอบครอง / ที่เก็บรักษา', `witnesses.${i}.address`, { cls: 's12' })}
-      ${field('หมายเหตุ', `witnesses.${i}.note`, { cls: 's6', list: 'dl-wnote', ph: 'นำ / หมายเรียก', hint: x.kind === 'person' ? 'พยานเป็นเด็กอายุไม่เกิน ๑๘ ปี ให้ระบุในช่องนี้' : '' })}
-    </div>`, { cls: 'item', open: !(x.name || '').trim(), attrs: `data-sum="wit" data-i="${i}"` })).join('') : emptyBox('ยังไม่มีพยานที่เพิ่มเอง — กดปุ่มด้านบนเพื่อเพิ่มพยานบุคคล เอกสาร หรือวัตถุ', 'users')}`;
+      <span class="sum-act"><button class="btn sm danger" data-act="delWit" data-i="${i}" aria-label="ลบพยานลำดับที่ ${i + 1}">${icon('trash', { size: 15 })}ลบ</button></span>`,
+    witnessFields(x, i), { cls: 'item', open: !(x.name || '').trim(), attrs: `data-sum="wit" data-i="${i}"` })).join('') : emptyBox('ยังไม่มีพยานที่เพิ่มเอง — กดปุ่มด้านบนเพื่อเพิ่มพยานบุคคล เอกสาร หรือวัตถุ แล้วระบบจะสร้างหมายเรียกให้', 'users')}`;
 }
 actions.viewPdf = (el) => window.open(el.getAttribute('href'), '_blank');
-actions.addWit = (el) => { S.c.witnesses.push({ id: uid(), kind: el.dataset.kind, name: '', address: '', note: '' }); rerender(); hooks.changed(); };
+actions.addWit = (el) => { S.c.witnesses.push(newWitness(el.dataset.kind)); rerender(); hooks.changed(); };
 actions.delWit = (el) => { S.c.witnesses.splice(+el.dataset.i, 1); rerender(); hooks.changed(); };
 actions.witFromParty = (el) => {
   const p = S.c.parties.find((x) => x.id === el.value);
   if (!p) return;
-  const a = p.address;
-  S.c.witnesses.push({ id: uid(), kind: 'person', name: partyName(p), address: [a.no && `บ้านเลขที่ ${a.no}`, a.moo && `หมู่ที่ ${a.moo}`, a.soi, a.road, a.sub, a.district, a.province].filter(Boolean).join(' '), note: '' });
+  S.c.witnesses.push({ ...newWitness('person'), name: partyName(p), addr: { ...emptyAddress(), ...p.address }, phone: p.phone || '' });
   rerender(); hooks.changed();
 };
 
@@ -700,7 +739,7 @@ function tabExport() {
   const c = S.c;
   const issues = validateCase(c, S.idx);
   const errs = issues.filter((x) => x.level === 'error'), warns = issues.filter((x) => x.level === 'warn'), infos = issues.filter((x) => x.level === 'info');
-  const tabNames = { case: 'ข้อมูลคดี', parties: 'คู่ความ', counsel: 'ทนายความ', charges: 'คำฟ้อง', facts: 'คำฟ้อง', complaint: 'คำฟ้อง', prayer: 'คำขอท้ายฟ้อง' };
+  const tabNames = { case: 'ข้อมูลคดี', parties: 'คู่ความ', counsel: 'ทนายความ', charges: 'คำฟ้อง', facts: 'คำฟ้อง', complaint: 'คำฟ้อง', prayer: 'คำขอท้ายฟ้อง', witness: 'บัญชีพยาน' };
   const req = REQUIRED(), reqOk = req.filter((r) => r.ok).length;
   const tone = errs.length ? 'err' : warns.length ? 'warn' : 'ok';
   const issueRow = (x) => `<li><span class="st-ico ${ISSUE_ICON[x.level][0]}" aria-hidden="true">${ISSUE_ICON[x.level][1]}</span><span class="r-main">${esc(x.msg)}</span>
@@ -864,7 +903,7 @@ function tabFormText() {
       }).join('')}</select></label>
       <label class="ref-search">${ix('search')}<input type="search" id="ft-q" data-oninput="setFtQ" value="${esc(S.ui.ftQ || '')}" placeholder="ค้นหาข้อความทุกกลุ่ม" aria-label="ค้นหาข้อความในแบบฟอร์ม"></label>
       <span class="hint ft-cnt" id="ft-count">แก้แล้ว ${ftModCount()} รายการ</span></div>
-    <p class="hint ft-vars">ตัวแปรที่ใช้ได้: <code>{def}</code> จำเลย · <code>{names}</code> ชื่อจำเลย · <code>{n}</code> จำนวน</p>`;
+    <p class="hint ft-vars">ตัวแปรที่ใช้ได้: <code>{def}</code> จำเลย · <code>{names}</code> ชื่อจำเลย · <code>{n}</code> จำนวน · หมายเรียกพยาน: <code>{when}</code> วัน-เวลานัด · <code>{date}</code> วันที่ · <code>{items}</code> รายการเอกสาร/วัตถุ · <code>{court}</code> ศาล (ขึ้นบรรทัดใหม่ = ย่อหน้าใหม่)</p>`;
   const body = `<div class="panel flat">${list.length ? list.map(item).join('') : `<div class="empty">${ix('search', { size: 22 })}<span>ไม่พบข้อความที่ค้นหา</span></div>`}</div>`;
   const foot = `<button class="btn primary" data-act="saveFormText">${ix('save')}<span>บันทึกข้อความแบบฟอร์ม</span></button><span class="hint" id="ft-state">${S.ui.ftDirty ? 'ยังไม่ได้บันทึก' : ''}</span>`;
   return fit(head, body, foot, 'รายการข้อความ');
@@ -895,7 +934,7 @@ actions.saveFormText = async () => {
 
 // ===================== หน้า: แบบพิมพ์ศาล (ต้นฉบับ) =====================
 let formsIndex = null;
-const USED_FORMS = new Set(['04', '05', '06', '07', '09', '10', '11', '15', '19 ตรี', '29']);
+const USED_FORMS = new Set(['04', '05', '06', '07', '09', '10', '11', '15', '16', '17', '18', '19 ตรี', '29']);
 function tabForms() {
   if (!formsIndex) {
     fetch('/templates/index.json').then((r) => r.json()).then((j) => { formsIndex = j.forms || []; if (S.tab === 'forms') rerender(); }).catch(() => { formsIndex = []; if (S.tab === 'forms') rerender(); });
@@ -926,7 +965,7 @@ actions.setFormQ = (el) => {
 const LAYOUT_FORMS = [
   ['all', 'ทุกแบบ (ค่ากลาง)', ''], ['complaint', 'คำฟ้อง (แบบ ๔)', 'complaint'], ['prayer', 'คำขอท้ายคำฟ้อง', 'prayer'],
   ['attachment', 'เอกสารแนบท้ายคำฟ้อง', 'attachment'], ['service', 'คำร้องส่งหมาย / ปิดหมาย', 'service'], ['motion', 'คำร้อง / คำแถลงอื่น', 'motion'],
-  ['witness', 'บัญชีพยาน', 'witness'], ['summons', 'หมายนัดไต่สวนมูลฟ้อง', 'summons'], ['attorney', 'ใบแต่งทนายความ', 'attorney'],
+  ['witness', 'บัญชีพยาน', 'witness'], ['witnessSummons', 'หมายเรียกพยาน (แบบ ๑๖ · ๑๗ · ๑๘)', 'witnessSummons'], ['summons', 'หมายนัดไต่สวนมูลฟ้อง', 'summons'], ['attorney', 'ใบแต่งทนายความ', 'attorney'],
   ['proxy', 'ใบมอบอำนาจ', 'proxy'], ['answer', 'คำให้การจำเลย', 'answer'], ['settlement', 'สัญญาประนีประนอมยอมความ', 'settlement'],
 ];
 const LAYOUT_PRESETS = { 'emblem.width': [['เล็ก', 18], ['มาตรฐาน', 24], ['ใหญ่', 32]] };

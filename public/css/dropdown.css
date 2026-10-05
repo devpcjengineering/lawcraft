@@ -1,0 +1,80 @@
+/* ============================================================
+   ดรอปดาวน์ / คอมโบบ็อกซ์ — รายการที่เปิดของ <select> และ <input list>
+   สร้างโดย js/dropdown.js (วางใน body หรือใน <dialog> ที่เปิดอยู่) · ใช้โทเคนจาก admin-base.css
+   เดสก์ท็อป = ป๊อปโอเวอร์ใต้/เหนือช่อง · มือถือ (≤ 640px) = แผ่นล่าง (bottom sheet) เฉพาะ <select>
+   ============================================================ */
+
+/* ช่องที่มีรายการแนะนำ: ลูกศร (ซ่อนลูกศรเนทีฟของ datalist) */
+input[list]:not([data-native]), input[data-combo]:not([data-native]) { padding-right: 36px; background-image: var(--chev); background-repeat: no-repeat; background-position: right 14px center; }
+input[list]::-webkit-calendar-picker-indicator, input[data-combo]::-webkit-calendar-picker-indicator { display: none !important; opacity: 0; }
+
+/* ชั้นเต็มจอ (ไม่รับเมาส์บนเดสก์ท็อป) — ล้างสไตล์ค่าเริ่มต้นของ [popover] */
+.dd { position: fixed; inset: 0; width: auto; height: auto; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; pointer-events: none; color: var(--ink); font-family: var(--font); z-index: 2147483000; -webkit-tap-highlight-color: transparent; }
+.dd:not([popover]) { display: block; }
+.dd::backdrop { background: transparent; }
+
+.dd-panel { position: fixed; pointer-events: auto; display: flex; flex-direction: column; box-sizing: border-box; min-width: var(--dd-minw, 0); max-width: min(480px, calc(100vw - 16px)); width: max-content; padding: 6px; background: #fff; border-radius: 14px; box-shadow: 0 0 0 1px rgba(16, 24, 40, .08), 0 12px 32px rgba(16, 24, 40, .16), 0 2px 6px rgba(16, 24, 40, .06); overflow: hidden; transform-origin: top left; animation: dd-in .15s cubic-bezier(.2, .8, .2, 1); }
+.dd-panel.up { animation-name: dd-in-up; }
+.dd.out .dd-panel { animation: dd-out .12s ease forwards; pointer-events: none; }
+
+/* ช่องค้นหา (รายการยาว) */
+.dd-searchbox { flex: none; padding: 2px 2px 6px; }
+.dd .dd-search { display: block; width: 100%; min-height: 38px; padding: 0 12px 0 38px; border: 1px solid transparent; border-radius: 9px; background: var(--surface-2) var(--ah-mag) no-repeat 12px center; box-shadow: none; color: var(--ink); font: inherit; font-size: 15px; line-height: 1.4; }
+.dd .dd-search::placeholder { color: #8e94a1; }
+.dd .dd-search:focus, .dd .dd-search:focus-visible { outline: none; background-color: #fff; border-color: var(--blue); box-shadow: var(--ring); }
+
+/* รายการ */
+.dd-list { position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; outline: none; -webkit-overflow-scrolling: touch; }
+.dd-list::-webkit-scrollbar { width: 10px; }
+.dd-list::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+.dd-list::-webkit-scrollbar-track { background: transparent; }
+.dd-list::-webkit-scrollbar-thumb { background: #c6cad3; border-radius: 8px; border: 3px solid #fff; background-clip: padding-box; }
+@supports not selector(::-webkit-scrollbar) { .dd-list { scrollbar-width: thin; scrollbar-color: #c6cad3 transparent; } }
+.dd-opt { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 7px 10px; border-radius: 8px; font-size: 15px; line-height: 1.4; color: var(--ink); cursor: pointer; -webkit-user-select: none; user-select: none; }
+.dd-opt + .dd-opt { margin-top: 1px; }
+.dd-txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.dd-t { overflow-wrap: anywhere; }
+.dd-s { font-size: 13px; line-height: 1.4; color: var(--muted); overflow-wrap: anywhere; }
+.dd-ck { flex: none; width: 18px; height: 18px; color: var(--blue); visibility: hidden; }
+.dd-opt[aria-selected="true"] { color: var(--blue); font-weight: 600; background: var(--blue-soft); }
+.dd-opt[aria-selected="true"] .dd-ck { visibility: visible; }
+.dd-opt.on { background: var(--surface-3); }
+.dd-opt[aria-selected="true"].on { background: #dcebfc; }
+.dd-opt.blank { color: var(--muted); font-weight: 400; }
+.dd-opt.blank[aria-selected="true"] { background: transparent; }
+.dd-opt.blank[aria-selected="true"].on { background: var(--surface-3); }
+.dd-opt[aria-disabled="true"] { color: #a3a8b3; cursor: not-allowed; font-weight: 400; background: transparent; }
+.dd-opt[aria-disabled="true"] .dd-ck { display: none; }
+.dd-opt mark { background: rgba(0, 113, 227, .16); color: inherit; border-radius: 3px; padding: 0 1px; margin: 0 -1px; }
+.dd-grp { padding: 10px 10px 4px; font-size: 12.5px; font-weight: 600; letter-spacing: .02em; color: var(--muted); }
+.dd-grp:first-child { padding-top: 4px; }
+.dd-empty { padding: 14px 10px; font-size: 14px; color: var(--muted); text-align: center; }
+.dd-empty.more { padding: 8px 10px 4px; font-size: 13px; }
+
+/* ช่องทัชสกรีน: แถวสูงขึ้น */
+@media (pointer: coarse) { .dd-opt { min-height: 44px; } }
+
+/* มือถือ: แผ่นล่าง */
+.dd.sheet { pointer-events: auto; background: rgba(16, 24, 40, .38); touch-action: none; animation: dd-fade .18s ease; }
+.dd.sheet.out { pointer-events: auto; animation: dd-fade-out .13s ease forwards; }
+.dd.sheet .dd-panel { left: 0; right: 0; top: auto; bottom: 0; width: auto; min-width: 0; max-width: none; padding: 6px 8px calc(8px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; box-shadow: 0 -8px 32px rgba(16, 24, 40, .18); transform-origin: 50% 100%; animation: dd-sheet-in .24s cubic-bezier(.2, .8, .2, 1); transition: transform .2s ease; }
+.dd.sheet.out .dd-panel { animation: dd-sheet-out .14s ease forwards; }
+.dd-grab { position: relative; flex: none; height: 24px; margin: 0 -8px; touch-action: none; cursor: grab; }
+.dd-grab::after { content: ''; position: absolute; left: 50%; top: 8px; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: #d0d3da; }
+.dd-title { flex: none; padding: 0 10px 10px; font-size: 16px; font-weight: 600; line-height: 1.4; text-align: center; letter-spacing: -.01em; touch-action: none; }
+.dd.sheet .dd-list { touch-action: pan-y; }
+.dd.sheet .dd-opt { min-height: 48px; padding: 10px 12px; font-size: 16px; border-radius: 10px; }
+.dd.sheet .dd-search { min-height: 44px; font-size: 16px; }
+.dd.sheet .dd-searchbox { padding-bottom: 8px; }
+
+@keyframes dd-in { from { opacity: 0; transform: scale(.96) translateY(-4px); } }
+@keyframes dd-in-up { from { opacity: 0; transform: scale(.96) translateY(4px); } }
+@keyframes dd-out { to { opacity: 0; transform: scale(.98); } }
+@keyframes dd-fade { from { background-color: rgba(16, 24, 40, 0); } }
+@keyframes dd-fade-out { to { background-color: rgba(16, 24, 40, 0); } }
+@keyframes dd-sheet-in { from { transform: translateY(40px); opacity: .4; } }
+@keyframes dd-sheet-out { to { transform: translateY(24px); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .dd, .dd-panel, .dd.sheet, .dd.sheet .dd-panel { animation: none !important; transition: none !important; }
+}

@@ -17,6 +17,9 @@
     },
     "answer": {
       "caseNo.dy": 0.1
+    },
+    "witnessSummons": {
+      "caseNo.dy": 0.1
     }
   }
 }

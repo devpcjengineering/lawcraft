@@ -37,6 +37,8 @@ function atomsOf(sec, base, doc) {
   for (const el of sec.children) {
     pid++;
     const rect = el.getBoundingClientRect();
+    // ตัวคั่นหน้า (.pb จากบล็อก pagebreak, เช่น ด้านหลังหมายเรียกพยาน “คำเตือน”): อะตอมสูง 0 ที่บังคับให้อะตอมถัดไปขึ้นแผ่นใหม่
+    if (el.classList.contains('pb')) { const y = rect.top - base; atoms.push({ top: y, bottom: y, cy: y, line: false, brk: true, pid, k: 0, n: 1 }); continue; }
     if (el.matches('p.p') && rect.height > 0) {
       const lines = lineBoxes(el, doc);
       if (lines.length) { lines.forEach((l, k) => atoms.push({ top: l.top - base, bottom: l.bottom - base, cy: l.cy - base, line: true, base: l.base - base, fs: l.fs, lh: l.lh, pid, k, n: lines.length })); continue; }
@@ -70,6 +72,7 @@ function breakPoints(atoms, H) {
   const starts = [0];
   let i = 0, ps = 0; // ps = ดัชนีอะตอมแรกของแผ่นปัจจุบัน
   while (i < atoms.length) {
+    if (i - 1 > ps && atoms[i - 1].brk) { starts.push(i); ps = i; continue; } // ตัวคั่นหน้า: อะตอมนี้ขึ้นแผ่นใหม่
     // แผ่นที่ลงถึงอะตอม i ยังพอดีหรือไม่
     if (i > ps && endOf(i) - startOf(ps) > H) {
       let b = i; // อะตอม i ต้องขึ้นแผ่นใหม่
@@ -109,7 +112,11 @@ function sheetsOf(sec, doc) {
     const flow = doc.createElement('div');
     flow.className = 'flow';
     flow.style.marginTop = `-${Math.round(pg.start * 100) / 100}px`;
-    for (const ch of sec.children) flow.appendChild(ch.cloneNode(true));
+    for (const ch of sec.children) {
+      const cl = ch.cloneNode(true);
+      if (cl.classList?.contains('pb')) cl.style.breakAfter = 'auto'; // แบ่งหน้าแล้ว ไม่ต้องให้ตัวพิมพ์แบ่งซ้ำ
+      flow.appendChild(cl);
+    }
     clip.appendChild(flow);
     sheet.appendChild(clip);
     return sheet;
