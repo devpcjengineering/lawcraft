@@ -27,25 +27,29 @@ function lineBoxes(el, doc) {
     if (last && cy - last.cy < lh * 0.55) { last.top = Math.min(last.top, q.top); last.bottom = Math.max(last.bottom, q.bottom); last.cy = (last.top + last.bottom) / 2; } else lines.push({ top: q.top, bottom: q.bottom, cy });
   }
   const cy0 = lines.length ? lines[0].cy : 0;
-  for (const l of lines) { l.base = baseline0 + (l.cy - cy0); l.fs = fs; l.lh = lh; }
+  // ฟอนต์ TH Sarabun IT๙: สระล่างที่ตามพยัญชนะ ฐ/ญ (ฐุ ญู ฐฺ) ถูกสลับเป็นรูปห้อยต่ำลงไปถึง ~0.42em ใต้เส้นฐาน (ลึกกว่ากรอบตัวอักษรที่ 0.25em) → เผื่อที่ตัดให้ลึกขึ้นเฉพาะย่อหน้าที่มีคู่นี้
+  const low = /[ฐญ][ฺุู]/.test(el.textContent);
+  for (const l of lines) { l.base = baseline0 + (l.cy - cy0); l.fs = fs; l.lh = lh; l.low = low; }
   return lines;
 }
 
 function atomsOf(sec, base, doc) {
   const atoms = [];
+  const kids = []; // ตำแหน่งขอบบน + margin-top ของลูกแต่ละตัว (ดัชนี = pid - 1) ใช้ตอนตัดเนื้อหาให้แต่ละแผ่นเก็บเฉพาะส่วนที่เกี่ยวข้อง
   let pid = 0;
   for (const el of sec.children) {
     pid++;
     const rect = el.getBoundingClientRect();
+    kids.push({ top: rect.top - base, mt: parseFloat(doc.defaultView.getComputedStyle(el).marginTop) || 0 });
     // ตัวคั่นหน้า (.pb จากบล็อก pagebreak, เช่น ด้านหลังหมายเรียกพยาน “คำเตือน”): อะตอมสูง 0 ที่บังคับให้อะตอมถัดไปขึ้นแผ่นใหม่
     if (el.classList.contains('pb')) { const y = rect.top - base; atoms.push({ top: y, bottom: y, cy: y, line: false, brk: true, pid, k: 0, n: 1 }); continue; }
     if (el.matches('p.p') && rect.height > 0) {
       const lines = lineBoxes(el, doc);
-      if (lines.length) { lines.forEach((l, k) => atoms.push({ top: l.top - base, bottom: l.bottom - base, cy: l.cy - base, line: true, base: l.base - base, fs: l.fs, lh: l.lh, pid, k, n: lines.length })); continue; }
+      if (lines.length) { lines.forEach((l, k) => atoms.push({ top: l.top - base, bottom: l.bottom - base, cy: l.cy - base, line: true, base: l.base - base, fs: l.fs, lh: l.lh, low: l.low, pid, k, n: lines.length })); continue; }
     }
     if (rect.height > 0) atoms.push({ top: rect.top - base, bottom: rect.bottom - base, cy: (rect.top + rect.bottom) / 2 - base, line: false, pid, k: 0, n: 1 });
   }
-  return atoms;
+  return { atoms, kids };
 }
 
 /**
@@ -56,10 +60,10 @@ function cutBetween(p, a) {
   // กรอบตัวอักษร (rect) ของบรรทัดบนครอบหมึกส่วนล่างทั้งหมดอยู่แล้ว (หางตัวอักษร/สระล่าง) จึงตัดใต้ขอบล่างของ rect เล็กน้อย
   // ส่วนวรรณยุกต์/สระบนของบรรทัดล่างอาจยื่นเหนือขอบบน rect ได้ ~3px จึงเหลือช่องว่างเหนือ rect ของบรรทัดล่างไว้ด้านบน
   if (p.line && a.line) {
-    const gap = a.top - p.bottom;
-    if (gap >= 4) return p.bottom + gap * 0.35;
-    const lo = p.base + 0.36 * p.fs, hi = a.base - 0.88 * a.fs; // rect ซ้อนทับกัน: ใช้เส้นฐานตัดแทน
-    return hi > lo ? (lo + hi) / 2 : (p.base + a.base) / 2 - 0.2 * p.fs;
+    // ตัดกึ่งกลางช่องว่างระหว่าง “หมึก” ล่างสุดของบรรทัดบน (กรอบตัวอักษร ≈0.25em ใต้เส้นฐาน; ฐุ/ญู ห้อยถึง 0.43em) กับหมึกบนสุดของบรรทัดล่าง (วรรณยุกต์ ≈0.84em เหนือเส้นฐาน)
+    // กึ่งกลางพอดี = เผื่อเท่ากันทั้งสองด้าน เพราะตอนพรีวิวถูกซูม (CSS zoom) ตัวอักษรเลื่อนขึ้น/ลงได้ราว ±1px จากที่วัดไว้
+    const lo = Math.max(p.bottom, p.base + (p.low ? 0.43 : 0.25) * p.fs), hi = Math.min(a.top + 0.02 * a.fs, a.base - 0.84 * a.fs);
+    return (lo + hi) / 2;
   }
   return a.top >= p.bottom ? (p.bottom + a.top) / 2 : (p.cy + a.cy) / 2;
 }
@@ -68,7 +72,7 @@ function cutBetween(p, a) {
 function breakPoints(atoms, H) {
   if (!atoms.length) return [{ start: 0, end: H }];
   const startOf = (ps) => (ps === 0 ? 0 : cutBetween(atoms[ps - 1], atoms[ps]));
-  const endOf = (i) => (i + 1 < atoms.length ? cutBetween(atoms[i], atoms[i + 1]) : atoms[i].bottom + PAD);
+  const endOf = (i) => (i + 1 < atoms.length ? cutBetween(atoms[i], atoms[i + 1]) : Math.max(atoms[i].bottom + PAD, atoms[i].low ? atoms[i].base + 0.43 * atoms[i].fs + 1 : 0));
   const starts = [0];
   let i = 0, ps = 0; // ps = ดัชนีอะตอมแรกของแผ่นปัจจุบัน
   while (i < atoms.length) {
@@ -88,7 +92,7 @@ function breakPoints(atoms, H) {
   return starts.map((b, s) => {
     const e = (starts[s + 1] ?? atoms.length) - 1;
     const top = startOf(b);
-    return { start: top, end: Math.min(endOf(e), top + H) };
+    return { start: top, end: Math.min(endOf(e), top + H), b, e }; // b..e = ช่วงอะตอมของแผ่นนี้
   });
 }
 
@@ -97,7 +101,9 @@ function sheetsOf(sec, doc) {
   const padT = parseFloat(cs.paddingTop) || 0, padB = parseFloat(cs.paddingBottom) || 0;
   const H = PAGE_H - padT - padB;
   const base = sec.getBoundingClientRect().top + padT;
-  const pages = breakPoints(atomsOf(sec, base, doc), H);
+  const { atoms, kids } = atomsOf(sec, base, doc);
+  const pages = breakPoints(atoms, H);
+  const round2 = (v) => Math.round(v * 100) / 100;
   return pages.map((pg, i) => {
     const sheet = doc.createElement('section');
     sheet.className = (sec.className + ' sheet').trim();
@@ -106,14 +112,19 @@ function sheetsOf(sec, doc) {
     sheet.dataset.of = String(pages.length);
     const clip = doc.createElement('div');
     clip.className = 'flow-clip';
-    const bodyH = Math.max(1, Math.round(pg.end - pg.start));
-    if (i === 0) { clip.style.top = '0'; clip.style.paddingTop = `${padT}px`; clip.style.height = `${bodyH + Math.round(padT)}px`; } // แผ่นแรก: เห็นขอบบนกระดาษด้วย (ตราครุฑเลื่อนขึ้นไปในขอบได้)
+    const bodyH = Math.max(1, round2(pg.end - pg.start)); // ไม่ปัดเป็นจำนวนเต็ม: ปัดแล้วหน้าต่างตัดเลื่อนได้ถึง 0.5px ซึ่งกินช่องว่างระหว่างบรรทัดที่มีแค่ ~5px
+    if (i === 0) { clip.style.top = '0'; clip.style.paddingTop = `${padT}px`; clip.style.height = `${round2(bodyH + padT)}px`; } // แผ่นแรก: เห็นขอบบนกระดาษด้วย (ตราครุฑเลื่อนขึ้นไปในขอบได้)
     else clip.style.height = `${bodyH}px`;
     const flow = doc.createElement('div');
     flow.className = 'flow';
-    flow.style.marginTop = `-${Math.round(pg.start * 100) / 100}px`;
-    for (const ch of sec.children) {
+    // สาเหตุที่เคยตัดผ่ากลางบรรทัด: เดิมทุกแผ่นใส่ทั้งเอกสารแล้วเลื่อนด้วย margin-top ติดลบ → ตอนพรีวิวถูกซูม (CSS zoom ที่ไม่ใช่ 1) ความสูงบรรทัด/ย่อหน้าถูกปัดเศษทีละ ~1/64px
+    // ในทุกบรรทัดที่อยู่เหนือหน้าต่างมอง ยิ่งแผ่นท้าย ๆ ยิ่งสะสมจนเหลื่อมหลายพิกเซล (วัดได้ 3.5px ที่แผ่น 7 ซูม 0.9) ทำให้หน้าต่างที่วางไว้กลางช่องว่างไปตกกลางบรรทัด
+    // จึง (1) ใส่เฉพาะบล็อกที่มีบรรทัดอยู่ในแผ่นนั้น (2) วางแต่ละบล็อกด้วย top ที่วัดไว้ (doc.css: .flow > * เป็น absolute) ความคลาดเคลื่อนไม่สะสมข้ามบล็อก/ข้ามแผ่น
+    const a0 = atoms.length ? atoms[pg.b].pid : 1, a1 = atoms.length ? atoms[pg.e].pid : kids.length;
+    for (const [ci, ch] of [...sec.children].entries()) {
+      if (ci + 1 < a0 || ci + 1 > a1) continue;
       const cl = ch.cloneNode(true);
+      cl.style.top = `${round2(kids[ci].top - kids[ci].mt - pg.start)}px`; // ขอบบนของกล่อง = top + margin-top → หัก margin-top ออกให้ขอบบนตรงตำแหน่งที่วัดไว้
       if (cl.classList?.contains('pb')) cl.style.breakAfter = 'auto'; // แบ่งหน้าแล้ว ไม่ต้องให้ตัวพิมพ์แบ่งซ้ำ
       flow.appendChild(cl);
     }

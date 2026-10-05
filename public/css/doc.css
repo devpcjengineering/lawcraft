@@ -96,6 +96,8 @@
 
 /* ---------- แผ่น A4 ที่แบ่งหน้าแล้ว (js/paginate.js) ---------- */
 .page.sheet { padding: 0; height: 297mm; min-height: 0; overflow: hidden; position: relative; }
+.page.sheet .flow { position: relative; margin: 0; }
+.page.sheet .flow > * { position: absolute; left: 0; right: 0; } /* top ใส่เป็น inline โดย js/paginate.js ตามตำแหน่งที่วัดไว้ (กันความสูงบรรทัดที่ปัดเศษสะสมเมื่อซูม) */
 .page.sheet .flow-clip { position: absolute; top: var(--pt, 18mm); left: 0; width: 210mm; box-sizing: border-box; padding: 0 var(--pr, 18mm) 0 var(--pl, 25mm); overflow: hidden; }
 @media print {
   .page.sheet { padding: 0 !important; height: 297mm; min-height: 0; break-after: page; break-inside: avoid; }
