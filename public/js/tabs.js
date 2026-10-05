@@ -777,7 +777,7 @@ actions.snipMotion = (el) => {
   m.text = (m.text ? m.text + '\n\n' : '') + s.text;
   rerender(); hooks.changed();
 };
-// ===================== 9) ตรวจสอบและออกเอกสาร =====================
+// ===================== 9) ออกเอกสาร =====================
 const REQUIRED = () => {
   const c = S.c, sm = serviceMode(c);
   const rows = [
@@ -819,7 +819,7 @@ function tabExport() {
     <div class="dl-sub">เอกสารหลังยื่นฟ้องที่จะออก — แยกทีละฉบับ</div>
     <div id="doclist-post"></div></div>` : '';
   const packTypes = DOC_TYPES.filter((d) => (d.key !== 'summons' || c.type === 'criminal') && !(filed && POST_FILING_KEYS.includes(d.key)));
-  return `${pageHead('ตรวจสอบและออกเอกสาร', 'ตรวจความครบถ้วน เลือกชุดเอกสาร แล้วกด “ดู PDF” เพื่อตรวจหน้าตาเอกสารก่อน จากนั้นบันทึกเป็น PDF')}
+  return `${pageHead('ออกเอกสาร', 'ตรวจความครบถ้วน เลือกชุดเอกสาร แล้วกด “ดู PDF” เพื่อตรวจหน้าตาเอกสารก่อน จากนั้นบันทึกเป็น PDF')}
   <div class="status-bar ${tone}" role="status"><span class="sb-ico" aria-hidden="true">${tone === 'ok' ? ix('checkCircle') : ix('alertCircle')}</span>
     <div class="sb-txt"><div class="big">${errs.length ? `${errs.length} จุดต้องแก้ก่อนยื่น` : warns.length ? `พร้อมออกเอกสาร — มี ${warns.length} ข้อควรตรวจ` : 'พร้อมออกเอกสาร'}</div>
     <div class="hint">เอกสารขั้นต่ำครบ ${reqOk} จาก ${req.length} รายการ</div></div></div>
@@ -1165,7 +1165,7 @@ export const NAV = [
     { key: 'extras', label: 'คำให้การ & สัญญา', ico: 'pen', render: tabExtras, doc: 'answer' },
   ] },
   { group: 'ออกเอกสาร', items: [
-    { key: 'export', label: 'ตรวจสอบ & ออกเอกสาร', ico: 'download', render: tabExport },
+    { key: 'export', label: 'ออกเอกสาร', ico: 'download', render: tabExport },
     { key: 'ref', label: 'ตำรากฎหมาย', ico: 'book', render: tabRef },
   ] },
   { group: 'ตั้งค่า', items: [

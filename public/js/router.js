@@ -11,7 +11,7 @@ export const BASE = '/workspace';
 
 export const TAB_NAMES = {
   case: 'ข้อมูลคดี', parties: 'คู่ความ', counsel: 'ทนายความ', complaint: 'คำฟ้อง', prayer: 'คำขอท้ายคำฟ้อง', service: 'คำร้องส่งหมาย',
-  witness: 'บัญชีพยาน', summons: 'หมายนัดไต่สวน', motions: 'คำร้อง / คำแถลง', extras: 'คำให้การ & สัญญา', export: 'ตรวจสอบ & ออกเอกสาร',
+  witness: 'บัญชีพยาน', summons: 'หมายนัดไต่สวน', motions: 'คำร้อง / คำแถลง', extras: 'คำให้การ & สัญญา', export: 'ออกเอกสาร',
   ref: 'ตำรากฎหมาย', formtext: 'ข้อความในแบบฟอร์ม', layout: 'ตำแหน่ง & ตราครุฑ', forms: 'แบบพิมพ์ศาล',
 };
 export const CASE_TABS = Object.keys(TAB_NAMES);

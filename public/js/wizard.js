@@ -17,7 +17,7 @@ export const STEPS = [
   { key: 'summons', label: 'หมายนัดไต่สวน', optional: true, only: 'criminal' },
   { key: 'motions', label: 'คำร้อง / คำแถลง', optional: true },
   { key: 'extras', label: 'คำให้การ & สัญญา', optional: true },
-  { key: 'export', label: 'ตรวจสอบ & ออกเอกสาร' },
+  { key: 'export', label: 'ออกเอกสาร' },
 ];
 
 const filled = (s) => String(s ?? '').trim().length > 0;

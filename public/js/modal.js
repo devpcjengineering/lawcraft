@@ -56,7 +56,7 @@ export async function issuesBox(issues, { allowContinue = true } = {}) {
   const errs = issues.filter((i) => i.level === 'error'), warns = issues.filter((i) => i.level === 'warn');
   const row = (i) => `<li class="${i.level}"><span class="il-ico">${svg({ error: 'xCircle', warn: 'alert', info: 'info' }[i.level] || 'info')}</span><span>${esc(i.msg)}</span></li>`;
   const html = `<p>${errs.length ? `พบ <b>${errs.length}</b> จุดที่ควรแก้ก่อนยื่น` : ''}${errs.length && warns.length ? ' และ ' : ''}${warns.length ? `<b>${warns.length}</b> ข้อควรตรวจสอบ` : ''}</p>
-    <ul class="issue-list">${[...errs, ...warns].slice(0, 8).map(row).join('')}</ul>${errs.length + warns.length > 8 ? `<p class="hint">…และอีก ${errs.length + warns.length - 8} รายการ ดูทั้งหมดในหน้า “ตรวจสอบ & ออกเอกสาร”</p>` : ''}`;
+    <ul class="issue-list">${[...errs, ...warns].slice(0, 8).map(row).join('')}</ul>${errs.length + warns.length > 8 ? `<p class="hint">…และอีก ${errs.length + warns.length - 8} รายการ ดูทั้งหมดในหน้า “ออกเอกสาร”</p>` : ''}`;
   const r = await modal({
     title: 'ตรวจพบรายการที่ควรแก้ไข', tone: errs.length ? 'warn' : 'info', message: html,
     buttons: [{ label: 'กลับไปแก้ไข', value: 'fix', primary: true }, ...(allowContinue ? [{ label: 'ออกเอกสารต่อไป', value: 'go' }] : [])],

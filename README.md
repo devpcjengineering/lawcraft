@@ -18,7 +18,7 @@ npm start          # http://localhost:3000     (หรือดับเบิ�
   - อัปโหลดข้อมูลกฎหมาย: `SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… node server/seed-supabase.js`
   - deploy ฟังก์ชัน: `node server/build-edge.js` แล้ว `SUPABASE_ACCESS_TOKEN=… npx supabase functions deploy docx --project-ref <ref> --use-api`
   - ห้ามเก็บ token/service_role ในไฟล์โปรเจกต์
-  - **แชร์คดี & PDF ชุดเอกสาร** (หน้า “ตรวจสอบ & ออกเอกสาร” → แผง “PDF ชุดเอกสาร & แชร์”):
+  - **แชร์คดี & PDF ชุดเอกสาร** (หน้า “ออกเอกสาร” → แผง “PDF ชุดเอกสาร & แชร์”):
     - สร้าง PDF รวมทั้งชุดในเบราว์เซอร์ (`public/js/pdf-export.js` — ตัวอักษรเป็นเวกเตอร์ ฟอนต์ฝังเฉพาะตัวที่ใช้ ตราครุฑฝังครั้งเดียว) แล้วอัปโหลดทับไฟล์เดิมที่ bucket ส่วนตัว `case-pdfs/<id คดี>/bundle.pdf` (ไฟล์เดียวต่อคดี)
     - ลิงก์ดู PDF (ไม่ต้องล็อกอิน): token สุ่มใน `case_pdfs.share_token` ให้ Edge Function `pdf` ส่งไฟล์ล่าสุดเสมอ — เปิด/ปิด/ออกลิงก์ใหม่ได้ (`set_case_share`) deploy: `npx supabase functions deploy pdf --project-ref <ref> --use-api --no-verify-jwt`
     - เชิญผู้ร่วมแก้ไขด้วยอีเมล Google (ตาราง `case_members`): เห็น/แก้คดีและอัปโหลด PDF ได้ ลบคดี/เชิญคนอื่นไม่ได้ ; บันทึกแบบตรวจ `updated_at` ถ้ามีคนบันทึกไปก่อนจะถามว่าโหลดฉบับล่าสุดหรือบันทึกทับ

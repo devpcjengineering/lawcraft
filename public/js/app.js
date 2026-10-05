@@ -546,7 +546,7 @@ function renderPreview() {
   box.style.display = S.ui.pvOn ? '' : 'none';
   if (!S.ui.pvOn) return;
   const docs = previewDocs();
-  if (!docs.length) { $('#pv-bar').innerHTML = `<div class="pv-nav"><button type="button" class="pv-close" data-act="togglePreview" aria-label="ปิดตัวอย่างเอกสาร">${ico2('x')}</button></div>`; $('#pv-bar').dataset.sig = ''; $('#pv-inner').dataset.doc = ''; $('#pv-inner').innerHTML = `<div class="pv-empty">${ico2('file', { size: 28 })}<b>ยังไม่ได้เลือกเอกสาร</b><span>เลือกเอกสารในชุดที่หน้า “ตรวจสอบ &amp; ออกเอกสาร” เพื่อดูตัวอย่าง</span></div>`; return; }
+  if (!docs.length) { $('#pv-bar').innerHTML = `<div class="pv-nav"><button type="button" class="pv-close" data-act="togglePreview" aria-label="ปิดตัวอย่างเอกสาร">${ico2('x')}</button></div>`; $('#pv-bar').dataset.sig = ''; $('#pv-inner').dataset.doc = ''; $('#pv-inner').innerHTML = `<div class="pv-empty">${ico2('file', { size: 28 })}<b>ยังไม่ได้เลือกเอกสาร</b><span>เลือกเอกสารในชุดที่หน้า “ออกเอกสาร” เพื่อดูตัวอย่าง</span></div>`; return; }
   if (S.tab === 'layout' && S.ui.lastLayoutForm !== S.ui.layoutForm) {
     S.ui.lastLayoutForm = S.ui.layoutForm;
     const k = LAYOUT_DOCKEY[S.ui.layoutForm];
