@@ -18,14 +18,17 @@ async function getJson(url, init = {}) {
   return r.json();
 }
 
-/** รายการบทความตั้งต้นจากไซต์เดียวกัน (ถ้าอ่านไม่ได้ ลองโดเมนหลัก) */
-async function staticIndex(host) {
+/** ไฟล์ JSON (อาร์เรย์) ที่ build ไว้ในไซต์เดียวกัน เช่น articles-data/index.json, seo-urls.json (ถ้าอ่านไม่ได้ ลองโดเมนหลัก) */
+async function staticList(host, file) {
   const bases = [host ? `https://${host}` : '', SITE].filter(Boolean);
   for (const b of [...new Set(bases)]) {
-    try { const j = await getJson(`${b}/articles-data/index.json`); if (Array.isArray(j)) return j; } catch { /* ลองที่ถัดไป */ }
+    try { const j = await getJson(`${b}/${file}`); if (Array.isArray(j)) return j; } catch { /* ลองที่ถัดไป */ }
   }
   return [];
 }
+const staticIndex = (host) => staticList(host, 'articles-data/index.json');
+/** หน้าข้อมูลกฎหมายสถิต (เขตอำนาจศาล/ข้อกฎหมาย/ขั้นตอน/ฎีกา) จาก scripts/build-seo-pages.js: [{path,lastmod,priority}] */
+const seoUrls = (host) => staticList(host, 'seo-urls.json');
 
 async function liveArticles() {
   try {
@@ -39,10 +42,16 @@ export default async function handler(req, res) {
   const urls = [['/', today, 'weekly', '1.0'], ['/articles/', today, 'weekly', '0.8'], ['/contact/', today, 'monthly', '0.6'], ['/privacy/', today, 'yearly', '0.3']];
   try {
     const host = String(req?.headers?.['x-forwarded-host'] || req?.headers?.host || '').split(',')[0].trim();
-    const [idx, live] = await Promise.all([staticIndex(host), liveArticles()]);
+    const [idx, live, seo] = await Promise.all([staticIndex(host), liveArticles(), seoUrls(host).catch(() => [])]);
     for (const a of mergeIndex(idx, live)) {
       if (a?.slug) urls.push([`/articles/?a=${encodeURIComponent(a.slug)}`, day(a.updated, today), 'monthly', '0.7']);
     }
+    // หน้าสถิตจากชุดข้อมูลกฎหมาย: เรียงตามความสำคัญ (priority มากไปน้อย) ต่อท้ายหน้าหลัก/บทความ
+    const have = new Set(urls.map((u) => u[0]));
+    const extra = (Array.isArray(seo) ? seo : []).filter((u) => typeof u?.path === 'string' && u.path.startsWith('/') && !have.has(u.path))
+      .map((u) => [u.path, day(u.lastmod, today), 'monthly', /^[01](\.\d)?$/.test(String(u.priority)) ? String(u.priority) : '0.5'])
+      .sort((a, b) => Number(b[3]) - Number(a[3]));
+    urls.push(...extra);
   } catch { /* เหลือเฉพาะหน้าหลัก */ }
   const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(([p, m, f, pr]) => `  <url><loc>${xml(SITE + p)}</loc><lastmod>${m}</lastmod><changefreq>${f}</changefreq><priority>${pr}</priority></url>`).join('\n')}\n</urlset>\n`;
   res.statusCode = 200;

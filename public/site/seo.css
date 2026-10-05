@@ -1,0 +1,131 @@
+/* หน้าข้อมูลกฎหมายที่สร้างเป็น HTML สถิต (/laws/ /jurisdiction/ /procedure/ /precedents/) + ส่วน "สารบัญข้อมูลกฎหมาย" ท้ายหน้าแรก
+   ใช้ตัวแปรสีจาก site.css (โหมดมืดตามเอง) — สร้างโดย scripts/build-seo-pages.js */
+
+.sp { padding: 20px 0 72px; }
+.sp .wrap { max-width: 920px; }
+.sp h1 { font-size: clamp(27px, 4.4vw, 42px); font-weight: 700; line-height: 1.38; letter-spacing: -.015em; margin: 6px 0 0; text-wrap: balance; }
+.sp h2 { font-size: clamp(21px, 2.8vw, 28px); font-weight: 700; line-height: 1.4; margin: 44px 0 14px; letter-spacing: -.01em; }
+.sp h3 { font-size: 18px; font-weight: 650; line-height: 1.45; margin: 26px 0 8px; letter-spacing: -.005em; }
+.sp p { margin: 0 0 14px; }
+.sp ul, .sp ol { margin: 0 0 14px; padding-left: 1.4em; }
+.sp li { margin: 0 0 6px; }
+.sp a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.sp-eyebrow { margin: 26px 0 0; font-size: 14px; font-weight: 600; color: var(--ink-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sp-lead { font-size: clamp(16.5px, 1.9vw, 19px); line-height: 1.7; color: var(--ink-2); margin: 14px 0 0; max-width: 46em; text-wrap: pretty; }
+.sp-meta { font-size: 13px; color: var(--ink-3); margin: 10px 0 0; }
+
+/* breadcrumb */
+.bc { margin: 4px 0 0; font-size: 13.5px; }
+.bc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px 0; color: var(--ink-3); }
+.bc li { margin: 0; display: inline-flex; align-items: center; }
+.bc li + li::before { content: '›'; margin: 0 8px; color: var(--ink-3); }
+.bc a { color: var(--ink-2); }
+.bc [aria-current] { color: var(--ink); }
+
+/* กล่องหมายเหตุ / คำเตือน */
+.note { background: var(--bg-alt); border-radius: 16px; padding: 14px 18px; font-size: 15px; line-height: 1.65; color: var(--ink-2); margin: 22px 0; }
+.note b { color: var(--ink); }
+.note.warn { background: color-mix(in srgb, var(--crim) 9%, transparent); color: var(--ink); }
+.note p:last-child { margin-bottom: 0; }
+
+/* ตารางข้อเท็จจริง (dl) */
+.facts { display: grid; grid-template-columns: minmax(7.5em, 11em) 1fr; gap: 0; margin: 0 0 8px; border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.facts dt, .facts dd { margin: 0; padding: 9px 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.facts dt { color: var(--ink-3); font-size: 14px; padding-right: 14px; padding-top: 11px; }
+.facts dd { font-size: 16px; }
+
+/* ตารางข้อมูล */
+.tw { overflow-x: auto; margin: 0 0 18px; border-radius: 14px; box-shadow: 0 0 0 1px var(--line) inset; -webkit-overflow-scrolling: touch; }
+.tw table { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 560px; }
+.tw caption { text-align: left; padding: 12px 16px 6px; font-size: 13.5px; color: var(--ink-3); caption-side: top; }
+.tw th, .tw td { text-align: left; vertical-align: top; padding: 10px 14px; border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); line-height: 1.55; }
+.tw thead th { background: var(--bg-alt); font-size: 13.5px; font-weight: 650; color: var(--ink-2); border-top: 0; white-space: nowrap; }
+.tw tbody th { font-weight: 600; min-width: 7em; }
+.tw tbody th.num { white-space: nowrap; min-width: 0; }
+.tw td { min-width: 9em; }
+.tw td.num { min-width: 0; }
+.sp-links a b.w { min-width: 6.2em; }
+.tw td ul { list-style: none; padding: 0; margin: 0; }
+.tw td li { margin: 0 0 3px; }
+.tw .s { display: block; font-size: 12.5px; color: var(--ink-3); }
+.tw .num { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* การ์ดลิงก์ */
+.sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin: 14px 0 8px; }
+.sp-card { display: flex; flex-direction: column; gap: 4px; background: var(--bg-alt); border-radius: 18px; padding: 16px 18px; color: var(--ink); transition: transform .2s var(--ease), box-shadow .2s; }
+.sp-card:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,0,0,.08); text-decoration: none !important; }
+.sp-card b { font-size: 17px; font-weight: 650; line-height: 1.4; }
+.sp-card span { font-size: 14px; color: var(--ink-2); line-height: 1.55; }
+.sp-card small { font-size: 12.5px; color: var(--ink-3); }
+
+/* รายการลิงก์แบบแน่น */
+.sp-links { list-style: none; padding: 0 !important; margin: 0 0 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 2px 22px; }
+.sp-links li { margin: 0; }
+.sp-links a { display: flex; gap: 8px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent); color: var(--ink); line-height: 1.5; font-size: 15.5px; }
+.sp-links a b { flex: none; min-width: 3.6em; font-weight: 650; color: var(--link); font-variant-numeric: tabular-nums; }
+.sp-links a:hover { color: var(--link); }
+.chiplinks { list-style: none; padding: 0 !important; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.chiplinks li { margin: 0; }
+.chiplinks a { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 99px; background: var(--bg-alt); color: var(--ink); font-size: 14.5px; line-height: 1.6; }
+.chiplinks a:hover { background: color-mix(in srgb, var(--blue) 12%, var(--bg-alt)); text-decoration: none !important; color: var(--link); }
+.chiplinks small { color: var(--ink-3); font-size: 12px; }
+
+/* ถาม-ตอบ */
+.qa { border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.qa > div { padding: 14px 0 6px; border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.qa h3 { margin: 0 0 6px; font-size: 17px; }
+.qa p { color: var(--ink-2); font-size: 15.5px; }
+
+/* ขั้นตอน */
+.sp-steps { list-style: none; padding: 0 !important; counter-reset: sp; display: grid; gap: 12px; margin: 0 0 16px; }
+.sp-steps > li { counter-increment: sp; position: relative; background: var(--bg-alt); border-radius: 18px; padding: 16px 20px 16px 66px; margin: 0; }
+.sp-steps > li::before { content: counter(sp); position: absolute; left: 18px; top: 16px; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; font-weight: 700; font-size: 15px; }
+.sp-steps h3 { margin: 0 0 4px; font-size: 17px; }
+.sp-steps p { margin: 0 0 6px; font-size: 15.5px; color: var(--ink-2); }
+.sp-steps .ref { font-size: 13px; color: var(--ink-3); }
+
+/* CTA */
+.sp-cta { margin: 36px 0 0; display: flex; gap: 16px 22px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: #000; color: #f5f5f7; border-radius: 24px; padding: 24px 28px; }
+.sp-cta h2 { margin: 0 0 4px; font-size: 20px; color: #f5f5f7; }
+.sp-cta p { margin: 0; color: #a1a1a6; font-size: 15px; max-width: 34em; }
+.sp-cta .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.sp-cta .btn-pill.ghost { background: rgba(255,255,255,.16); color: #f5f5f7; }
+.sp-cta .btn-pill.ghost:hover { background: rgba(255,255,255,.26); }
+:root[data-theme=dark] .sp-cta, :root:not([data-theme=light]) .sp-cta { box-shadow: 0 0 0 1px #2c2c2e inset; }
+.sp-bar { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 22px; font-size: 15px; }
+.sp-prevnext { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 30px; }
+.sp-prevnext a { display: block; background: var(--bg-alt); border-radius: 16px; padding: 12px 16px; color: var(--ink); font-size: 15px; line-height: 1.5; }
+.sp-prevnext a small { display: block; color: var(--ink-3); font-size: 12.5px; }
+.sp-prevnext a:last-child { text-align: right; }
+.sp-prevnext a:only-child { grid-column: 1 / -1; }
+.sp-src { font-size: 14px; color: var(--ink-3); }
+.sp-hl { font-size: clamp(17px, 2vw, 20px); line-height: 1.75; border-left: 3px solid var(--blue); padding: 4px 0 4px 18px; margin: 18px 0; color: var(--ink); }
+.sp-tags { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 0; }
+
+/* ส่วน "สารบัญข้อมูลกฎหมาย" บนหน้าแรก */
+.dir h3 { font-size: 19px; font-weight: 650; margin: 36px 0 12px; letter-spacing: -.01em; }
+.dir .sp-grid { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.dir .sp-card { background: var(--card); }
+.dir .chiplinks a { background: var(--card); box-shadow: 0 0 0 1px var(--line) inset; }
+.dir .sp-links a { border-color: color-mix(in srgb, var(--line) 80%, transparent); }
+
+@media (max-width: 760px) {
+  .sp { padding-top: 12px; }
+  .sp h2 { margin-top: 36px; }
+  .facts { grid-template-columns: 1fr; }
+  .facts dt { padding: 12px 0 0; border-bottom: 0; }
+  .facts dd { padding: 2px 0 12px; }
+  .sp-links { grid-template-columns: 1fr; }
+  .sp-links a { min-height: 44px; align-items: center; }
+  .chiplinks a { min-height: 40px; }
+  .sp-prevnext { grid-template-columns: 1fr; }
+  .sp-prevnext a:last-child { text-align: left; }
+  .sp-cta { padding: 20px; border-radius: 20px; }
+  .sp-cta .btns { width: 100%; }
+  .sp-cta .btn-pill { flex: 1 1 100%; }
+  .sp-steps > li { padding: 14px 16px 14px 58px; }
+  .sp-steps > li::before { left: 14px; top: 14px; }
+  .bc a, .bc [aria-current] { padding: 6px 0; }
+  .tw table { min-width: 520px; }
+}
+@media (prefers-reduced-motion: reduce) { .sp-card, .sp-card:hover { transition: none; transform: none; } }

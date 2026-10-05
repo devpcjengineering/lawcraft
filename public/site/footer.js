@@ -7,10 +7,12 @@ let config = cachedSite() || defaultSite();
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// หมายเหตุ: scripts/build-seo-pages.js อ่านรายการ QUICK / TOPICS / MARK / DEFAULT_DESC จากไฟล์นี้ไปสร้างท้ายเว็บแบบ HTML สถิต — รูปแบบ const … = […]; ต้องคงไว้
 const QUICK = [
-  ['/#library', 'ประมวลกฎหมาย'],
-  ['/#jurisdiction', 'เขตอำนาจศาล'],
-  ['/#process', 'ขั้นตอนฟ้องคดี'],
+  ['/laws/', 'ข้อกฎหมายและมาตรา'],
+  ['/jurisdiction/', 'เขตอำนาจศาล'],
+  ['/procedure/', 'ขั้นตอนฟ้องคดี'],
+  ['/precedents/', 'ฎีกา'],
   ['/articles/', 'บทความ'],
   ['/#drafting', 'ร่างคำฟ้อง'],
   ['/contact/', 'ติดต่อปรึกษา'],

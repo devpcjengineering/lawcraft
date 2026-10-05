@@ -25,14 +25,20 @@ if (fs.existsSync(path.join(root, 'templates'))) cp('templates', 'templates');
   for (const [slug, a] of Object.entries(pack.articles)) fs.writeFileSync(path.join(out, `${slug}.json`), JSON.stringify(a));
 }
 
+// หน้าข้อมูลกฎหมายแบบ HTML สถิต (/jurisdiction/ /laws/ /procedure/ /precedents/) + dist/seo-urls.json + สารบัญบนหน้าแรก
+// ต้องรันก่อนขั้นรวม CSS / ใส่ ?v= (หน้าเหล่านี้ใช้ css/bundle-seo.css ที่สร้างในขั้นนี้)
+const SITE_URL = (process.env.SITE_URL || 'https://lawcraft.pcjengineering.co.th').replace(/\/$/, '');
+const seo = await (await import('./build-seo-pages.js')).buildSeoPages({ root, dist, site: SITE_URL });
+
 // sitemap.xml + robots.txt สำหรับเสิร์ชเอนจิน: หน้าสาธารณะทั้งหมด + บทความทุกบท (หลังบ้าน /workspace/ ไม่ใส่)
 {
-  const SITE = (process.env.SITE_URL || 'https://lawcraft.pcjengineering.co.th').replace(/\/$/, '');
+  const SITE = SITE_URL;
   const { packArticles } = await import('../server/articles-pack.js');
   const today = new Date().toISOString().slice(0, 10);
   const urls = [
     ['/', today, 'weekly', '1.0'], ['/articles/', today, 'weekly', '0.8'], ['/contact/', today, 'monthly', '0.6'], ['/privacy/', today, 'yearly', '0.3'],
     ...packArticles().index.map((a) => [`/articles/?a=${encodeURIComponent(a.slug)}`, /^\d{4}-\d{2}-\d{2}$/.test(a.updated || '') ? a.updated : today, 'monthly', '0.7']),
+    ...seo.urls.map((u) => [u.path, u.lastmod, 'monthly', u.priority]),
   ];
   const x = (s) => s.replace(/&/g, '&amp;');
   // ปกติ /sitemap.xml มาจากฟังก์ชัน api/sitemap.js (รวมบทความที่แอดมินเพิ่มสด ๆ) — ตั้ง STATIC_SITEMAP=1 ถ้าต้องการไฟล์สถิตแทน
@@ -78,6 +84,13 @@ if (fs.existsSync(path.join(root, 'templates'))) cp('templates', 'templates');
 - [ติดต่อปรึกษากฎหมาย](${SITE}/contact/): ส่งเรื่องให้เจ้าหน้าที่ตรวจสอบเบื้องต้น
 - [นโยบายความเป็นส่วนตัว](${SITE}/privacy/): ข้อมูลที่เก็บ วัตถุประสงค์ และสิทธิของเจ้าของข้อมูลตาม PDPA
 
+## ข้อมูลกฎหมาย (หน้า HTML แยกรายการ)
+
+- [ข้อกฎหมายไทย: มาตรา ระวางโทษ อายุความ](${SITE}/laws/): ${seo.counts.items} มาตราและมูลคดี (คดีอาญา/คดีแพ่ง) ตัวบท องค์ประกอบ ระวางโทษ อายุความ สถานะการตรวจแหล่งอ้างอิง — แต่ละฉบับอยู่ที่ ${SITE}/laws/<ฉบับ>/ และแต่ละมาตราที่ ${SITE}/laws/<รหัสข้อหา>/ เช่น ${SITE}/laws/pc-326/
+- [เขตอำนาจศาล ฟ้องคดีแพ่ง อาญาที่ศาลไหน](${SITE}/jurisdiction/): ศาลที่มีเขตอำนาจรายอำเภอ/เขต พร้อมเบอร์โทรศัพท์ศาล ครบ ${seo.counts.provinces} จังหวัด (${SITE}/jurisdiction/<จังหวัดภาษาอังกฤษ>/ เช่น ${SITE}/jurisdiction/bangkok/)
+- [ขั้นตอนฟ้องคดีและวิธีพิจารณาความ](${SITE}/procedure/): ขั้นตอนฟ้องคดีอาญาโดยราษฎร ค่าธรรมเนียมศาล และ ${seo.counts.procedure} มาตราวิธีพิจารณาที่ใช้บ่อย
+- [ฎีกาที่เกี่ยวข้องกับข้อหาและมูลคดี](${SITE}/precedents/): สรุปแนวฎีกา ${seo.counts.precedents} รายการ (สรุปโดยเว็บไซต์ ควรตรวจกับต้นฉบับ)
+
 ## บทความ
 
 ${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/?a=${encodeURIComponent(a.slug)}): ${one(a.summary || a.subtitle).slice(0, 160)}`).join('\n')}
@@ -122,6 +135,13 @@ ${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/?a=${encodeURIComponent(
       url: `${SITE}/llms.txt`,
       description: 'ภาพรวมเว็บไซต์ความรู้กฎหมายไทยและระบบร่างคำฟ้อง พร้อมลิงก์ไปยังหน้าและบทความทั้งหมด (llms.txt)',
       representativeQueries: ['ฟ้องหมิ่นประมาทออนไลน์ทำอย่างไร', 'ถูกโกงซื้อของออนไลน์ ฟ้องคดีอาญาเองได้ไหม', 'เก็บหลักฐานดิจิทัลสำหรับคดีออนไลน์'],
+    }, {
+      identifier: `urn:air:${host}:knowledge:legal-data`,
+      displayName: 'Law Craft — ข้อกฎหมาย เขตอำนาจศาล ขั้นตอนฟ้องคดี และฎีกา',
+      type: 'text/html',
+      url: `${SITE}/laws/`,
+      description: `ข้อมูลกฎหมายไทยแยกเป็นหน้า: ${seo.counts.items} มาตรา/ข้อหา (ตัวบท ระวางโทษ อายุความ) · เขตอำนาจศาล ${seo.counts.provinces} จังหวัด · ขั้นตอนฟ้องคดี · ฎีกา ${seo.counts.precedents} รายการ (เพื่อการศึกษา ไม่ใช่คำปรึกษา)`,
+      representativeQueries: ['หมิ่นประมาท มาตรา 326 โทษและอายุความ', 'ฟ้องคดีที่จังหวัดชัยภูมิต้องฟ้องศาลไหน', 'ขั้นตอนฟ้องคดีอาญาโดยราษฎร'],
     }, {
       identifier: `urn:air:${host}:knowledge:articles-full`,
       displayName: 'Law Craft — เนื้อหาบทความฉบับเต็ม (Markdown)',
