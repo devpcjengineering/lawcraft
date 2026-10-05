@@ -84,9 +84,33 @@ ${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/?a=${encodeURIComponent(
 
 ## Optional
 
+- [เนื้อหาเต็มทุกบทความ (Markdown)](${SITE}/llms-full.txt): ข้อความบทความทั้งหมดในไฟล์เดียวสำหรับ AI
 - [Sitemap](${SITE}/sitemap.xml): รายการหน้าทั้งหมดสำหรับเสิร์ชเอนจิน
 `;
   fs.writeFileSync(path.join(dist, 'llms.txt'), llms);
+  // llms-full.txt: เนื้อหาทุกบทความเป็น Markdown ไฟล์เดียว (อนุญาตให้ AI ดึง/อ้างอิง/นำไปฝึกได้ — ดู robots.txt)
+  {
+    const all = packArticles().articles;
+    const md = [];
+    md.push(`# Law Craft Legal Consultants — เนื้อหาบทความฉบับเต็ม\n\n> ข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมาย บทความทุกบทเป็นฉบับร่างหรือผ่านการตรวจตามสถานะที่ระบุ ควรตรวจกับแหล่งทางการและนักกฎหมายก่อนนำไปใช้ · ภาพรวมเว็บ: ${SITE}/llms.txt\n`);
+    for (const a of Object.values(all)) {
+      md.push(`\n---\n\n# ${one(a.title)}\n\nURL: ${SITE}/articles/?a=${encodeURIComponent(a.slug)}\nหมวด: ${one(a.category)} · ปรับปรุง: ${one(a.updated)} · สถานะการตรวจ: ${one(a.reviewStatus || 'ร่าง')}\n`);
+      if (a.subtitle) md.push(`\n> ${one(a.subtitle)}\n`);
+      if (a.summary) md.push(`\n${a.summary}\n`);
+      if ((a.keyPoints || []).length) md.push(`\n## ประเด็นสำคัญ\n\n${a.keyPoints.map((k) => `- ${one(k)}`).join('\n')}\n`);
+      for (const s of a.sections || []) {
+        md.push(`\n## ${one(s.heading)}\n`);
+        for (const para of s.paragraphs || []) md.push(`\n${para}\n`);
+        if (s.table?.head) md.push(`\n| ${s.table.head.map(one).join(' | ')} |\n| ${s.table.head.map(() => '---').join(' | ')} |\n${(s.table.rows || []).map((r) => `| ${r.map((c) => one(c).replace(/\|/g, '/')).join(' | ')} |`).join('\n')}\n`);
+        if (s.callout?.text) md.push(`\n> ${one(s.callout.text)}\n`);
+      }
+      if ((a.steps || []).length) md.push(`\n## ขั้นตอน\n\n${a.steps.map((st, i) => `${i + 1}. **${one(st.title)}** — ${one(st.detail)}`).join('\n')}\n`);
+      if (a.checklist?.items?.length) md.push(`\n## ${one(a.checklist.title || 'รายการตรวจ')}\n\n${a.checklist.items.map((x) => `- [ ] ${one(x)}`).join('\n')}\n`);
+      if ((a.faq || []).length) md.push(`\n## คำถามที่พบบ่อย\n\n${a.faq.map((q) => `**${one(q.q)}**\n${one(q.a)}`).join('\n\n')}\n`);
+      if ((a.sources || []).length) md.push(`\n## แหล่งอ้างอิง\n\n${a.sources.map((so) => `- [${one(so.label)}](${so.url})${so.verified ? '' : ' (ยังไม่ได้ตรวจเปิดอ่าน)'}`).join('\n')}\n`);
+    }
+    fs.writeFileSync(path.join(dist, 'llms-full.txt'), md.join(''));
+  }
   const host = new URL(SITE).hostname;
   const catalog = {
     specVersion: '1.0',
@@ -98,6 +122,12 @@ ${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/?a=${encodeURIComponent(
       url: `${SITE}/llms.txt`,
       description: 'ภาพรวมเว็บไซต์ความรู้กฎหมายไทยและระบบร่างคำฟ้อง พร้อมลิงก์ไปยังหน้าและบทความทั้งหมด (llms.txt)',
       representativeQueries: ['ฟ้องหมิ่นประมาทออนไลน์ทำอย่างไร', 'ถูกโกงซื้อของออนไลน์ ฟ้องคดีอาญาเองได้ไหม', 'เก็บหลักฐานดิจิทัลสำหรับคดีออนไลน์'],
+    }, {
+      identifier: `urn:air:${host}:knowledge:articles-full`,
+      displayName: 'Law Craft — เนื้อหาบทความฉบับเต็ม (Markdown)',
+      type: 'text/markdown',
+      url: `/llms-full.txt`,
+      description: 'ข้อความทุกบทความของเว็บไซต์ในไฟล์เดียว อนุญาตให้ AI ดึงข้อมูล อ้างอิง และนำไปฝึกได้',
     }],
   };
   fs.mkdirSync(path.join(dist, '.well-known'), { recursive: true });
