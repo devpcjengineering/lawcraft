@@ -61,7 +61,8 @@
 .sp .px-form input[type=search]:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; border-color: transparent; }
 .sp .px-form .btn-pill { grid-column: 2; }
 .sp .px-filters { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; }
-.sp .px-filters select { padding: 8px 14px; font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 99px; background: var(--card); color: var(--ink); }
+.sp .px-filters select { max-width: 100%; min-width: 0; text-overflow: ellipsis; padding: 8px 14px; font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 99px; background: var(--card); color: var(--ink); }
+.sp .px-filters select[name=law] { width: min(100%, 24em); }
 .sp .px-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 18px 0 0; font-size: 14px; color: var(--ink-3); }
 .sp .px-chip { border: 0; cursor: pointer; padding: 4px 14px; border-radius: 99px; font: inherit; font-size: 14px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
 .sp .px-chip:hover { background: color-mix(in srgb, var(--ink) 14%, transparent); }

@@ -8,6 +8,7 @@
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/precedents/:slug([0-9a-z-]+-[0-9a-z]+)", "destination": "/api/precedent?slug=:slug" },
+    { "source": "/precedents/:slug([0-9a-z-]+-[0-9a-z]+)/", "destination": "/api/precedent?slug=:slug" },
     { "source": "/workspace/:path*", "destination": "/workspace/index.html" },
     { "source": "/admin/:path+", "destination": "/admin/index.html" }
   ],
