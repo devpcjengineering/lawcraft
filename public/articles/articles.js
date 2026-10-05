@@ -147,16 +147,8 @@ function relatedHtml(a) {
     </article>`).join('')}</div></section>`;
 }
 
-function precedentsHtml(a) {
-  if (!a.precedents?.length) return '';
-  return `<section id="r-prec" class="ar-sec"><h2>คำพิพากษาศาลฎีกาที่เกี่ยวข้อง</h2>
-    <div class="ar-prec">${a.precedents.map((p) => `<article>
-      <b>${esc(p.caseNo)}</b>${p.verified ? '' : ' <span class="ar-flag warn inline">ยังไม่ยืนยัน</span>'}
-      <p class="ar-prec-topic">${esc(p.topic)}</p><p>${esc(p.holding)}</p>
-      ${p.source ? `<a class="ar-src-link" href="${esc(p.source)}" target="_blank" rel="noopener noreferrer">แหล่งอ้างอิง ↗</a>` : ''}
-    </article>`).join('')}</div>
-    <p class="fine">สรุปหลักด้วยถ้อยคำของเว็บไซต์ ไม่ใช่ข้อความเต็มของคำพิพากษา — ควรตรวจกับฉบับเต็มก่อนอ้างในศาล</p></section>`;
-}
+// ไม่แสดง “คำพิพากษาศาลฎีกาที่เกี่ยวข้อง” แล้ว: เดิมมาจากรายการฎีกาที่เก็บใน Supabase — ฎีกาบนเว็บทั้งหมดใช้คลังที่ Aiven ที่หน้า /precedents/
+function precedentsHtml() { return ''; }
 
 // แสดงบทความจากข้อมูลตั้งต้นทันที แล้วค่อยผสานข้อมูลสดจากหลังบ้าน (บทความที่แอดมินสร้าง/แก้/ซ่อน) เมื่อมาถึง
 async function showArticle(slug) {
@@ -199,7 +191,6 @@ function renderArticle(a, list, slug, update) {
     ...(a.steps?.length ? [['r-steps', 'ขั้นตอนปฏิบัติ']] : []),
     ...(a.checklist ? [['r-check', a.checklist.title]] : []),
     ...(a.related?.length ? [['r-items', 'มาตราที่เกี่ยวข้อง']] : []),
-    ...(a.precedents?.length ? [['r-prec', 'คำพิพากษาฎีกา']] : []),
     ...(a.faq?.length ? [['r-faq', 'คำถามที่พบบ่อย']] : []),
     ...(a.sources?.length ? [['r-src', 'แหล่งอ้างอิง']] : []),
   ];

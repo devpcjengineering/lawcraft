@@ -10,6 +10,7 @@
 //   node scripts/deka/load-aiven.mjs                          # โหลดทุกปีที่มีไฟล์ (หรือ --from 2560 --to 2569 / --years 2519,2520)
 //   node scripts/deka/load-aiven.mjs --build-indexes          # สร้างดัชนีค้นหา หลังโหลดเสร็จ
 //   node scripts/deka/load-aiven.mjs --create-reader          # สร้าง role lawcraft_reader (อ่านอย่างเดียว) → เขียน URL ลงไฟล์นอก repo
+//   node scripts/deka/load-aiven.mjs --refresh-facets         # คำนวณตัวเลือกเรียกดู (ปี/ประเภท/กฎหมาย) ใหม่ — รันเองอัตโนมัติหลังโหลดข้อมูลใหม่
 //   node scripts/deka/load-aiven.mjs --stats                  # สรุปจำนวน/ขนาดในฐาน
 // ตัวเลือก: --dir <โฟลเดอร์ jsonl> (ค่าเริ่มต้น %LOCALAPPDATA%\lawcraft-deka-data) · --batch 100 · --max-gb 4 (หยุดเองถ้าฐานโตเกินนี้) · --limit N (ทดสอบ) · --dry-run (แปลงอย่างเดียว ไม่แตะฐาน)
 import fs from 'node:fs';
@@ -80,21 +81,37 @@ async function createReader(c) {
   const name = 'lawcraft_reader';
   const exists = (await c.query('select 1 from pg_roles where rolname=$1', [name])).rowCount > 0;
   const pass = crypto.randomBytes(24).toString('base64url');
+  const rotate = !exists || args.rotate === 'true'; // role มีอยู่แล้วไม่เปลี่ยนรหัสผ่าน (กันของเดิมใน Vercel/.env ใช้ไม่ได้) เว้นแต่สั่ง --rotate
   if (!exists) await c.query(`create role ${name} login password '${pass}' connection limit 8`);
-  else await c.query(`alter role ${name} login password '${pass}' connection limit 8`);
+  else if (rotate) await c.query(`alter role ${name} login password '${pass}' connection limit 8`);
+  else await c.query(`alter role ${name} login connection limit 8`);
   const db = (await c.query('select current_database() d')).rows[0].d;
   await c.query(`grant connect on database "${db}" to ${name}`);
   await c.query(`grant usage on schema public to ${name}`);
   await c.query(`revoke all on all tables in schema public from ${name}`);
   await c.query(`grant select on precedents_full to ${name}`);
+  await c.query(`grant select on precedent_facets to ${name}`).catch(() => {}); // ถ้ายังไม่มีตาราง จะ grant ตอน --refresh-facets
   await c.query(`alter role ${name} set statement_timeout = '8s'`);
   await c.query(`alter role ${name} set default_transaction_read_only = on`);
+  if (!rotate) { log(`role ${name} มีอยู่แล้ว — ปรับสิทธิ์ให้ครบ ไม่เปลี่ยนรหัสผ่าน (ใช้ --rotate ถ้าต้องการรหัสใหม่)`); return; }
   const u = new URL(process.env.AIVEN_DATABASE_URL); u.username = name; u.password = pass;
   const f = path.join(DIR, 'aiven-reader.url');
   fs.writeFileSync(f, u.toString() + '\n', { mode: 0o600 });
-  log(`${exists ? 'รีเซ็ต' : 'สร้าง'} role ${name} (SELECT เฉพาะ precedents_full, statement_timeout 8s, อ่านอย่างเดียว) — URL เก็บที่ ${f} (นอก repo; ใช้เป็น AIVEN_READER_URL ของเว็บ)`);
+  log(`สร้าง/รีเซ็ตรหัสผ่าน role ${name} (SELECT เฉพาะตารางฎีกา, statement_timeout 8s, อ่านอย่างเดียว) — URL เก็บที่ ${f} (นอก repo; ใช้เป็น AIVEN_READER_URL ของเว็บ และ .env) — ถ้าตั้งไว้ใน Vercel แล้วต้องอัปเดตค่าใหม่`);
 }
 
+/** คำนวณตัวเลือกเรียกดูล่วงหน้า → ตาราง precedent_facets (API อ่านจากตารางนี้ทันที) — เขียนข้อมูลเล็กน้อย จึงปิดแฟล็ก read-only ของเซสชันนี้ได้ถ้า Aiven ล็อกฐานเพราะดิสก์ใกล้เต็ม */
+async function refreshFacets(c) {
+  await c.query('set default_transaction_read_only = off');
+  await c.query(`create table if not exists precedent_facets (key text primary key, data jsonb not null, updated_at timestamptz not null default now())`);
+  const years = await c.query('select year, count(*)::int n from precedents_full group by 1 order by 1 desc');
+  const types = await c.query('select case_type, count(*)::int n from precedents_full where case_type is not null group by 1 order by 2 desc');
+  const laws = await c.query(`select l->>'abbr' as abbr, l->>'name' as name, count(distinct f.id)::int n from precedents_full f, jsonb_array_elements(f.laws) l where l->>'abbr' is not null group by 1, 2 order by 3 desc limit 24`);
+  const data = { years: years.rows, types: types.rows.map((r) => ({ type: r.case_type, n: r.n })), laws: laws.rows.map((r) => ({ abbr: r.abbr, name: r.name, n: r.n })), total: years.rows.reduce((a, r) => a + r.n, 0) };
+  await c.query(`insert into precedent_facets (key, data) values ('all', $1::jsonb) on conflict (key) do update set data = excluded.data, updated_at = now()`, [JSON.stringify(data)]);
+  if ((await c.query("select 1 from pg_roles where rolname='lawcraft_reader'")).rowCount) await c.query('grant select on precedent_facets to lawcraft_reader');
+  log(`อัปเดตตารางสรุปตัวเลือกเรียกดู: ${data.years.length} ปี · ${data.types.length} ประเภท · ${data.laws.length} กฎหมาย · รวม ${data.total} คดี`);
+}
 async function stats(c) {
   const t = (await c.query(`select count(*)::int n, count(full_text)::int with_full, min(year) y0, max(year) y1, pg_size_pretty(pg_total_relation_size('precedents_full')) tbl, pg_size_pretty(pg_database_size(current_database())) db from precedents_full`)).rows[0];
   log('ในฐาน:', JSON.stringify(t));
@@ -136,6 +153,7 @@ async function loadYearFile(c, file, year) {
     if (args['schema-only']) { await runSchema(c, 'base'); await stats(c).catch(() => {}); return; }
     if (args['build-indexes']) { await runSchema(c, 'indexes'); await stats(c); return; }
     if (args['create-reader']) { await createReader(c); return; }
+    if (args['refresh-facets']) { await refreshFacets(c); return; }
     if (args.stats) { await stats(c); return; }
     if (c) await runSchema(c, 'base'); // ไม่มีก็สร้าง (if not exists)
     const files = fs.readdirSync(DIR).filter((f) => /^\d{4}\.jsonl$/.test(f)).sort().reverse(); // ใหม่ → เก่า
@@ -150,6 +168,7 @@ async function loadYearFile(c, file, year) {
       if (tot.read >= LIMIT) break;
     }
     log('เสร็จ:', JSON.stringify(tot));
+    if (c && tot.inserted > 0) await refreshFacets(c).catch((e) => log('อัปเดตตารางสรุปไม่สำเร็จ (ฐานอาจถูกล็อก read-only):', e.message));
     if (c) await stats(c);
   } finally { await c?.end(); }
 })().catch((e) => { console.error('ผิดพลาด:', e.message); process.exit(1); });

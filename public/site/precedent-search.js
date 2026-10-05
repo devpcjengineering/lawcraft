@@ -6,8 +6,8 @@ if (root) init();
 function init() {
   const form = root.querySelector('.px-form');
   const out = root.querySelector('#pxResults');
-  const yearSel = form.elements.year, typeSel = form.elements.type, qIn = form.elements.q;
-  for (let y = 2569; y >= 2519; y--) yearSel.add(new Option(`พ.ศ. ${y}`, String(y)));
+  const yearSel = form.elements.year, typeSel = form.elements.type, lawSel = form.elements.law, qIn = form.elements.q;
+  for (let y = 2569; y >= 2519; y--) yearSel.add(new Option(`พ.ศ. ${y}`, String(y))); // ค่าเริ่มต้นก่อนโหลดตัวเลือกจริงจาก Aiven (ด้านล่าง)
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const num = (n) => Number(n).toLocaleString('th-TH');
@@ -21,8 +21,8 @@ function init() {
   const para = (s) => String(s ?? '').split(/\n{2,}/).map((x) => `<p>${esc(x).replace(/\n/g, '<br>')}</p>`).join('');
 
   let seq = 0;
-  const state = () => ({ q: qIn.value.trim(), year: yearSel.value, type: typeSel.value, page: 1 });
-  const qs = (s) => { const p = new URLSearchParams(); for (const k of ['q', 'year', 'type']) if (s[k]) p.set(k, s[k]); if (s.page > 1) p.set('page', String(s.page)); if (s.id) p.set('id', String(s.id)); return p; };
+  const state = () => ({ q: qIn.value.trim(), year: yearSel.value, type: typeSel.value, law: lawSel.value, page: 1 });
+  const qs = (s) => { const p = new URLSearchParams(); for (const k of ['q', 'year', 'type', 'law']) if (s[k]) p.set(k, s[k]); if (s.page > 1) p.set('page', String(s.page)); if (s.id) p.set('id', String(s.id)); return p; };
   const push = (s) => { const q = qs(s).toString(); history.replaceState(null, '', location.pathname + (q ? `?${q}` : '') + '#pxSearch'); };
 
   async function api(params) {
@@ -50,10 +50,10 @@ function init() {
       return;
     }
     const lastPage = d.hasMore;
-    const filtered = s.q || s.year || s.type;
+    const filtered = s.q || s.year || s.type || s.law;
     out.innerHTML = `<p class="px-count" role="status">${filtered ? `พบ ${d.totalCapped ? num(d.total) + '+' : num(d.total)} รายการ${s.q ? ` สำหรับ “${esc(s.q)}”` : ''}` : 'ฎีกาล่าสุดจากคลังคำพิพากษาศาลฎีกา (เรียงจากปีล่าสุด)'} · หน้า ${num(d.page)}</p>
-      <ol class="px-list">${d.items.map((x) => `<li class="px-item" data-id="${x.id}">
-        <div class="px-head"><b>ฎีกาที่ ${esc(x.caseNo)}/${esc(x.year)}</b>${x.caseType ? `<span class="tag ${x.caseType === 'แพ่ง' ? 'civil' : 'crim'}">${esc(x.caseType)}</span>` : ''}</div>
+      <ol class="px-list">${d.items.map((x) => `<li class="px-item" data-id="${x.id}" data-doc="${esc(x.docId)}">
+        <div class="px-head"><a class="px-link" href="${esc(x.path)}"><b>ฎีกาที่ ${esc(x.caseNo)}/${esc(x.year)}</b></a>${x.caseType ? `<span class="tag ${x.caseType === 'แพ่ง' ? 'civil' : 'crim'}">${esc(x.caseType)}</span>` : ''}</div>
         <p class="px-snip">${x.snippet ? hl(x.snippet, d.tokens) + (x.snippet.length >= 359 ? '…' : '') : '<span class="fine">ไม่มีคำพิพากษาย่อสั้นในแหล่งข้อมูล</span>'}</p>
         ${x.sections?.length ? `<p class="px-secs">${x.sections.map((t) => `<span class="tag">${esc(t)}</span>`).join(' ')}</p>` : ''}
         <button type="button" class="btn-pill sm ghost px-open" aria-expanded="false">อ่านรายละเอียด</button>
@@ -73,7 +73,7 @@ function init() {
     if (box.dataset.loaded) return;
     box.innerHTML = '<p class="px-load">กำลังโหลด…</p>';
     try {
-      const { item: it } = await api(new URLSearchParams({ id: li.dataset.id }));
+      const { item: it } = await api(new URLSearchParams({ doc: li.dataset.doc }));
       const tokens = JSON.parse(out.dataset.tokens || '[]');
       const fact = (k, v) => (v && (!Array.isArray(v) || v.length) ? `<dt>${k}</dt><dd>${Array.isArray(v) ? v.map(esc).join('<br>') : esc(v)}</dd>` : '');
       const laws = (it.laws || []).map((l) => `${l.name || l.abbr || ''}${l.sections?.length ? ` — ${l.sections.join(', ')}` : ''}`); // ข้อความล้วน — fact() เป็นผู้ escape
@@ -81,6 +81,7 @@ function init() {
         ${it.headnote ? `<h4>คำพิพากษาย่อ (ย่อสั้น)</h4><div class="px-text">${tokens.length ? `<p>${hl(it.headnote, tokens).replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>')}</p>` : para(it.headnote)}</div>` : ''}
         ${it.fullText ? `<details class="px-full"><summary>อ่านย่อยาว (${num(it.fullText.length)} ตัวอักษร)</summary><div class="px-text">${para(it.fullText)}</div></details>` : ''}
         <dl class="facts">${fact('คู่ความ', it.litigants)}${fact('กฎหมายที่อ้าง', laws)}${fact('องค์คณะ', it.judges)}${fact('ศาลชั้นต้น/อุทธรณ์', it.lowerCourts)}${fact('หมายเลขคดี', it.primaryCourtNos)}${fact('แผนก', it.departments)}</dl>
+        <p class="px-own"><a class="link-arrow" href="${esc(it.path)}">เปิดหน้าของฎีกานี้</a> <span class="fine">(ลิงก์ตรงสำหรับแชร์/อ้างอิง)</span></p>
         <p class="fine">แหล่งที่มา: <a href="https://deka.supremecourt.or.th/" rel="noopener noreferrer" target="_blank">ระบบสืบค้นคำพิพากษาศาลฎีกา</a> · ${esc(d_notice())}</p>`;
       box.dataset.loaded = '1';
       push({ ...state(), id: it.id });
@@ -89,8 +90,7 @@ function init() {
   const d_notice = () => out.querySelector('.px-note')?.textContent || 'ข้อมูลเป็นคำพิพากษาย่อที่ศาลเผยแพร่ ไม่ใช่ฉบับเต็ม';
 
   form.addEventListener('submit', (e) => { e.preventDefault(); search(state()); });
-  yearSel.addEventListener('change', () => search(state()));
-  typeSel.addEventListener('change', () => search(state()));
+  for (const el of [yearSel, typeSel, lawSel]) el.addEventListener('change', () => search(state()));
   root.querySelectorAll('.px-chip').forEach((b) => b.addEventListener('click', () => { qIn.value = b.dataset.q; search(state()); }));
   out.addEventListener('click', (e) => {
     const open = e.target.closest('.px-open');
@@ -101,7 +101,17 @@ function init() {
 
   // เริ่มต้นจาก URL
   const p = new URLSearchParams(location.search);
-  qIn.value = p.get('q') || ''; if (p.get('year')) yearSel.value = p.get('year'); if (p.get('type')) typeSel.value = p.get('type');
+  qIn.value = p.get('q') || '';
+  const want = { year: p.get('year'), type: p.get('type'), law: p.get('law') };
+  if (want.year) yearSel.value = want.year; if (want.type) typeSel.value = want.type;
+  // ตัวเลือกปี/ประเภท/กฎหมายพร้อมจำนวนจริงจาก Aiven (โหลดไม่ได้ก็ใช้ค่าเริ่มต้น ไม่กระทบการแสดงผล)
+  api(new URLSearchParams({ facets: '1' })).then((f) => {
+    const keepY = yearSel.value, keepT = typeSel.value, keepL = lawSel.value || want.law;
+    yearSel.length = 1; for (const r of f.years) yearSel.add(new Option(`พ.ศ. ${r.year} (${num(r.n)})`, String(r.year)));
+    typeSel.length = 1; for (const r of f.types) typeSel.add(new Option(`คดี${r.type} (${num(r.n)})`, r.type));
+    lawSel.length = 1; for (const r of f.laws) lawSel.add(new Option(`${r.name || r.abbr} (${r.abbr}) · ${num(r.n)}`, r.abbr));
+    yearSel.value = keepY; typeSel.value = keepT; if (keepL) lawSel.value = keepL;
+  }).catch(() => {});
   // เปิดหน้ามาแสดงฎีกาจากคลังทันที (ไม่มีเงื่อนไข = ล่าสุดก่อน) ไม่ต้องรอให้พิมพ์ค้น
   const s0 = state(); s0.page = Math.max(1, +p.get('page') || 1);
   search(s0).then(() => { const id = p.get('id'); const li = id && out.querySelector(`.px-item[data-id="${CSS.escape(id)}"]`); if (li) openDetail(li, li.querySelector('.px-open')); });

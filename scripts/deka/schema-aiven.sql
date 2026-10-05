@@ -36,6 +36,12 @@ create table if not exists precedents_full (
 );
 
 create index if not exists precedents_full_year_case_idx on precedents_full (year desc, case_no);
+-- ตารางสรุปตัวเลือกเรียกดู (ปี/ประเภทคดี/กฎหมายที่อ้างบ่อย + จำนวน) คำนวณล่วงหน้าโดย load-aiven.mjs (--refresh-facets) เพราะนับสดช้า (กวาดทั้งตาราง)
+create table if not exists precedent_facets (
+  key        text primary key,            -- 'all'
+  data       jsonb       not null,        -- { years:[{year,n}], types:[{type,n}], laws:[{abbr,name,n}], total }
+  updated_at timestamptz not null default now()
+);
 
 -- @@INDEXES
 create index if not exists precedents_full_fts_idx      on precedents_full using gin (fts);

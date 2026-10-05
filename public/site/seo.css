@@ -28,6 +28,9 @@
 .note.warn { background: color-mix(in srgb, var(--crim) 9%, transparent); color: var(--ink); }
 .note p:last-child { margin-bottom: 0; }
 
+.tag.ok { color: var(--ok, #248a3d); background: color-mix(in srgb, var(--ok, #248a3d) 13%, transparent); white-space: nowrap; }
+.note.src p { line-height: 1.8; }
+
 /* ตารางข้อเท็จจริง (dl) */
 .facts { display: grid; grid-template-columns: minmax(7.5em, 11em) 1fr; gap: 0; margin: 0 0 8px; border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
 .facts dt, .facts dd { margin: 0; padding: 9px 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }

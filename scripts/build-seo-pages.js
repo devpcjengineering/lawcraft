@@ -2,7 +2,7 @@
 //   /jurisdiction/ + /jurisdiction/<จังหวัด>/   เขตอำนาจศาล
 //   /laws/ + /laws/<กฎหมาย>/ + /laws/<id ข้อหา>/   ข้อกฎหมาย (มาตรา โทษ อายุความ)
 //   /procedure/ + /procedure/<id>/              ขั้นตอนฟ้องคดี / วิธีพิจารณาความ
-//   /precedents/ + /precedents/<เลขฎีกา>/        ฎีกา (เฉพาะข้อมูลที่เก็บไว้เอง)
+//   /precedents/                                  ฎีกา — ฮับ+ค้นหา (ข้อมูลทั้งหมดอยู่ที่ Aiven ผ่าน api/precedents.js); หน้าเฉพาะต่อฎีกาเติมตอนเปิดโดย api/precedent.js จากแม่แบบ dist/_px/precedent.html
 // ข้อมูลมาจาก data/*.json ล้วน ๆ (ไม่ดึงข้อมูลจากเว็บ ไม่แต่งตัวบท) · เรียกจาก scripts/build-static.js ก่อนรวม CSS/ใส่เวอร์ชันไฟล์
 // ผลลัพธ์: dist/seo-urls.json (ให้ api/sitemap.js นำไปใส่ sitemap) + แทนที่ <!--SEO-HEAD--> / <!--SEO-DIRECTORY--> ใน dist/index.html
 import fs from 'node:fs';
@@ -13,7 +13,7 @@ import { JURISDICTION_RULES as RULES } from '../public/site/jurisdiction-rules.j
 
 const BRAND = ' | Law Craft';
 const MIN_MAIN_TEXT = 300; // หน้าที่ข้อความหลักสั้นกว่านี้ถือว่าบาง → ไม่เผยแพร่
-const MIN_DATA = { item: 120, proc: 90, prec: 120 }; // ข้อความจากข้อมูลจริงขั้นต่ำ (ไม่นับข้อความแม่แบบ)
+const MIN_DATA = { item: 120, proc: 90 }; // ข้อความจากข้อมูลจริงขั้นต่ำ (ไม่นับข้อความแม่แบบ)
 const DISCLAIMER = 'ข้อมูลเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมาย และไม่รับประกันผลของคดี กฎหมายอาจถูกแก้ไขภายหลัง ควรตรวจกับตัวบทฉบับปัจจุบันและปรึกษาทนายความก่อนดำเนินคดี';
 
 // ชื่อจังหวัด → slug ภาษาอังกฤษ (ราชบัณฑิตยสภา/ชื่อที่ใช้ทั่วไป) ใช้ใน URL แทนอักษรไทยที่ถูก percent-encode
@@ -95,17 +95,7 @@ export async function buildSeoPages({ root, dist, site }) {
   const procByLaw = new Map();
   for (const s of procSections) { if (!procByLaw.has(s.law)) procByLaw.set(s.law, []); procByLaw.get(s.law).push(s); }
 
-  // ฎีกา: slug จากเลขคดี (2565/2565 → 2565-2565) ซ้ำให้ต่อท้ายด้วย id ข้อหา
-  const caseCount = new Map();
-  for (const p of D.precedents) caseCount.set(p.caseNo, (caseCount.get(p.caseNo) || 0) + 1);
-  const precs = D.precedents.filter((p) => p.caseNo && p.holding && p.topic).map((p) => {
-    const no = one(p.caseNo).replace(/^ฎีกาที่\s*/, '');
-    const base = slugOf(no.replace(/\//g, '-')) || 'x';
-    const slug = uniq(caseCount.get(p.caseNo) > 1 ? `${base}-${slugOf(p.itemId || '')}` : base, 'prec');
-    return { ...p, slug, no };
-  });
-  const precByItem = new Map(), precBySec = new Map();
-  for (const p of precs) { const m = p.refKind === 'section' ? precBySec : precByItem; if (!m.has(p.itemId)) m.set(p.itemId, []); m.get(p.itemId).push(p); }
+  // ฎีกา: ไม่ใช้ข้อมูลที่เก็บใน Supabase/data อีกแล้ว — ฎีกาทั้งหมดอยู่ที่ฐาน Aiven (ค้นหา+หน้าเฉพาะต่อฎีกา: api/precedents.js, api/precedent.js)
 
   // บทความ ↔ ข้อหา
   const artsByItem = new Map();
@@ -211,7 +201,6 @@ export async function buildSeoPages({ root, dist, site }) {
         const to = resolveRef(ref);
         rel.push(`<li>${to && has(to) ? `<a href="${to}">${esc(ref)}</a>` : esc(ref)}${why ? ` — ${esc(why)}` : ''}</li>`);
       }
-      const precL = (precByItem.get(it.id) || []).filter((p) => has(`/precedents/${p.slug}/`));
       const artL = artsByItem.get(it.id) || [];
       const lawArr = itemsByLaw.get(it.lawId) || [];
       const pos = lawArr.indexOf(it);
@@ -258,7 +247,6 @@ export async function buildSeoPages({ root, dist, site }) {
     ${civilExtra}
     ${it.caution ? `<h2>ข้อควรระวัง</h2><div class="note warn"><p>${esc(it.caution)}</p></div>` : ''}
     ${rel.length ? `<h2>มาตราที่เกี่ยวข้อง</h2><ul>${rel.join('')}</ul>` : ''}
-    ${precL.length ? `<h2>ฎีกาที่เกี่ยวข้อง</h2><ul>${precL.map((p) => `<li><a href="/precedents/${p.slug}/">${esc(p.caseNo)}</a> — ${esc(trunc(p.topic, 140))}</li>`).join('')}</ul>` : ''}
     ${artL.length ? `<h2>บทความที่เกี่ยวข้อง</h2><ul>${artL.map((a) => `<li><a href="/articles/?a=${esc(a.slug)}">${esc(a.title)}</a></li>`).join('')}</ul>` : ''}
     <h2>แหล่งอ้างอิงและสถานะการตรวจ</h2>
     <p class="sp-src">${badgeV(it.verified)}${it.source ? ` · แหล่งอ้างอิง: ${srcHtml(it.source)}` : ''}</p>
@@ -347,7 +335,6 @@ ${g.list.map((it) => `<tr><th scope="row" class="num">${esc(it.section)}</th><td
       const arr = procByLaw.get(s.law) || [];
       const pos = arr.indexOf(s), prev = arr[pos - 1], next = arr[pos + 1];
       const itemTwin = itemById.get(s.id) && itemById.get(s.id).section === s.section ? itemById.get(s.id) : null;
-      const precL = (precBySec.get(s.id) || []).filter((p) => has(`/precedents/${p.slug}/`));
       const title = fit(60, `มาตรา ${s.section} ${short} ${s.title}${BRAND}`, `มาตรา ${s.section} ${short} ${s.title}`, `ม.${s.section} ${short} ${trunc(s.title, 40)}`);
       const description = trunc(`มาตรา ${s.section} ${short} ${s.title}: ${one(s.summary)}`, 155);
       const used = (s.usedIn || []).map((d) => DOC_LABEL[d]).filter(Boolean);
@@ -360,7 +347,6 @@ ${g.list.map((it) => `<tr><th scope="row" class="num">${esc(it.section)}</th><td
     ${s.caution ? `<h2>ข้อควรระวัง</h2><div class="note warn"><p>${esc(s.caution)}</p></div>` : ''}
     ${used.length ? `<h2>มักใช้อ้างในเอกสาร</h2><ul>${used.map((u) => `<li>${esc(u)}</li>`).join('')}</ul>` : ''}
     ${itemTwin && has(itemPath(itemTwin)) ? `<p>ดูรายละเอียดฐานความผิด/มูลคดีของมาตรานี้: <a href="${itemPath(itemTwin)}">${esc(itemTwin.name)} มาตรา ${esc(itemTwin.section)}</a></p>` : ''}
-    ${precL.length ? `<h2>ฎีกาที่เกี่ยวข้อง</h2><ul>${precL.map((p) => `<li><a href="/precedents/${p.slug}/">${esc(p.caseNo)}</a> — ${esc(trunc(p.topic, 140))}</li>`).join('')}</ul>` : ''}
     <h2>แหล่งอ้างอิงและสถานะการตรวจ</h2>
     <p class="sp-src">${badgeV(s.verified)}${s.source ? ` · แหล่งอ้างอิง: ${srcHtml(s.source)}` : ''}</p>
     ${prev || next ? `<nav class="sp-prevnext" aria-label="มาตราก่อนหน้าและถัดไป">${prev && has(procPath(prev)) ? `<a href="${procPath(prev)}"><small>‹ ก่อนหน้า</small>มาตรา ${esc(prev.section)} ${esc(trunc(prev.title, 50))}</a>` : ''}${next && has(procPath(next)) ? `<a href="${procPath(next)}"><small>ถัดไป ›</small>มาตรา ${esc(next.section)} ${esc(trunc(next.title, 50))}</a>` : ''}</nav>` : ''}
@@ -395,75 +381,36 @@ ${fees.items.map((f) => `<tr><th scope="row">${esc(f.title)}${f.verified === fal
         crumbs: [['ขั้นตอนฟ้องคดี', '/procedure/']], nav: 'procedure', main, lastmod: DATA_DATE, priority: '0.9' });
     }
 
-    // ---------------- ฎีกา ----------------
-    const precPath = (p) => `/precedents/${p.slug}/`;
-    for (const p of precs) {
-      const it = p.refKind === 'section' ? null : itemById.get(p.itemId);
-      const sec = p.refKind === 'section' || !it ? procById.get(p.itemId) : null;
-      const same = (p.refKind === 'section' ? precBySec : precByItem).get(p.itemId) || [];
-      const others = same.filter((x) => x !== p && has(precPath(x))).slice(0, 6);
-      const title = fit(60, `${p.caseNo} ${trunc(p.topic, 36)}`, `${p.caseNo} ${trunc(p.topic, 30)}`, p.caseNo);
-      const description = trunc(`${p.caseNo}: ${p.topic}. ${one(p.holding)}`, 155);
-      const linkTxt = it ? `ความผิด/มูลคดี: ${A(itemPath(it), `${esc(it.name)} มาตรา ${esc(it.section)} ${esc(lawShort(it.lawId))}`)}` : sec ? `วิธีพิจารณา: ${A(procPath(sec), `${esc(sec.title)} มาตรา ${esc(sec.section)}`)}` : '';
-      const main = `
-    <p class="sp-eyebrow"><span class="tag">ฎีกา</span> ${p.year ? `<span>ปี พ.ศ. ${esc(p.year)}</span>` : ''} ${badgeV(p.verified)}</p>
-    <h1>${esc(p.caseNo)}: ${esc(p.topic)}</h1>
-    <p class="sp-lead">สรุปประเด็นและแนวคำวินิจฉัยของ${esc(p.caseNo)} ที่เว็บไซต์เก็บไว้ประกอบการร่างคำฟ้อง</p>
-    <div class="note warn"><p><b>เป็นสรุปโดยเว็บไซต์ ไม่ใช่ข้อความคำพิพากษาฉบับเต็ม</b> — โปรดตรวจเลขฎีกา ข้อเท็จจริง และถ้อยคำกับต้นฉบับจากแหล่งทางการของศาลฎีกาก่อนอ้างอิง${p.verified === false ? ' รายการนี้ยังไม่ผ่านการตรวจกับแหล่งอ้างอิง' : ''}</p></div>
-    <h2>ประเด็น</h2><p>${esc(p.topic)}</p>
-    <h2>แนวคำวินิจฉัย (สรุป)</h2><p class="sp-hl">${esc(p.holding)}</p>
-    ${p.relevance ? `<h2>นำไปใช้ประกอบอย่างไร</h2><p>${esc(p.relevance)}</p>` : ''}
-    ${linkTxt ? `<h2>ข้อกฎหมายที่เกี่ยวข้อง</h2><p>${linkTxt}</p>` : ''}
-    <h2>แหล่งอ้างอิงและสถานะการตรวจ</h2>
-    <p class="sp-src">${badgeV(p.verified)}${p.source ? ` · แหล่งอ้างอิง: ${srcHtml(p.source)}` : ''}</p>
-    ${others.length ? `<h2>ฎีกาอื่นในข้อกฎหมายเดียวกัน</h2><ul>${others.map((x) => `<li><a href="${precPath(x)}">${esc(x.caseNo)}</a> — ${esc(trunc(x.topic, 120))}</li>`).join('')}</ul>` : ''}
-    <p class="sp-bar"><a class="link-arrow" href="/precedents/">ฎีกาทั้งหมด</a><a class="link-arrow" href="/laws/">ข้อกฎหมายและมาตรา</a></p>
-    ${noteEdu}`;
-      const crumbs = [['ฎีกา', '/precedents/'], [p.caseNo, precPath(p)]];
-      add({ type: 'prec', path: precPath(p), title, description, crumbs, nav: 'precedents', main, dataLen: [p.topic, p.holding, p.relevance].map((x) => one(x).length).reduce((a, b) => a + b, 0), lastmod: DATA_DATE, priority: '0.4' });
-    }
+    // ---------------- ฎีกา: ข้อมูลทั้งหมดมาจากฐาน Aiven ----------------
+    // ฮับนี้เป็นหน้าสถิต + ช่องค้นหา/รายการ (public/site/precedent-search.js เรียก /api/precedents); แต่ละฎีกามีหน้าของตัวเอง /precedents/<เลข>-<ปี>-<docId>/ (api/precedent.js, แม่แบบ dist/_px/precedent.html)
     {
-      const group = new Map();
-      for (const p of precs) {
-        const it = p.refKind === 'section' ? null : itemById.get(p.itemId);
-        const sec = !it ? procById.get(p.itemId) : null;
-        const kind = it ? (it.kind === 'civil' ? 'ฎีกาคดีแพ่ง' : 'ฎีกาคดีอาญา') : 'ฎีกาด้านวิธีพิจารณาความ';
-        const cat = it ? (it.category || lawClean(it.lawId)) : (sec ? cleanLaw((procLaws.find((l) => l.id === sec.law) || {}).name || sec.law) : 'อื่น ๆ');
-        if (!group.has(kind)) group.set(kind, new Map());
-        const gm = group.get(kind);
-        if (!gm.has(cat)) gm.set(cat, []);
-        gm.get(cat).push(p);
-      }
-      const order = ['ฎีกาคดีอาญา', 'ฎีกาคดีแพ่ง', 'ฎีกาด้านวิธีพิจารณาความ'];
       const main = `
     <p class="sp-eyebrow">ฎีกา</p>
-    <h1>ฎีกาที่เกี่ยวข้องกับข้อหาและมูลคดี</h1>
-    <p class="sp-lead">รวบรวมสรุปแนวคำวินิจฉัยของศาลฎีกา ${fmt(precs.length)} รายการที่เว็บไซต์เก็บไว้ประกอบการร่างคำฟ้อง จัดตามหมวดข้อหา — เป็นสรุปโดยเว็บไซต์ ควรตรวจกับต้นฉบับจากแหล่งทางการก่อนอ้างอิง</p>
+    <h1>ค้นหาและอ่านคำพิพากษาศาลฎีกา</h1>
+    <p class="sp-lead">คลังคำพิพากษาศาลฎีกาจากศูนย์เทคโนโลยีสารสนเทศและการสื่อสารในศาลฎีกา ค้นด้วยคำสำคัญ เลขฎีกา ปี ประเภทคดี หรือกฎหมายที่อ้าง และเปิดอ่านหน้าของแต่ละฎีกาได้ทุกคน ไม่ต้องสมัครสมาชิก</p>
     <p class="sp-bar"><a class="link-arrow" href="/laws/">ข้อกฎหมายและมาตรา</a><a class="link-arrow" href="/articles/">บทความ</a></p>
     <section class="px" id="pxSearch" aria-labelledby="pxT">
       <h2 id="pxT">ค้นหาฎีกาจากคลังคำพิพากษาศาลฎีกา</h2>
-      <p class="fine">ค้นจากคำพิพากษาย่อที่ศาลเผยแพร่ ด้วยคำสำคัญ เลขฎีกา (เช่น 10029/2560) หรือกรองตามปีและประเภทคดี — อ่านได้ทุกคน ไม่ต้องสมัครสมาชิก</p>
+      <p class="fine">ค้นจากคำพิพากษาย่อที่ศาลเผยแพร่ ด้วยคำสำคัญ เลขฎีกา (เช่น 10029/2560) หรือกรองตามปี ประเภทคดี และกฎหมายที่อ้าง</p>
       <form class="px-form" role="search" action="/precedents/" method="get">
         <input type="search" name="q" maxlength="200" autocomplete="off" placeholder="เช่น มรดก ที่ดิน · ฉ้อโกง · เช็ค · 10029/2560" aria-label="คำค้นฎีกา">
         <button class="btn-pill primary" type="submit">ค้นหา</button>
         <div class="px-filters">
           <select name="year" aria-label="ปี พ.ศ."><option value="">ทุกปี</option></select>
           <select name="type" aria-label="ประเภทคดี"><option value="">ทุกประเภท</option><option>อาญา</option><option>แพ่ง</option><option>แพ่งและอาญา</option></select>
+          <select name="law" aria-label="กฎหมายที่อ้าง"><option value="">ทุกกฎหมาย</option></select>
         </div>
       </form>
       <p class="px-chips">ลองค้น: ${['มรดก', 'ที่ดิน', 'ฉ้อโกง', 'ยักยอก', 'หมิ่นประมาท', 'เช็ค', 'ละเมิด', 'ค่าจ้าง'].map((w) => `<button type="button" class="px-chip" data-q="${w}">${w}</button>`).join('')}</p>
       <div id="pxResults" aria-live="polite"><noscript><p class="fine">การค้นหาฎีกาต้องเปิดใช้ JavaScript</p></noscript></div>
     </section>
     <script type="module" src="/site/precedent-search.js"></script>
-    <div class="note warn"><p><b>ข้อสงวน</b> — เนื้อหาในแต่ละหน้าเป็นเพียงสรุปประเด็น/แนวคำวินิจฉัยที่เราเรียบเรียงเอง ไม่ใช่ข้อความคำพิพากษาฉบับเต็ม ${fmt(precs.filter((p) => p.verified === false).length)} รายการยังไม่ผ่านการตรวจกับแหล่งอ้างอิง (ระบุป้ายไว้ในหน้าของแต่ละฎีกา)</p></div>
-    ${order.filter((k) => group.has(k)).map((k) => `<h2>${esc(k)}</h2>${[...group.get(k).entries()].sort((a, b) => b[1].length - a[1].length).map(([cat, arr]) => `<h3>${esc(cat)} <small class="fine">(${fmt(arr.length)})</small></h3>
-    <ul class="sp-links">${arr.sort((x, y) => (y.year || 0) - (x.year || 0)).map((p) => `<li>${A(precPath(p), `<b class="w">${esc(p.no)}</b><span>${esc(trunc(p.topic, 90))}</span>`)}</li>`).join('')}</ul>`).join('\n')}`).join('\n')}
+    <div class="note src"><p><b>ที่มาของข้อมูล</b> — ศูนย์เทคโนโลยีสารสนเทศและการสื่อสารในศาลฎีกา<br>ศาลฎีกา เลขที่ 6 ถนนราชดำเนินใน แขวงพระบรมมหาราชวัง เขตพระนคร กรุงเทพฯ 10200 <span class="tag ok">✓ ตรวจสอบแล้ว</span></p></div>
     ${noteEdu}`;
-      add({ type: 'hub', path: '/precedents/', title: fit(60, `ฎีกาที่เกี่ยวข้องกับข้อหาและมูลคดี${BRAND}`, 'ฎีกาที่เกี่ยวข้องกับข้อหาและมูลคดี'),
-        description: trunc(`สรุปแนวฎีกา ${precs.length} รายการ จัดตามข้อหาอาญา มูลคดีแพ่ง และวิธีพิจารณาความ พร้อมเลขฎีกา ประเด็น และแหล่งอ้างอิง (สรุปโดยเว็บไซต์ ควรตรวจกับต้นฉบับ)`, 155),
+      add({ type: 'hub', path: '/precedents/', title: fit(60, `ฎีกา ค้นหาและอ่านคำพิพากษาศาลฎีกา${BRAND}`, 'ฎีกา ค้นหาคำพิพากษาศาลฎีกา'),
+        description: trunc('ค้นหาและอ่านคำพิพากษาศาลฎีกา (คำพิพากษาย่อที่ศาลเผยแพร่) ด้วยคำสำคัญ เลขฎีกา ปี ประเภทคดี หรือกฎหมายที่อ้าง พร้อมหน้าของแต่ละฎีกา อ่านได้ทุกคน', 155),
         crumbs: [['ฎีกา', '/precedents/']], nav: 'precedents', main, lastmod: DATA_DATE, priority: '0.8' });
     }
-
     // ---------------- เขตอำนาจศาล ----------------
     const provPath = (p) => `/jurisdiction/${p.slug}/`;
     const asOf = thaiDate(D.jurisdiction?.asOf);
@@ -685,18 +632,24 @@ ${sampleRows.map(([p, r]) => `<tr><th scope="row">${A(provPath(p), esc(p.name))}
   urls.sort((a, b) => Number(b.priority) - Number(a.priority) || a.path.localeCompare(b.path));
   fs.writeFileSync(path.join(dist, 'seo-urls.json'), JSON.stringify(urls));
 
+  // ---------- แม่แบบหน้าเฉพาะต่อฎีกา (ไม่ใช่หน้าใน sitemap; api/precedent.js แทนค่า @@PX_*@@ ด้วยข้อมูลจาก Aiven ตอนมีคนเปิด) ----------
+  {
+    const shell = T.layout({ path: '/precedents/@@PX_SLUG@@/', title: '@@PX_TITLE@@', description: '@@PX_DESC@@', crumbs: [['ฎีกา', '/precedents/'], ['@@PX_CRUMB@@', '/precedents/@@PX_SLUG@@/']], nav: 'precedents', main: '@@PX_MAIN@@', lastmod: DATA_DATE });
+    fs.mkdirSync(path.join(dist, '_px'), { recursive: true });
+    fs.writeFileSync(path.join(dist, '_px', 'precedent.html'), shell);
+  }
   const count = (t) => pages.filter((p) => p.type === t).length;
-  const counts = { jurisdictionHub: 1, provinces: count('prov'), lawsHub: 1, laws: count('law'), items: count('item'), procedureHub: 1, procedure: count('proc'), precedentsHub: 1, precedents: count('prec'), total: pages.length, skipped: skipped.length };
+  const counts = { jurisdictionHub: 1, provinces: count('prov'), lawsHub: 1, laws: count('law'), items: count('item'), procedureHub: 1, procedure: count('proc'), precedentsHub: 1, total: pages.length, skipped: skipped.length };
 
   // ---------- หน้าแรก: แทนที่จุดแทรก (หัวเว็บ + สารบัญข้อมูลกฎหมายที่เป็น HTML จริง) ----------
-  injectHome({ dist, site, items, provs, lawIds, lawSlug, lawClean, lawShort, itemsByLaw, itemById, artFreq, procSections, precs, pathSet, counts, itemSlugPath: (it) => `/laws/${it.slug}/`, provPath: (p) => `/jurisdiction/${p.slug}/` });
+  injectHome({ dist, site, items, provs, lawIds, lawSlug, lawClean, lawShort, itemsByLaw, itemById, artFreq, procSections, pathSet, counts, itemSlugPath: (it) => `/laws/${it.slug}/`, provPath: (p) => `/jurisdiction/${p.slug}/` });
 
   const hubs = pages.filter((p) => p.type === 'hub').map((p) => ({ path: p.path, title: p.title, description: p.description }));
-  console.log(`หน้า SEO: ${counts.total} หน้า (จังหวัด ${counts.provinces} · กฎหมาย ${counts.laws} · ข้อหา/มาตรา ${counts.items} · มาตราวิธีพิจารณา ${counts.procedure} · ฎีกา ${counts.precedents} · hub 4) ข้าม ${skipped.length} หน้าที่เนื้อหาบาง · ${Date.now() - t0} ms`);
+  console.log(`หน้า SEO: ${counts.total} หน้า (จังหวัด ${counts.provinces} · กฎหมาย ${counts.laws} · ข้อหา/มาตรา ${counts.items} · มาตราวิธีพิจารณา ${counts.procedure} · hub 4) ข้าม ${skipped.length} หน้าที่เนื้อหาบาง · ${Date.now() - t0} ms`);
   return { counts, hubs, urls, skipped };
 }
 
-function injectHome({ dist, site, items, provs, lawIds, lawSlug, lawClean, lawShort, itemsByLaw, itemById, artFreq, procSections, precs, pathSet, counts, itemSlugPath, provPath }) {
+function injectHome({ dist, site, items, provs, lawIds, lawSlug, lawClean, lawShort, itemsByLaw, itemById, artFreq, procSections, pathSet, counts, itemSlugPath, provPath }) {
   const hp = path.join(dist, 'index.html');
   let html = fs.readFileSync(hp, 'utf8');
   const popular = [...artFreq.entries()].filter(([id]) => itemById.has(id) && pathSet.has(itemSlugPath(itemById.get(id)))).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([id]) => itemById.get(id));
@@ -713,7 +666,7 @@ function injectHome({ dist, site, items, provs, lawIds, lawSlug, lawClean, lawSh
         <a class="sp-card" href="/laws/"><b>ข้อกฎหมายและมาตรา</b><span>${fmt(items.length)} มาตรา จาก ${fmt(lawIds.length)} ฉบับ พร้อมระวางโทษ อายุความ</span><small>ดูทั้งหมด ›</small></a>
         <a class="sp-card" href="/jurisdiction/"><b>เขตอำนาจศาล</b><span>ศาลที่รับฟ้องรายอำเภอ/เขต ${fmt(provs.length)} จังหวัด พร้อมเบอร์โทรศัพท์ศาล</span><small>ดูทั้งหมด ›</small></a>
         <a class="sp-card" href="/procedure/"><b>ขั้นตอนฟ้องคดี</b><span>จากยื่นฟ้องถึงคำพิพากษา และ ${fmt(procSections.length)} มาตราวิธีพิจารณาที่ใช้บ่อย</span><small>ดูทั้งหมด ›</small></a>
-        <a class="sp-card" href="/precedents/"><b>ฎีกา</b><span>สรุปแนวฎีกา ${fmt(precs.length)} รายการ จัดตามข้อหาและมูลคดี</span><small>ดูทั้งหมด ›</small></a>
+        <a class="sp-card" href="/precedents/"><b>ฎีกา</b><span>ค้นหาและอ่านคำพิพากษาศาลฎีกา พร้อมหน้าของแต่ละฎีกา</span><small>ดูทั้งหมด ›</small></a>
       </div>
       ${popular.length ? `<h3>ข้อหาที่ค้นหาบ่อย</h3>
       <ul class="sp-links">${popular.map((it) => `<li><a href="${itemSlugPath(it)}"><b>ม.${esc(it.section)}</b><span>${esc(trunc(it.name, 60))} <small class="fine">${esc(lawShort(it.lawId))}</small></span></a></li>`).join('')}</ul>` : ''}
