@@ -50,7 +50,8 @@ function init() {
       return;
     }
     const lastPage = d.hasMore;
-    out.innerHTML = `<p class="px-count" role="status">พบ ${d.totalCapped ? num(d.total) + '+' : num(d.total)} รายการ${s.q ? ` สำหรับ “${esc(s.q)}”` : ''} · หน้า ${num(d.page)}</p>
+    const filtered = s.q || s.year || s.type;
+    out.innerHTML = `<p class="px-count" role="status">${filtered ? `พบ ${d.totalCapped ? num(d.total) + '+' : num(d.total)} รายการ${s.q ? ` สำหรับ “${esc(s.q)}”` : ''}` : 'ฎีกาล่าสุดจากคลังคำพิพากษาศาลฎีกา (เรียงจากปีล่าสุด)'} · หน้า ${num(d.page)}</p>
       <ol class="px-list">${d.items.map((x) => `<li class="px-item" data-id="${x.id}">
         <div class="px-head"><b>ฎีกาที่ ${esc(x.caseNo)}/${esc(x.year)}</b>${x.caseType ? `<span class="tag ${x.caseType === 'แพ่ง' ? 'civil' : 'crim'}">${esc(x.caseType)}</span>` : ''}</div>
         <p class="px-snip">${x.snippet ? hl(x.snippet, d.tokens) + (x.snippet.length >= 359 ? '…' : '') : '<span class="fine">ไม่มีคำพิพากษาย่อสั้นในแหล่งข้อมูล</span>'}</p>
@@ -101,8 +102,7 @@ function init() {
   // เริ่มต้นจาก URL
   const p = new URLSearchParams(location.search);
   qIn.value = p.get('q') || ''; if (p.get('year')) yearSel.value = p.get('year'); if (p.get('type')) typeSel.value = p.get('type');
-  if (qIn.value || yearSel.value || typeSel.value) {
-    const s = state(); s.page = Math.max(1, +p.get('page') || 1);
-    search(s).then(() => { const id = p.get('id'); const li = id && out.querySelector(`.px-item[data-id="${CSS.escape(id)}"]`); if (li) openDetail(li, li.querySelector('.px-open')); });
-  }
+  // เปิดหน้ามาแสดงฎีกาจากคลังทันที (ไม่มีเงื่อนไข = ล่าสุดก่อน) ไม่ต้องรอให้พิมพ์ค้น
+  const s0 = state(); s0.page = Math.max(1, +p.get('page') || 1);
+  search(s0).then(() => { const id = p.get('id'); const li = id && out.querySelector(`.px-item[data-id="${CSS.escape(id)}"]`); if (li) openDetail(li, li.querySelector('.px-open')); });
 }
