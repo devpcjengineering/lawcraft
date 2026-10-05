@@ -4,10 +4,6 @@
   "installCommand": "echo \"no dependencies needed for the static build\"",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "redirects": [
-    { "source": "/:path*", "has": [{ "type": "host", "value": "law-craft.co" }], "destination": "https://www.law-craft.co/:path*", "permanent": true },
-    { "source": "/:path*", "has": [{ "type": "host", "value": "lawcraft.pcjengineering.co.th" }], "destination": "https://www.law-craft.co/:path*", "permanent": true }
-  ],
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/workspace/:path*", "destination": "/workspace/index.html" },

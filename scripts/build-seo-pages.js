@@ -692,13 +692,12 @@ function injectHome({ dist, site, items, provs, lawIds, lawSlug, lawClean, lawSh
       <header class="sec-head">
         <p class="eyebrow">สารบัญข้อมูลกฎหมาย</p>
         <h2 id="dirTitle">ข้อมูลกฎหมายทั้งหมด.<br>แยกเป็นหน้า ค้นง่าย.</h2>
-        <p class="lead">มาตรา ระวางโทษ อายุความ เขตอำนาจศาลรายจังหวัด ขั้นตอนฟ้องคดี และฎีกา — เปิดอ่านได้ทุกหน้า แชร์ลิงก์ได้</p>
+        <p class="lead">มาตรา ระวางโทษ อายุความ เขตอำนาจศาลรายจังหวัด และขั้นตอนฟ้องคดี — เปิดอ่านได้ทุกหน้า แชร์ลิงก์ได้</p>
       </header>
       <div class="sp-grid">
         <a class="sp-card" href="/laws/"><b>ข้อกฎหมายและมาตรา</b><span>${fmt(items.length)} มาตรา จาก ${fmt(lawIds.length)} ฉบับ พร้อมระวางโทษ อายุความ</span><small>ดูทั้งหมด ›</small></a>
         <a class="sp-card" href="/jurisdiction/"><b>เขตอำนาจศาล</b><span>ศาลที่รับฟ้องรายอำเภอ/เขต ${fmt(provs.length)} จังหวัด พร้อมเบอร์โทรศัพท์ศาล</span><small>ดูทั้งหมด ›</small></a>
         <a class="sp-card" href="/procedure/"><b>ขั้นตอนฟ้องคดี</b><span>จากยื่นฟ้องถึงคำพิพากษา และ ${fmt(procSections.length)} มาตราวิธีพิจารณาที่ใช้บ่อย</span><small>ดูทั้งหมด ›</small></a>
-        <a class="sp-card" href="/precedents/"><b>ฎีกา</b><span>สรุปแนวฎีกา ${fmt(precs.length)} รายการ จัดตามข้อหาและมูลคดี</span><small>ดูทั้งหมด ›</small></a>
       </div>
       ${popular.length ? `<h3>ข้อหาที่ค้นหาบ่อย</h3>
       <ul class="sp-links">${popular.map((it) => `<li><a href="${itemSlugPath(it)}"><b>ม.${esc(it.section)}</b><span>${esc(trunc(it.name, 60))} <small class="fine">${esc(lawShort(it.lawId))}</small></span></a></li>`).join('')}</ul>` : ''}
@@ -706,7 +705,7 @@ function injectHome({ dist, site, items, provs, lawIds, lawSlug, lawClean, lawSh
       <ul class="provgrid">${lawsWithPage.map((l) => `<li><a href="/laws/${lawSlug.get(l)}/"><span>${esc(lawShort(l))}</span><small>${fmt(itemsByLaw.get(l).length)} มาตรา</small></a></li>`).join('')}</ul>
       <h3>เขตอำนาจศาลตามจังหวัด</h3>
       <ul class="provgrid">${provs.map((p) => `<li><a href="${provPath(p)}"><span>${esc(p.name)}</span><small>${fmt(p.nDist)} ${p.W.d}</small></a></li>`).join('')}</ul>
-      <p class="actions" style="justify-content:flex-start"><a class="link-arrow" href="/jurisdiction/">เขตอำนาจศาลทุกจังหวัด</a><a class="link-arrow" href="/laws/">ข้อกฎหมายทั้งหมด</a><a class="link-arrow" href="/procedure/">ขั้นตอนฟ้องคดี</a><a class="link-arrow" href="/precedents/">ฎีกาทั้งหมด</a></p>
+      <p class="actions" style="justify-content:flex-start"><a class="link-arrow" href="/jurisdiction/">เขตอำนาจศาลทุกจังหวัด</a><a class="link-arrow" href="/laws/">ข้อกฎหมายทั้งหมด</a><a class="link-arrow" href="/procedure/">ขั้นตอนฟ้องคดี</a></p>
     </div>
   </section>`;
   const title = 'Law Craft · สำนักงานกฎหมาย ลอว์คราฟต์ Law Craft Legal Consultants';

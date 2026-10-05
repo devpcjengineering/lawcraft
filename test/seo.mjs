@@ -80,7 +80,8 @@ for (const p of seoDisk) {
 {
   const h = read('index.html');
   if (!/id="directory"/.test(h)) bad('หน้าแรกไม่มีสารบัญข้อมูลกฎหมาย');
-  for (const l of ['/laws/', '/jurisdiction/', '/procedure/', '/precedents/']) if (!h.includes(`href="${l}"`)) bad(`หน้าแรกไม่ลิงก์ ${l}`);
+  for (const l of ['/laws/', '/jurisdiction/', '/procedure/']) if (!h.includes(`href="${l}"`)) bad(`หน้าแรกไม่ลิงก์ ${l}`);
+  if (h.includes('href="/precedents/"')) bad('หน้าแรกต้องไม่ลิงก์ /precedents/ (ถอด “ฎีกา” ออกจากหน้าแรกตามสั่ง)');
   if (/<!--SEO-(HEAD|DIRECTORY)-->/.test(h)) bad('หน้าแรกยังมีจุดแทรกที่ไม่ได้แทนที่');
   for (const m of h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) { try { JSON.parse(m[1]); } catch { bad('หน้าแรก: JSON-LD parse ไม่ได้'); } }
   if (!h.includes(`<link rel="canonical" href="${SITE}/">`)) bad('หน้าแรกไม่มี canonical');
@@ -89,7 +90,8 @@ for (const p of seoDisk) {
 for (const f of ['index.html', 'articles/index.html', 'contact/index.html', 'privacy/index.html']) {
   const h = read(f);
   const nav = (h.match(/<div class="nav-links"[\s\S]*?<\/div>/) || [''])[0];
-  for (const l of ['/laws/', '/jurisdiction/', '/procedure/', '/precedents/']) if (!nav.includes(`href="${l}"`)) bad(`${f}: เมนูไม่มี ${l}`);
+  for (const l of ['/laws/', '/jurisdiction/', '/procedure/']) if (!nav.includes(`href="${l}"`)) bad(`${f}: เมนูไม่มี ${l}`);
+  if (nav.includes('href="/precedents/"')) bad(`${f}: เมนูต้องไม่มี /precedents/`);
   linkSources.push([`/${f.replace(/index\.html$/, '')}`, h]);
 }
 
