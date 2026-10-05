@@ -115,7 +115,23 @@ export function witnessAddrText(w) {
   return witnessHasAddr(w) ? addressText(a, isBkk(a.province)) : String(w?.address || '').trim();
 }
 /** ระบบจะออกหมายเรียกให้พยานรายนี้หรือไม่ (ปิดรายตัวได้ หรือหมายเหตุขึ้นต้น “นำ” = โจทก์นำมาเอง) */
-export const witnessWantsSummons = (w) => !!w && !w.self && w.summons !== false && !/^\s*นำ/.test(String(w.note || ''));
+/**
+ * คำสั่งในช่อง “หมายเหตุ” ของพยาน (หมายเหตุเป็นหลัก): ขึ้นต้น “นำ” = โจทก์นำพยานมาเอง (ไม่ออกหมาย) · ขึ้นต้น “หมายเรียก” = ขอให้ศาลออกหมาย · อย่างอื่น/ว่าง = ''
+ */
+export const witnessNoteKeyword = (w) => { const n = String(w?.note ?? '').trim(); return /^นำ/.test(n) ? 'นำ' : /^หมายเรียก/.test(n) ? 'หมายเรียก' : ''; };
+/** ระบบจะออกหมายเรียกพยานรายนี้หรือไม่ — อ้างอิงหมายเหตุเป็นหลัก (นำ/หมายเรียก) ; หมายเหตุว่างหรือเป็นข้อความอื่น (เช่น เด็กอายุไม่เกิน 18 ปี) = ตามสวิตช์ “ขอให้ศาลออกหมายเรียก” (summons) ; โจทก์อ้างตนเอง (self) ไม่ออก */
+export const witnessWantsSummons = (w) => {
+  if (!w || w.self) return false;
+  const k = witnessNoteKeyword(w);
+  return k ? k === 'หมายเรียก' : w.summons !== false;
+};
+/** ทำให้หมายเหตุกับสวิตช์ตรงกัน (เรียกหลังผู้ใช้แก้ช่องใดช่องหนึ่ง): แก้หมายเหตุเป็น นำ/หมายเรียก → ตั้งสวิตช์ตาม ; สลับสวิตช์ขณะหมายเหตุขึ้นต้น นำ/หมายเรียก → เปลี่ยนคำนำในหมายเหตุให้ตรง */
+export function syncWitnessSummons(w, changed) {
+  const k = witnessNoteKeyword(w);
+  if (changed === 'note') { if (k) w.summons = k === 'หมายเรียก'; }
+  else if (changed === 'summons' && k) w.note = String(w.note).trim().replace(/^(นำ|หมายเรียก)/, w.summons === false ? 'นำ' : 'หมายเรียก');
+  return w;
+}
 
 /**
  * บัญชีพยานตามลำดับที่ปรากฏในแบบ ๑๕: โจทก์อ้างตนเอง (ถ้าเปิด) ก่อน แล้วตามด้วยพยานที่เพิ่มเอง (เฉพาะที่ระบุชื่อ/รายการแล้ว)

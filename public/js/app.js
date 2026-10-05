@@ -2,7 +2,7 @@
 import { S, esc, actions, hooks, setPath } from './store.js';
 import { NAV, TABS, postFilingState } from './tabs.js';
 import { provinceList, refreshGeo, idStateHtml } from './ui.js';
-import { newCase, indexLaw, caseTitle, caseLabel, validateCase, newParty, uid, applyServiceAuto, isFiled, filedBadge, newWitness, splitCaseNo, migrateCaseYears } from '/shared/model.js';
+import { syncWitnessSummons, newCase, indexLaw, caseTitle, caseLabel, validateCase, newParty, uid, applyServiceAuto, isFiled, filedBadge, newWitness, splitCaseNo, migrateCaseYears } from '/shared/model.js';
 import { buildDocuments, isPostFilingDoc } from '/shared/docs.js';
 import { resolveLayout, layoutCssVars } from '/shared/layout.js';
 import { docsHtml, docHtml } from './render-html.js';
@@ -718,6 +718,15 @@ function handleBind(el) {
     v = masked;
   }
   setPath(S.c, path, v);
+  // พยาน: หมายเหตุกับสวิตช์ “ขอให้ศาลออกหมายเรียก” ตรงกันเสมอ (หมายเหตุเป็นหลัก: นำ = ไม่ออกหมาย · หมายเรียก = ออกหมาย)
+  const wm = /^witnesses\.(\d+)\.(note|summons)$/.exec(path || '');
+  if (wm && S.c.witnesses[+wm[1]]) {
+    const w = S.c.witnesses[+wm[1]];
+    syncWitnessSummons(w, wm[2]);
+    const sw = document.querySelector(`[data-bind="witnesses.${wm[1]}.summons"]`);
+    if (sw && sw.type === 'checkbox') sw.checked = w.summons !== false;
+    if (wm[2] === 'summons') { const nt = document.querySelector(`[data-bind="witnesses.${wm[1]}.note"]`); if (nt) nt.value = w.note || ''; }
+  }
   if (el.dataset.idcheck) {
     const chk = el.closest('.f')?.querySelector('.idchk');
     if (chk) chk.innerHTML = idStateHtml(v);
