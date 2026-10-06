@@ -596,13 +596,11 @@ const WIT_KIND = WITNESS_KINDS;
 /** พยานที่ระบบจะออกหมายเรียกให้ (เปิดสวิตช์รวม + ระบุชื่อแล้ว + ไม่ได้ปิดรายตัว/ไม่ใช่ “นำ” เอง) */
 const witOn = (x) => S.c.docs.witnessSummons !== false && !!(x.name || '').trim() && witnessWantsSummons(x);
 const witLacksAddr = (x) => witOn(x) && (witnessKind(x) === 'person' ? !witnessAddrText(x) : !(x.holder || '').trim() && !witnessAddrText(x));
-/** ลำดับในบัญชีพยาน (รวมเดิม+เพิ่มเติม) ของพยานแต่ละรายการ — ใช้โชว์เลขอันดับที่จะพิมพ์ */
-const witNo = (x) => witnessList(S.c).find((r) => r.w === x)?.no;
 function witSummary(x) {
-  const k = witnessKind(x), named = (x.name || '').trim(), no = named ? witNo(x) : null, pos = witnessWho(x).pos;
-  const meta = (x.note || '').trim() || (witOn(x) ? 'ออกหมายเรียก' : '');
+  // แถวสรุปแสดงแค่ชื่อพยาน (อันดับ/หมายเหตุ/ตำแหน่งดูได้เมื่อกางแถว)
+  const k = witnessKind(x), named = (x.name || '').trim();
   return `<span class="pill ${k === 'person' ? 'info' : ''}">${WIT_KIND[k]}</span>${x.extra ? badge('เพิ่มเติม', 'warn') : ''}
-    <span class="sum-name">${named ? esc(x.name) : '<em>ยังไม่ระบุ</em>'}</span>${pos ? `<span class="sum-meta sum-pos">${esc(pos)}</span>` : ''}${no ? `<span class="sum-meta">อันดับ ${no}${meta ? ' · ' + esc(meta) : ''}</span>` : (meta ? `<span class="sum-meta">${esc(meta)}</span>` : '')}${witLacksAddr(x) ? badge('ยังไม่มีที่อยู่', 'warn') : ''}`;
+    <span class="sum-name">${named ? esc(x.name) : '<em>ยังไม่ระบุ</em>'}</span>${witLacksAddr(x) ? badge('ยังไม่มีที่อยู่', 'warn') : ''}`;
 }
 
 /** กล่อง “บัญชีพยาน (เพิ่มเติม) ครั้งที่ …” (ใช้แบบ ๑๕):พยานที่ติดธง “เพิ่มเติมภายหลังยื่นฟ้อง” + สวิตช์ + ดูตัวอย่าง */
