@@ -12,6 +12,7 @@ import { showBook, leaveBook } from './book.js';
 import { showSiteAdmin, leaveSiteAdmin } from './site-admin.js';
 import { showContentAdmin, contentGoto, contentOpen, leaveContentAdmin } from './content-admin.js';
 import { mergeLawEdits } from '/shared/content-merge.js';
+import { mergeProcedureEdits } from '/shared/procedure-merge.js';
 import { openViewer } from './viewer.js';
 import { morphInto } from './morph.js';
 import { paginateHtml, countSheets, documentFontsReady } from './paginate.js';
@@ -910,7 +911,7 @@ async function startApp() {
     if (!(await authUi.gate())) return; // ตั้ง S.role (admin | user) หรือแสดงหน้าเข้าสู่ระบบ/ตั้งแอดมินคนแรก
     try {
       const { data, geo, people } = await backend.loadAll();
-      S.data = await mergeLawEdits(data, backend.loadContent); S.idx = indexLaw(S.data); S.geo = geo; S.people = people; // รวมข้อกฎหมายที่แอดมินแก้ (content-laws)
+      S.data = await mergeProcedureEdits(await mergeLawEdits(data, backend.loadContent), backend.loadContent); S.idx = indexLaw(S.data); S.geo = geo; S.people = people; // รวมข้อกฎหมายที่แอดมินแก้ (content-laws)
       applyBrand();
       hooks.api = backend;
     } catch (e) {

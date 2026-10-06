@@ -21,6 +21,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const TABS = [
   () => import('./content-articles.js'),
   () => import('./content-laws.js'),
+  () => import('./content-procedure.js'),
   () => import('./content-pages.js'),
 ];
 let app, mods = [], cur = null, curIdx = 0, stateTxt = '', stateTone = '';
@@ -82,6 +83,6 @@ export async function showContentAdmin(root, { tab = 'articles', slug = '' } = {
 export async function leaveContentAdmin() {
   if (cur?.unmount) { try { await cur.unmount(); } catch { /* ข้าม */ } }
   cur = null; mods = [];
-  try { S.idx = indexLaw(S.data); } catch { /* ข้าม */ } // ข้อกฎหมายที่แก้ในแท็บมีผลกับตัวช่วยร่างทันที
+  try { S.idx = indexLaw(S.data); } catch { /* ข้าม */ } // ข้อกฎหมายที่แก้ในแท็บมีผลกับตัวช่วยร่างทันที (ขั้นตอน/มาตราวิธีพิจารณาที่แก้ก็ใช้ S.data.procedure ที่ถูกอัปเดตแล้ว)
   if (document.getElementById('ct-body')) { S.bookMode = false; S.c = null; }
 }

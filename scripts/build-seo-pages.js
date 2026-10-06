@@ -10,6 +10,7 @@ import path from 'node:path';
 import { loadData, loadArticles } from '../server/load-data.js';
 import { esc, one, plain, trunc, fit, loadChrome, makeTemplate } from './seo-template.js';
 import { JURISDICTION_RULES as RULES } from '../public/site/jurisdiction-rules.js';
+import { applyProcedureEdits } from '../shared/procedure-merge.js';
 
 const BRAND = ' | Law Craft';
 const MIN_MAIN_TEXT = 300; // หน้าที่ข้อความหลักสั้นกว่านี้ถือว่าบาง → ไม่เผยแพร่
@@ -55,6 +56,17 @@ const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } 
 export async function buildSeoPages({ root, dist, site }) {
   const t0 = Date.now();
   const D = loadData();
+  // ขั้นตอนฟ้องคดี/ค่าธรรมเนียม/มาตราวิธีพิจารณาที่แอดมินแก้จากหลังบ้าน (law_data key 'content-procedure', anon อ่านได้) — อ่านไม่ได้/SEO_OFFLINE=1 = ใช้ data/procedure.json ล้วน
+  if (process.env.SEO_OFFLINE !== '1') {
+    try {
+      const { url, anonKey } = (await import('../public/js/config.js')).default.supabase || {};
+      if (url && anonKey) {
+        const r = await fetch(`${url}/rest/v1/law_data?select=data&key=eq.content-procedure`, { headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` }, signal: AbortSignal.timeout(6000) });
+        const edits = r.ok ? (await r.json())[0]?.data : null;
+        if (edits && typeof edits === 'object') { D.procedure = applyProcedureEdits(D.procedure, edits); console.log('หน้า SEO: ใช้ข้อมูลขั้นตอน/วิธีพิจารณาที่แก้จากหลังบ้าน'); }
+      }
+    } catch (e) { console.warn('หน้า SEO: อ่านข้อมูลขั้นตอนที่แก้จากหลังบ้านไม่ได้ ใช้ข้อมูลต้นฉบับ —', e.message || e); }
+  }
   const articles = loadArticles();
   const chrome = await loadChrome(root);
   const T = makeTemplate({ site, chrome });

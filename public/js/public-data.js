@@ -4,6 +4,7 @@
 // ข้อกฎหมายที่แอดมินแก้/เพิ่ม/ลบ (content key 'laws') ผสานทับข้อมูลต้นฉบับที่นี่ (shared/content-merge.js) — อ่านไม่ได้ก็ใช้ข้อมูลต้นฉบับ
 import config from './config.js';
 import { applyLawEdits } from '/shared/content-merge.js';
+import { applyProcedureEdits } from '/shared/procedure-merge.js';
 
 const { url, anonKey } = config.supabase || {};
 const useSb = !!(url && anonKey);
@@ -23,18 +24,27 @@ async function loadLawEdits() {
   } catch { return {}; }
 }
 
+/** การแก้ไขขั้นตอนฟ้องคดี/วิธีพิจารณา (content key 'procedure') — ไม่เคยโยนข้อผิดพลาด */
+async function loadProcEdits() {
+  try {
+    if (!useSb) { const r = await fetch('/api/content/procedure'); return r.ok ? await r.json() : {}; }
+    return (await rows('key=eq.content-procedure'))['content-procedure'] || {};
+  } catch { return {}; }
+}
+const withProc = (d, pe) => ({ ...d, procedure: applyProcedureEdits(d.procedure, pe) });
+
 export async function loadLawData() {
   if (!useSb) {
-    const [r, edits] = await Promise.all([fetch('/api/data'), loadLawEdits()]);
+    const [r, edits, pe] = await Promise.all([fetch('/api/data'), loadLawEdits(), loadProcEdits()]);
     if (!r.ok) throw new Error(r.status);
-    return applyLawEdits(await r.json(), edits);
+    return withProc(applyLawEdits(await r.json(), edits), pe);
   }
-  const [m, edits] = await Promise.all([rows('and=(key.neq.geo,key.not.like.content-*)'), loadLawEdits()]);
-  return applyLawEdits({
+  const [m, edits, pe] = await Promise.all([rows('and=(key.neq.geo,key.not.like.content-*)'), loadLawEdits(), loadProcEdits()]);
+  return withProc(applyLawEdits({
     laws: m.laws || [], items: m.items || [], procedure: m.procedure || { laws: [], sections: [], snippets: [] },
     precedents: m.precedents || [], courts: m.courts || { groups: [] }, templates: m.templates || {},
     jurisdiction: m.jurisdiction || null, formText: m.formText || {}, layout: m.layout || { all: {}, forms: {} },
-  }, edits);
+  }, edits), pe);
 }
 
 export async function loadGeo() {

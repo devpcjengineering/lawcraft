@@ -16,8 +16,8 @@ export const TAB_NAMES = {
 };
 export const CASE_TABS = Object.keys(TAB_NAMES);
 const TAB_ALIAS = { charges: 'complaint', facts: 'complaint' };
-export const CONTENT_TABS = ['articles', 'laws', 'pages'];
-const CONTENT_NAMES = { articles: 'บทความ', laws: 'ข้อกฎหมาย', pages: 'ข้อความหน้าเว็บ' };
+export const CONTENT_TABS = ['articles', 'laws', 'procedure', 'pages'];
+const CONTENT_NAMES = { articles: 'บทความ', laws: 'ข้อกฎหมาย', procedure: 'ขั้นตอนฟ้องคดี', pages: 'ข้อความหน้าเว็บ' };
 const SLUG = /^[a-z0-9][a-z0-9-]{1,60}$/;
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
