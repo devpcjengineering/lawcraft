@@ -89,11 +89,12 @@ function tabCaseDefendant() {
       ${caseNoPair('คดีหมายเลขแดงที่', 'Red', 'เช่น พ.456')}`)}
     ${group('ประเภทคดี', `<div class="f s12">${seg('type', [['criminal', 'คดีอาญา'], ['civil', 'คดีแพ่ง']], { rerender: true, label: 'ประเภทคดี' })}</div>`)}
     <datalist id="dl-court">${courtOptions().map((n) => `<option value="${esc(n)}">`).join('')}</datalist></div>
-  <div class="toolbar tight pf-go">
-    <button type="button" class="btn outline" data-act="goTab" data-tab="witness">${icon('user', { size: 16 })}บัญชีพยานจำเลย / หมายเรียกพยาน</button>
-    <button type="button" class="btn outline" data-act="goTab" data-tab="motions">${icon('file', { size: 16 })}คำร้อง / คำแถลง / คำแถลงต่อสู้คดี</button>
-    <button type="button" class="btn outline" data-act="goTab" data-tab="extras">${icon('pen', { size: 16 })}คำให้การ</button>
-    <button type="button" class="btn outline" data-act="goTab" data-tab="export">${icon('download', { size: 16 })}ออกเอกสาร</button></div>`;
+  <div class="panel"><h3>ไปทำเอกสารฝั่งจำเลย</h3>
+    <div class="toolbar tight pf-go">
+      <button type="button" class="btn outline" data-act="goTab" data-tab="witness">${icon('user', { size: 16 })}บัญชีพยานจำเลย / หมายเรียกพยาน</button>
+      <button type="button" class="btn outline" data-act="goTab" data-tab="motions">${icon('file', { size: 16 })}คำร้อง / คำแถลง / คำแถลงต่อสู้คดี</button>
+      <button type="button" class="btn outline" data-act="goTab" data-tab="extras">${icon('pen', { size: 16 })}คำให้การ</button>
+      <button type="button" class="btn outline" data-act="goTab" data-tab="export">${icon('download', { size: 16 })}ออกเอกสาร</button></div></div>`;
 }
 
 function tabCase() {
