@@ -69,7 +69,7 @@ export function resolveLayout(layout, docId) {
   apply(layout?.all);
   // บัญชีพยาน (เพิ่มเติม) ใช้แบบ ๑๕ เดียวกับบัญชีพยาน — ยังไม่เคยตั้งค่าเฉพาะแบบ ให้ใช้ค่าของบัญชีพยานไปก่อน
   const key = layoutKeyOf(docId), forms = layout?.forms;
-  apply(forms?.[key] ?? (key === 'witnessExtra' ? forms?.witness : undefined));
+  apply(forms?.[key] ?? (key === 'witnessExtra' ? forms?.witness : key === 'witnessRequest' ? forms?.motion : undefined));
   return out;
 }
 

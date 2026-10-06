@@ -44,7 +44,7 @@ export function newCase(type = 'criminal') {
     hearing: { date: '', time: '' },
     answer: { defendantId: '', templateId: '', text: '' },               // คำให้การจำเลย (แบบ ๑๑)
     settlement: { templateId: '', subject: '', clauses: [] },            // สัญญาประนีประนอมยอมความ (แบบ ๒๙)
-    docs: { complaint: true, prayer: true, attachment: true, service: true, witness: true, witnessExtra: true, witnessSummons: true, summons: true, attorney: true, proxy: false, motions: true, answer: false, settlement: false },   // attorney: ออกใบแต่งทนายความเมื่อเปิด “มีทนายความ” (counsel.enabled) — ทั้งฝั่งโจทก์และฝั่งจำเลย
+    docs: { complaint: true, prayer: true, attachment: true, service: true, witness: true, witnessExtra: true, witnessRequest: true, witnessSummons: true, summons: true, attorney: true, proxy: false, motions: true, answer: false, settlement: false },   // attorney: ออกใบแต่งทนายความเมื่อเปิด “มีทนายความ” (counsel.enabled) — ทั้งฝั่งโจทก์และฝั่งจำเลย
     options: { thaiDigits: true, autoFill: true, selfWitness: true },
     closing: { mode: 'self' },                    // ข้อท้ายคำฟ้อง: self = ไม่ได้ร้องทุกข์ ประสงค์ดำเนินคดีเอง | police = ร้องทุกข์ต่อพนักงานสอบสวนแล้ว
   };
@@ -57,7 +57,7 @@ export const SIDE_KEYS = ['court', 'caseNoBlack', 'caseYearBlack', 'caseNoRed', 
 export const SIDE_LABEL = { plaintiff: 'ฝั่งโจทก์', defendant: 'ฝั่งจำเลย' };
 export const sideOf = (c) => (c?.side === 'defendant' ? 'defendant' : 'plaintiff');
 /** ชุดเอกสารเริ่มต้นของฝั่งจำเลย: บัญชีพยานจำเลย · คำร้อง/คำแถลง · หมายเรียกพยาน · คำให้การ (ไม่มีคำฟ้อง/คำขอท้ายฟ้อง/หมายนัดไต่สวน) */
-const DEF_DOCS = { complaint: false, prayer: false, attachment: false, service: false, witness: true, witnessExtra: true, witnessSummons: true, summons: false, attorney: true, proxy: false, motions: true, answer: true, settlement: false };
+const DEF_DOCS = { complaint: false, prayer: false, attachment: false, service: false, witness: true, witnessExtra: true, witnessRequest: true, witnessSummons: true, summons: false, attorney: true, proxy: false, motions: true, answer: true, settlement: false };
 
 /** ข้อมูลฝั่งจำเลยเริ่มต้น: คัดชื่อโจทก์/จำเลย ศาล เลขคดีดำ จากฝั่งโจทก์มาให้ก่อน (แก้ได้) ; วันที่รับฟ้องว่างไว้ให้กรอก */
 export function defaultDefendantSlots(c) {
@@ -137,8 +137,10 @@ export const emptyAddress = () => ({ no: '', moo: '', building: '', soi: '', roa
  *  address เป็นข้อความรวมช่องเดียว (ข้อมูลเดิม) ส่วน addr เป็นที่อยู่แยกช่องตามแบบพิมพ์ศาล — ถ้ามี addr จะใช้ addr ก่อน
  */
 export function newWitness(kind = 'person', extra = false) {
-  return { id: uid(), kind: kind === 'object' || kind === 'document' ? kind : 'person', name: '', position: '', holder: '', holderPos: '', address: '', addr: emptyAddress(), phone: '', purpose: '', note: '', summons: true, extra: !!extra };
+  return { id: uid(), kind: kind === 'object' || kind === 'document' ? kind : 'person', name: '', position: '', holder: '', holderPos: '', address: '', addr: emptyAddress(), phone: '', purpose: '', note: '', summons: true, extra: !!extra, deliver: 'ems', outside: false, destCourt: '' };
 }
+/** วิธีส่งหมายเรียกพยาน: 'officer' = เจ้าพนักงานศาล · อย่างอื่น/ว่าง (ข้อมูลเดิม) = 'ems' ไปรษณีย์ตอบรับด่วนพิเศษ */
+export const witnessDeliver = (w) => (w?.deliver === 'officer' ? 'officer' : 'ems');
 /**
  * ผู้รับหมายเรียก แยกชื่อ / ตำแหน่ง (ยศ) ออกจากกัน — พยานบุคคล: name + position ; เอกสาร/วัตถุ: holder (ผู้ครอบครอง) + holderPos
  * ข้อมูลเดิมที่มีแต่ name ก็ใช้ได้ (position ว่าง) · คืน {name, pos} ที่ตัดช่องว่างแล้ว

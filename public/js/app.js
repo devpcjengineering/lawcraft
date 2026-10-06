@@ -437,7 +437,7 @@ function renderSteps() {
   const stepsHtml = drawerHead + filedNav + sideNav + navGroups.map((g) => {
     const items = g.items.filter((t) => authUi.navItemVisible(t) && !(isDef && DEF_HIDDEN_STEPS.has(t.key)) && (!t.only || t.only === S.c.type || (t.only === 'criminal' && crim)));
     const hint = filed && g.group === 'เพิ่มเติม' ? 'หลังยื่นฟ้อง' : g.hint;
-    return `<div class="nav-group"><div class="nav-head">${esc(g.group)}${hint ? `<small>${esc(hint)}</small>` : ''}</div>${items.map((t) => {
+    return `<div class="nav-group"><div class="nav-head">${esc(sideOf(S.c) === 'defendant' && g.group === 'เอกสารในชุดฟ้อง' ? 'เอกสารฝั่งจำเลย' : g.group)}${hint ? `<small>${esc(hint)}</small>` : ''}</div>${items.map((t) => {
       const st = t.status ? t.status() : null;
       const cnt = t.count ? t.count() : 0;
       const lock = isLocked(t.key, S.c);
@@ -534,7 +534,7 @@ function schedulePreview(now) {
 function currentDocs() { return buildDocuments(S.c, S.data); }
 
 // หน้า “ตำแหน่งตัวหนังสือ & ตราครุฑ”: เลือกแบบใดต้องเห็นเอกสารแบบนั้นทันที แม้ยังไม่ได้เปิดใช้ในชุด (เช่น ใบแต่งทนาย)
-const LAYOUT_DOCKEY = { complaint: 'complaint', prayer: 'prayer', attachment: 'attachment', service: 'service', motion: 'motions', witness: 'witness', witnessExtra: 'witnessExtra', summons: 'summons', witnessSummons: 'witnessSummons', attorney: 'attorney', proxy: 'proxy', answer: 'answer', settlement: 'settlement' };
+const LAYOUT_DOCKEY = { complaint: 'complaint', prayer: 'prayer', attachment: 'attachment', service: 'service', motion: 'motions', witness: 'witness', witnessExtra: 'witnessExtra', summons: 'summons', witnessSummons: 'witnessSummons', witnessRequest: 'witnessRequest', attorney: 'attorney', proxy: 'proxy', answer: 'answer', settlement: 'settlement' };
 const isDocOf = (d, key) => d.id === key || d.id.startsWith(key + '-') || (key === 'motions' && d.id.startsWith('motion-'));
 function previewDocs() {
   const docs = currentDocs();

@@ -7,7 +7,7 @@ import {
 import {
   indexLaw, plaintiffs, defendants, partyLabel, partyName, groupName, chargeSectionsText, chargeNamesText,
   resolveRuns, runsToText, chargeItem, reservedValue, tailFacts, serviceFeeInfo,
-  witnessList, witnessSummonsPlan, witnessAddr, witnessHasAddr, witnessAddrText, witnessWantsSummons, witnessKind, isItemWitness, witnessWho,
+  witnessList, witnessSummonsPlan, witnessAddr, witnessHasAddr, witnessAddrText, witnessWantsSummons, witnessKind, isItemWitness, witnessWho, witnessDeliver,
   caseNoParts, isFiled,
 } from './model.js';
 
@@ -300,6 +300,59 @@ function motionDoc(c, idx, m, n) {
     ...authorLine(c, 'คำร้อง').map((b) => (b.t === 'p' ? { ...b, runs: b.runs.map((r) => (r.text === 'คำฟ้องฉบับนี้ ข้าพเจ้า ' ? { ...r, text: 'คำร้องฉบับนี้ ข้าพเจ้า ' } : r)) } : b)),
   );
   return { id: `motion-${m.id || n}`, title: `คำร้อง${m.title ? ' – ' + m.title : ' ' + (n + 1)}`, blocks };
+}
+
+/**
+ * คำร้องขอให้ศาลออกหมายเรียกพยาน — ฉบับเดียวต่อคดี (ไม่ใช่ต่อพยาน) ใช้เค้าโครงคำร้อง (แบบ ๗) ;
+ * ข้อละพยานที่ขอให้ศาลออกหมาย (witnessWantsSummons, มีชื่อ, ไม่ใช่ self, รวมพยานเพิ่มเติม) เรียง บุคคล → เอกสาร → วัตถุ ; null เมื่อไม่มี
+ */
+function witnessRequestItemRuns(c, w) {
+  const f = filerWord(c), kind = witnessKind(w), who = witnessWho(w);
+  const nameOf = (x) => (x.name ? val(x.name) : dots(24));
+  const runs = [];
+  if (kind === 'person') {
+    const full = [who.name, who.pos].filter(Boolean).join(' ');
+    runs.push(t(`${f}มีความจำเป็นต้องอ้าง `), val(full), t(` เป็นพยานบุคคล ซึ่ง${f}ไม่อาจนำมาเบิกความเองได้ ${f}จึงขอให้ศาลออกหมายเรียก `), val(who.name), t(' มาเบิกความเป็นพยานต่อศาลในวันสืบพยาน'));
+  } else {
+    const noun = kind === 'object' ? 'พยานวัตถุ' : 'พยานเอกสาร', thing = kind === 'object' ? 'วัตถุ' : 'เอกสาร';
+    const holder = [nameOf(who)];
+    if (who.pos) holder.push(t(' '), val(who.pos));
+    runs.push(t(`${f}มีความจำเป็นต้องใช้ `), val(w.name), t(` (${noun}) เป็นพยานหลักฐาน ${thing}ดังกล่าวอยู่ในความครอบครองของ `), ...holder,
+      t(` ซึ่ง${f}ไม่อาจนำมาเองได้ ${f}จึงขอให้ศาลออกหมายเรียกให้ `), ...holder, t(` ส่ง${thing}ดังกล่าวต่อศาลก่อนวันสืบพยาน`));
+  }
+  const recv = kind === 'person' ? 'พยาน' : 'ผู้ครอบครอง';
+  if (witnessDeliver(w) === 'officer') {
+    runs.push(t(` โดยขอให้เจ้าพนักงานศาลเป็นผู้นำหมายไปส่ง หากไม่มีผู้รับหมายโดยชอบ ขอให้ศาลมีคำสั่งให้ส่งโดยวิธีปิดหมาย ณ ภูมิลำเนาหรือสถานที่ทำการของ${recv}ดังกล่าว`));
+  } else runs.push(t(' โดยขอให้ส่งหมายทางไปรษณีย์ตอบรับด่วนพิเศษ'));
+  if (w.outside) {
+    const a = witnessAddrText(w), d = String(w.destCourt || '').trim();
+    runs.push(t(' เนื่องจาก'), a ? val(a) : dots(30), t('อยู่นอกเขตอำนาจของศาลนี้ จึงขอให้ศาลส่งหมายไปยัง'), d ? val(d) : dots(24), t('เพื่อจัดการส่งให้ต่อไป'));
+  }
+  return runs;
+}
+
+function witnessRequestDoc(c, idx) {
+  const rows = witnessList(c).filter((r) => !r.self && witnessWantsSummons(r.w));
+  const order = { person: 0, document: 1, object: 2 };
+  const list = rows.map((r) => r.w).sort((a, b) => order[witnessKind(a)] - order[witnessKind(b)]);
+  if (!list.length) return null;
+  const pl = filers(c);
+  const title = 'คำร้องขอให้ศาลออกหมายเรียกพยาน';
+  const blocks = [
+    top(c, '๗', title, { courtUse: false, kinds: { all: MOTION_KINDS, on: 'คำร้อง' } }),
+    courtBlock(c),
+    betweenBlock(c),
+    ...sideIntro(c, filerRole(c)),
+    p([t(ft('motion.intro'))], { indent: 0 }),
+    ...list.map((w, i) => p([bold(`ข้อ ${i + 1}.`), t(' '), ...witnessRequestItemRuns(c, w)], { indent: 1.5, justify: true, gap: true })),
+    p([t(ft('motion.closing.1'))], { indent: 1.5, gap: true }),
+    p([t(ft('motion.closing.2'))], { align: 'right' }),
+    { t: 'rule' },
+    p([{ text: 'หมายเหตุ', b: true, u: true }, t('   ' + ft('note.waiting'))], { indent: 0 }),
+    sigBlock(pl.map((x) => ({ label: 'ผู้ร้อง', name: `(${partyName(x)})` }))),
+    ...authorLine(c, 'คำร้อง').map((b) => (b.t === 'p' ? { ...b, runs: b.runs.map((r) => (r.text === 'คำฟ้องฉบับนี้ ข้าพเจ้า ' ? { ...r, text: 'คำร้องฉบับนี้ ข้าพเจ้า ' } : r)) } : b)),
+  ];
+  return { id: 'witnessRequest', title, blocks };
 }
 
 /** แถวของตารางบัญชีพยาน (ใช้ร่วมกันทั้งบัญชีเดิมและบัญชีพยานเพิ่มเติม — แบบ ๑๕ เดียวกัน) — ลำดับ = เลข no จากบัญชีรวม จึงต่อเนื่องกัน */
@@ -694,6 +747,7 @@ export const DOC_TYPES = [
   { key: 'motions', label: 'คำร้อง / คำแถลง / คำขออื่น ๆ (แบบ ๗)' },
   { key: 'witness', label: 'บัญชีพยาน (แบบ ๑๕)' },
   { key: 'witnessExtra', label: 'บัญชีพยาน (เพิ่มเติม) ครั้งที่ … (แบบ ๑๕ — สร้างอัตโนมัติเมื่อมีพยานที่ติดธง “เพิ่มเติมภายหลังยื่นฟ้อง”)' },
+  { key: 'witnessRequest', label: 'คำร้องขอให้ศาลออกหมายเรียกพยาน (สร้างอัตโนมัติจากบัญชีพยานที่ขอให้ศาลออกหมาย)' },
   { key: 'witnessSummons', label: 'หมายเรียกพยานบุคคล / เอกสาร / วัตถุ (แบบ ๑๖ · ๑๗ · ๑๘ — สร้างอัตโนมัติจากบัญชีพยาน ฉบับละพยาน)' },
   { key: 'attorney', label: 'ใบแต่งทนายความ (แบบ ๙)' },
   { key: 'proxy', label: 'ใบมอบอำนาจ (แบบ ๑๐)' },
@@ -733,6 +787,7 @@ export function buildDocuments(c, data, only) {
   if (want('witness')) docs.push(witnessDoc(c, idx));
   // บัญชีพยาน (เพิ่มเติม) ครั้งที่ … (แบบ ๑๕): สร้างเองเมื่อมีพยานที่ติดธง extra (ปิดได้ด้วย docs.witnessExtra = false)
   if (only ? only.includes('witnessExtra') : c.docs.witnessExtra !== false) { const wx = witnessExtraDoc(c, idx); if (wx) docs.push(wx); }
+  if (only ? only.includes('witnessRequest') : c.docs.witnessRequest !== false) { const wr = witnessRequestDoc(c, idx); if (wr) docs.push(wr); }
   // หมายเรียกพยาน: เปิดโดยปริยายเมื่อมีพยานที่ต้องเรียก (ปิดได้ด้วย docs.witnessSummons = false)
   if (only ? only.includes('witnessSummons') : c.docs.witnessSummons !== false) witnessSummonsPlan(c, !!only).forEach((g) => docs.push(witnessSummonsDoc(c, data, g)));
   if (want('summons') && c.type === 'criminal') {
