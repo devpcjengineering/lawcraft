@@ -16,8 +16,8 @@ timeout /t 8 /nobreak >nul
 rem 2) remove an old STOP file, then start
 if exist "%LOCALAPPDATA%\lawcraft-deka-data\STOP" del "%LOCALAPPDATA%\lawcraft-deka-data\STOP"
 cd /d E:\boi\app\scripts\deka
-echo Crawling years %FROM% to %TO% (4-8 s delay per page). Press Ctrl+C to stop; run again to resume.
-node crawl.mjs --from %FROM% --to %TO% --delay-min 4000 --delay-max 8000
+echo Crawling years %FROM% to %TO% (0.5-1.5 s delay per page). Press Ctrl+C to stop; run again to resume.
+node crawl.mjs --from %FROM% --to %TO% --delay-min 500 --delay-max 1500
 echo.
 echo Finished or stopped. See the end of: %LOCALAPPDATA%\lawcraft-deka-data\crawl.log
 pause

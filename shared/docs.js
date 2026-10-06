@@ -102,6 +102,12 @@ function betweenBlock(c) {
   return { t: 'between', pl: side(plaintiffs(c), 'plaintiff'), df: side(defendants(c), 'defendant') };
 }
 
+// ฝ่ายผู้ยื่นเอกสาร: ฝั่งโจทก์ (ค่าเริ่มต้น) หรือฝั่งจำเลย (c.side === 'defendant') — เอกสารที่ยื่นโดยคู่ความ (คำร้อง บัญชีพยาน ใบแต่งทนาย หมายเรียกพยาน) ใช้ฝ่ายนี้เป็นผู้ยื่น
+export const filerRole = (c) => (c.side === 'defendant' ? 'defendant' : 'plaintiff');
+const filerWord = (c) => (filerRole(c) === 'defendant' ? 'จำเลย' : 'โจทก์');
+const filers = (c) => (filerRole(c) === 'defendant' ? defendants(c) : plaintiffs(c));
+const filerAll = (c) => `${filerWord(c)}${filers(c).length > 1 ? 'ทั้งหมด' : ''}`;
+
 function sigBlock(lines, compact = false) { return { t: 'sig', lines, compact }; }
 
 function plaintiffSigs(c, role = 'โจทก์') {
@@ -122,7 +128,7 @@ function authorLine(c, noun = 'คำฟ้อง', selfParty = null) {
       sigBlock([{ label: 'ผู้เรียงและเขียนหรือพิมพ์', name: `(${counselName(cn)})` }]),
     ];
   }
-  const pl = selfParty || plaintiffs(c)[0];
+  const pl = selfParty || filers(c)[0];
   return [
     p([t(`${noun}ฉบับนี้ ข้าพเจ้า `), val(pl ? partyName(pl) : ''), t(' ผู้เรียงและเขียนหรือพิมพ์')], { align: 'center', keep: true }),
     sigBlock([{ label: 'ผู้เรียงและเขียนหรือพิมพ์', name: '' }]),
@@ -181,7 +187,7 @@ function sideIntro(c, role, afterId = false) {
   const list = role === 'plaintiff' ? plaintiffs(c) : defendants(c);
   if (!list.length) return [];
   const word = role === 'plaintiff' ? 'โจทก์' : 'จำเลย';
-  const lead = role === 'plaintiff' ? 'ข้าพเจ้า ' : 'ขอยื่นฟ้อง ';
+  const lead = role === filerRole(c) ? 'ข้าพเจ้า ' : 'ขอยื่นฟ้อง ';
   const suffix = list.length > 1 ? `ที่ 1 กับพวกรวม ${list.length} คน` : '';
   const out = [p([t(lead), ...personRuns(list[0], word, { afterId, suffix })], { indent: 1.5, justify: true })];
   if (list.length > 1) out.push(p([t(`(รายละเอียดของ${word}ทั้งหมดปรากฏตามเอกสารแนบท้ายคำฟ้อง)`)], { indent: 1.5, small: true }));
@@ -273,13 +279,13 @@ function firstPlaintiffIntro(c) {
 export const MOTION_KINDS = ['คำร้อง', 'คำแถลง', 'คำขอ'];
 export const MOTION_KINDS_ALL = [...MOTION_KINDS, 'คำบอกกล่าว'];
 function motionDoc(c, idx, m, n) {
-  const pl = plaintiffs(c);
+  const pl = filers(c);
   const items = textToItems(m.text);
   const blocks = [
     top(c, '๗', m.title || '', { courtUse: false, kinds: m.kind === 'คำบอกกล่าว' ? { all: ['คำบอกกล่าว'], on: 'คำบอกกล่าว' } : { all: MOTION_KINDS, on: MOTION_KINDS.includes(m.kind) ? m.kind : 'คำร้อง' } }),
     courtBlock(c),
     betweenBlock(c),
-    ...sideIntro(c, 'plaintiff'),
+    ...sideIntro(c, filerRole(c)),
     p([t(ft('motion.intro'))], { indent: 0 }),
   ];
   if (items.length) {
@@ -318,20 +324,21 @@ const WITNESS_TABLE_HEAD = ['อันดับ', 'ชื่อและสก�
 function witnessDoc(c, idx) {
   // ตามตัวอย่างบัญชีพยานของศาล: ตารางเดียว รวมพยานบุคคล/เอกสาร/วัตถุเรียงตามอันดับ หมายเหตุ = "นำ" หรือ "หมายเรียก"
   // พยานที่เพิ่มภายหลังยื่นฟ้อง (extra) ไม่อยู่ในบัญชีนี้ — ไปอยู่ในบัญชีพยานเพิ่มเติม (witnessExtraDoc)
-  const pl = plaintiffs(c);
+  const pl = filers(c);
   const rows = witnessTableRows(c, witnessList(c, 'base'));
+  const wtitle = filerRole(c) === 'defendant' ? 'บัญชีพยานจำเลย' : 'บัญชีพยาน';
   const blocks = [
-    top(c, '๑๕', 'บัญชีพยาน', { courtUse: true }),
+    top(c, '๑๕', wtitle, { courtUse: true }),
     courtBlock(c),
     betweenBlock(c),
-    p([t('ข้าพเจ้า '), val(groupName(c, 'plaintiff')), t(` ${pl.length > 1 ? 'โจทก์ทั้งหมด' : 'โจทก์'}`)], { indent: 1.5 }),
+    p([t('ข้าพเจ้า '), val(groupName(c, filerRole(c))), t(` ${filerAll(c)}`)], { indent: 1.5 }),
     p(nRuns('witness.intro', rows.length ? String(rows.length) : ''), { indent: 0 }),
     { t: 'table', head: WITNESS_TABLE_HEAD, widths: [9, 34, 39, 18], rows, minRows: 6 },
     sigBlock([{ label: 'ผู้ระบุ', name: pl.length === 1 ? `(${partyName(pl[0])})` : '' }]),
     { t: 'rule' },
     p([{ text: 'หมายเหตุ', u: true }, t(' ' + ft('witness.child'))], { indent: 0, small: true }),
   ];
-  return { id: 'witness', title: 'บัญชีพยาน', blocks };
+  return { id: 'witness', title: wtitle, blocks };
 }
 
 /**
@@ -341,7 +348,7 @@ function witnessDoc(c, idx) {
 function witnessExtraDoc(c, idx) {
   const list = witnessList(c, 'extra');
   if (!list.length) return null;
-  const pl = plaintiffs(c);
+  const pl = filers(c);
   const rows = witnessTableRows(c, list);
   const first = list[0].no, last = list[list.length - 1].no;
   const round = String(c.witnessExtraRound ?? '').trim(); // เลขครั้งที่ยื่นเพิ่มเติม (ว่าง = จุดไข่ปลาให้เขียนเติม)
@@ -350,7 +357,7 @@ function witnessExtraDoc(c, idx) {
     top(c, '๑๕', title, { courtUse: true }), // ใช้แบบฟอร์มบัญชีพยาน (แบบ ๑๕) เดียวกับบัญชีเดิม
     courtBlock(c),
     betweenBlock(c),
-    p([t('ข้าพเจ้า '), val(groupName(c, 'plaintiff')), t(` ${pl.length > 1 ? 'โจทก์ทั้งหมด' : 'โจทก์'}`)], { indent: 1.5 }),
+    p([t('ข้าพเจ้า '), val(groupName(c, filerRole(c))), t(` ${filerAll(c)}`)], { indent: 1.5 }),
     p(tplRuns(ft('witnessExtra.intro'), { n: String(list.length), from: String(first), to: String(last), range: first === last ? String(first) : `${first} ถึง ${last}` }), { indent: 0 }),
     { t: 'table', head: WITNESS_TABLE_HEAD, widths: [9, 34, 39, 18], rows, minRows: 6 },
     sigBlock([{ label: 'ผู้ระบุ', name: pl.length === 1 ? `(${partyName(pl[0])})` : '' }]),
@@ -362,12 +369,12 @@ function witnessExtraDoc(c, idx) {
 
 function attorneyDoc(c, idx) {
   const cn = c.counsel;
-  const pl = plaintiffs(c);
+  const pl = filers(c);
   const blocks = [
     top(c, '๙', 'ใบแต่งทนายความ'),
     courtBlock(c),
     betweenBlock(c),
-    ...pl.map((x, i) => p([t(i === 0 ? 'ข้าพเจ้า ' : 'และ '), ...personRuns(x, pl.length > 1 ? partyLabel(c, x) : 'โจทก์')], { indent: 1.5, justify: true })),
+    ...pl.map((x, i) => p([t(i === 0 ? 'ข้าพเจ้า ' : 'และ '), ...personRuns(x, pl.length > 1 ? partyLabel(c, x) : filerWord(c))], { indent: 1.5, justify: true })),
     p([t('ขอแต่งให้ '), val(counselName(cn)), ...(cn.license ? [t(' ทนายความใบอนุญาตที่ '), val(cn.license)] : []),
       ...fields(addrPairs(cn.address).map(([l, v]) => [l === 'อยู่บ้านเลขที่' ? 'สำนักงานอยู่เลขที่' : l, v]), ' ').length
         ? [t(' '), ...fields(addrPairs(cn.address).map(([l, v]) => [l === 'อยู่บ้านเลขที่' ? 'สำนักงานอยู่เลขที่' : l, v]))] : [],
@@ -383,7 +390,7 @@ function attorneyDoc(c, idx) {
 }
 
 function proxyDoc(c, idx) {
-  const pl = plaintiffs(c);
+  const pl = filers(c);
   const h = c.proxy?.holder || {};
   return {
     id: 'proxy', title: 'ใบมอบอำนาจ',
@@ -391,7 +398,7 @@ function proxyDoc(c, idx) {
       top(c, '๑๐', 'ใบมอบอำนาจ'),
       courtBlock(c),
       betweenBlock(c),
-      ...pl.slice(0, 1).map((x) => p([t('ข้าพเจ้า '), ...personRuns(x, pl.length > 1 ? partyLabel(c, x) : 'โจทก์')], { indent: 1.5, justify: true })),
+      ...pl.slice(0, 1).map((x) => p([t('ข้าพเจ้า '), ...personRuns(x, pl.length > 1 ? partyLabel(c, x) : filerWord(c))], { indent: 1.5, justify: true })),
       p([t('ขอมอบอำนาจให้ '), ...personRuns(h, '')], { indent: 0, justify: true }),
       p([t('ทำการแทน โดยข้าพเจ้ายอมรับผิดชอบในการที่ผู้รับมอบอำนาจของข้าพเจ้าได้ทำการไปนั้นทุกประการ ในกิจการดังที่จะกล่าวต่อไปนี้ '), ...(c.proxy?.purpose ? [val(c.proxy.purpose)] : [dots(50)])], { indent: 0, justify: true }),
       sigBlock([
@@ -484,13 +491,13 @@ function witnessAddrRuns(w, useLegacy = true) {
 
 /** “ด้วย โจทก์ โดย … ทนายความ …” — ไม่มีทนายความ = “ด้วย โจทก์” (โจทก์อ้างพยานเอง) */
 function citeByRuns(c) {
-  const cn = c.counsel, side = plaintiffs(c).length > 1 ? 'โจทก์ทั้งหมด' : 'โจทก์';
+  const cn = c.counsel, side = filerAll(c);
   return [t('ด้วย '), val(side), ...(cn?.enabled && (cn.first || cn.last) ? [t(' โดย '), val(counselName(cn)), t(' ทนายความ '), val(side)] : [])];
 }
 
 /** แบบ ๑๗/๑๘: “ด้วย โจทก์ โดย ชื่อทนาย ทนายความ โจทก์” — ไม่มีทนายความ = เว้นช่องไว้ (จุดไข่ปลา) ให้เขียนเติมเอง */
 function citeByRunsItem(c) {
-  const cn = c.counsel, side = plaintiffs(c).length > 1 ? 'โจทก์ทั้งหมด' : 'โจทก์';
+  const cn = c.counsel, side = filerAll(c);
   const has = cn?.enabled && (cn.first || cn.last);
   return [t('ด้วย '), val(side), t(' โดย '), has ? val(counselName(cn)) : dots(18), t(' ทนายความ '), has ? val(side) : dots(8)];
 }

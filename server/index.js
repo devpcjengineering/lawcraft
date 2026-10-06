@@ -34,8 +34,10 @@ function adminAuth(req, res, next) {
 }
 app.use(['/workspace', '/admin', '/api/cases', '/api/people', '/api/docx', '/api/formtext', '/api/layout', '/api/inquiries'], adminAuth);
 
-// LOCAL_BACKEND=1 npm start → ใช้ไฟล์ในเครื่อง (cases/) แทน Supabase โดยไม่ต้องแก้ config.js (ใช้ทดสอบ/พัฒนา)
-if (process.env.LOCAL_BACKEND) app.get('/js/config.js', (req, res) => res.type('js').send('export default { supabase: { url: "", anonKey: "" } };'));
+// เซิร์ฟเวอร์นี้ (npm start / localhost) ใช้ไฟล์ในเครื่อง (cases/) แทน Supabase เสมอ → ไม่ต้องล็อกอิน เปิดใช้งานได้เลย
+// ส่วนเว็บที่ deploy บน Vercel ไม่ได้รันไฟล์นี้ — ใช้ public/js/config.js (Supabase) และบังคับล็อกอินตามเดิม
+// ต้องการให้ localhost ต่อ Supabase จริง (ต้องล็อกอิน): ตั้ง CLOUD_BACKEND=1 ก่อนรัน npm start
+if (process.env.CLOUD_BACKEND !== '1') app.get('/js/config.js', (req, res) => res.type('js').send('export default { supabase: { url: "", anonKey: "" } };'));
 app.use('/shared', express.static(path.join(ROOT, 'shared')));
 app.use('/templates', express.static(path.join(ROOT, 'templates')));
 app.use(express.static(path.join(ROOT, 'public')));

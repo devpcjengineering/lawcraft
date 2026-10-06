@@ -431,3 +431,12 @@ a, button, select, input, textarea, label, summary { touch-action: manipulation;
   .share-link, .share-invite { flex-wrap: wrap; }
   .share-link input, .share-invite input { flex-basis: 100%; }
 }
+
+/* สลับฝั่งโจทก์/จำเลย ในเมนูคดี */
+.side-switch { display: flex; gap: 2px; width: 100%; box-sizing: border-box; margin: 6px 0 8px; padding: 3px; background: var(--surface-3); border-radius: 12px; }
+.side-switch button { flex: 1 1 0; min-width: 0; min-height: 36px; padding: 0 8px; border: 0; border-radius: 9px; background: transparent; color: #4b5563; font: inherit; font-size: 14px; font-weight: 500; line-height: 1.25; cursor: pointer; transition: background-color .15s, color .15s, box-shadow .15s; }
+@media (hover: hover) { .side-switch button:hover { color: var(--ink); } }
+.side-switch button.on, .side-switch button[aria-pressed=true] { background: #fff; color: var(--ink); font-weight: 700; box-shadow: 0 1px 3px rgba(16, 24, 40, .14); }
+.side-switch button:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.side-note { margin: -2px 0 8px; padding: 0 4px; color: var(--muted, #6b7280); font-size: 12.5px; line-height: 1.4; }
+@media (max-width: 760px) { .side-switch button { min-height: 44px; } }

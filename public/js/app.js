@@ -2,7 +2,7 @@
 import { S, esc, actions, hooks, setPath } from './store.js';
 import { NAV, TABS, postFilingState } from './tabs.js';
 import { provinceList, refreshGeo, idStateHtml } from './ui.js';
-import { syncWitnessSummons, newCase, indexLaw, caseTitle, caseLabel, validateCase, newParty, uid, applyServiceAuto, isFiled, filedBadge, newWitness, splitCaseNo, migrateCaseYears } from '/shared/model.js';
+import { syncWitnessSummons, newCase, indexLaw, caseTitle, caseLabel, validateCase, newParty, uid, applyServiceAuto, isFiled, filedBadge, newWitness, splitCaseNo, migrateCaseYears, switchSide, sideOf } from '/shared/model.js';
 import { buildDocuments, isPostFilingDoc } from '/shared/docs.js';
 import { resolveLayout, layoutCssVars } from '/shared/layout.js';
 import { docsHtml, docHtml } from './render-html.js';
@@ -17,7 +17,7 @@ import { openViewer } from './viewer.js';
 import { morphInto } from './morph.js';
 import { paginateHtml, countSheets, documentFontsReady } from './paginate.js';
 import { startConn, connHtml } from './conn.js';
-import { firstBlocked, isLocked, wizardNav, refreshWizard, STEPS } from './wizard.js';
+import { firstBlocked, isLocked, wizardNav, refreshWizard, STEPS, DEF_HIDDEN_STEPS } from './wizard.js';
 import { showInbox } from './inbox.js';
 import { confirmBox, alertBox, issuesBox, modal } from './modal.js';
 import { notify, banner, clearBanner, mountBanners, inferType } from './notify.js';
@@ -373,6 +373,20 @@ actions.goTab = (el) => {
   if (t.blk) { WIZ_NOTE(t.blk); if (t.blk.key === S.tab) return; }
   go(urls.caseTab(S.c.id, t.tab));
 };
+actions.switchSide = (el) => {
+  if (!S.c || view !== 'case') return;
+  const side = el.dataset.side === 'defendant' ? 'defendant' : 'plaintiff';
+  if (sideOf(S.c) === side) return;
+  switchSide(S.c, side); // ไม่เรียก applyServiceAuto ตอนสลับ — ข้อมูลของแต่ละฝั่งถูกสลับเข้าฟิลด์คดีตามเดิม
+  if (side === 'defendant' && DEF_HIDDEN_STEPS.has(S.tab)) S.tab = 'case';
+  S.ui.pvDoc = ''; alerted.clear();
+  syncPreviewDoc();
+  hooks.changed();
+  replaceUrl(urls.caseTab(S.c.id, S.tab)); setTitle(TAB_NAMES[S.tab]);
+  closeNav({ restore: false });
+  smoothSwap(() => { renderShell(true); updateReady(); });
+  hooks.toast(side === 'defendant' ? 'สลับเป็นฝั่งจำเลย' : 'สลับเป็นฝั่งโจทก์');
+};
 /** เปลี่ยนหน้าแบบจางข้ามกัน (View Transitions) ถ้าเบราว์เซอร์รองรับ ไม่งั้นสลับทันที */
 /** การเปลี่ยนที่ถูกอันใหม่ข้าม (AbortError) ไม่ใช่ข้อผิดพลาด — กันขึ้น unhandled rejection ในคอนโซล */
 const quietVT = (t) => { for (const k of ['ready', 'finished', 'updateCallbackDone']) t?.[k]?.catch?.(() => {}); return t; };
@@ -418,8 +432,10 @@ function renderSteps() {
   const filedNav = filed ? `<div class="nav-filed" title="คดีนี้ยื่นฟ้องแล้ว — เลขคดีพิมพ์บนหัวเอกสารทุกฉบับ">${ico2('gavel', { size: 15 })}<span>${esc(filedBadge(S.c))}</span></div>` : '';
   // หัวลิ้นชักเมนูบนมือถือ (จอใหญ่ซ่อนด้วย CSS) — อยู่ในรายการที่ morph ได้ จึงคงอยู่ตอนวาดเมนูใหม่
   const drawerHead = `<div class="steps-head"><b id="steps-title">เมนูคดี</b><button type="button" class="steps-x" data-act="closeNav" aria-label="ปิดเมนูคดี">${ico2('x', { size: 22 })}</button></div>`;
-  const stepsHtml = drawerHead + filedNav + navGroups.map((g) => {
-    const items = g.items.filter((t) => authUi.navItemVisible(t) && (!t.only || t.only === S.c.type || (t.only === 'criminal' && crim)));
+  const side = sideOf(S.c), isDef = side === 'defendant';
+  const sideNav = `<div class="side-switch" role="group" aria-label="เลือกฝั่งของคดี">${[['plaintiff', 'ฝั่งโจทก์'], ['defendant', 'ฝั่งจำเลย']].map(([k, l]) => `<button type="button" class="${side === k ? 'on' : ''}" aria-pressed="${side === k}" data-act="switchSide" data-side="${k}">${l}</button>`).join('')}</div>${isDef ? '<div class="side-note">ชุดเอกสารของจำเลย: บัญชีพยาน · คำร้อง · คำให้การ · หมายเรียกพยาน</div>' : ''}`;
+  const stepsHtml = drawerHead + filedNav + sideNav + navGroups.map((g) => {
+    const items = g.items.filter((t) => authUi.navItemVisible(t) && !(isDef && DEF_HIDDEN_STEPS.has(t.key)) && (!t.only || t.only === S.c.type || (t.only === 'criminal' && crim)));
     const hint = filed && g.group === 'เพิ่มเติม' ? 'หลังยื่นฟ้อง' : g.hint;
     return `<div class="nav-group"><div class="nav-head">${esc(g.group)}${hint ? `<small>${esc(hint)}</small>` : ''}</div>${items.map((t) => {
       const st = t.status ? t.status() : null;

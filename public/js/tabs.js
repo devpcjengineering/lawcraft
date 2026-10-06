@@ -4,8 +4,9 @@ import { idField, field, select, check, seg, dateFields, addressFields, badge, p
 import {
   newParty, uid, plaintiffs, defendants, partyLabel, partyName, collectVars, validateCase, chargeItem, chargeSectionsText, chargeNamesText, serviceAdvice, ensureBasePrayer, tailFacts, resolveRuns, serviceFeeInfo,
   WITNESS_KINDS, newWitness, emptyAddress, witnessKind, witnessSummonsPlan, witnessWantsSummons, witnessAddrText, witnessWho,
-  witnessList, isFiled, filedBadge,
+  witnessList, isFiled, filedBadge, sideOf,
 } from '/shared/model.js';
+import { DEF_MOTIONS } from '/shared/def-templates.js';
 import { serviceMotionText, serviceMode, DOC_TYPES, MOTION_KINDS_ALL, POST_FILING_KEYS } from '/shared/docs.js';
 import { openViewer } from './viewer.js';
 import { icon as ix } from './icons.js';
@@ -61,7 +62,42 @@ function postFilingCard() {
       <button type="button" class="btn outline" data-act="goTab" data-tab="export">${icon('download', { size: 16 })}ออกเอกสารหลังยื่นฟ้อง</button></div></div>`;
 }
 
+/** ช่องชื่อคู่ความของฝ่ายหนึ่งแบบย่อ (หน้าข้อมูลคดีฝั่งจำเลย): บุคคลธรรมดา = คำนำหน้า/ชื่อ/สกุล · นิติบุคคล = ชื่อ — รายละเอียดอื่นอยู่หน้า “คู่ความ” */
+function defNameFields(role, label) {
+  const i = S.c.parties.findIndex((p) => p.role === role);
+  if (i < 0) return `<p class="hint hint-row flush">ยังไม่มี${label} — เพิ่มที่หน้า “คู่ความ”</p>`;
+  if (S.c.parties[i].kind === 'juristic') return field(`ชื่อ${label} (นิติบุคคล)`, `parties.${i}.name`, { cls: 's12' });
+  return `${field(`คำนำหน้า${label}`, `parties.${i}.prefix`, { cls: 's4' })}${field('ชื่อ', `parties.${i}.first`, { cls: 's4' })}${field('นามสกุล', `parties.${i}.last`, { cls: 's4' })}`;
+}
+
+/** หน้าข้อมูลคดีของ “ฝั่งจำเลย”: ชื่อโจทก์-จำเลย · ศาล · เลขคดีดำ/แดง · วันที่รับฟ้อง (ไม่มีข้อหา/ทุนทรัพย์/นัดไต่สวนของฝั่งโจทก์) */
+function tabCaseDefendant() {
+  const c = S.c;
+  return `
+  ${pageHead('ข้อมูลคดี — ฝั่งจำเลย', 'ข้อมูลหัวกระดาษของเอกสารฝั่งจำเลย (บัญชีพยานจำเลย คำร้อง คำแถลง คำให้การ หมายเรียกพยาน) แยกจากฝั่งโจทก์')}
+  <div class="panel"><h3>โจทก์ — จำเลย</h3>
+    ${group('ชื่อโจทก์', defNameFields('plaintiff', 'โจทก์'))}
+    ${group('ชื่อจำเลย', defNameFields('defendant', 'จำเลย'))}
+    <p class="hint hint-row flush">ที่อยู่ เลขประจำตัว และรายละเอียดอื่นกรอกเพิ่มได้ที่หน้า “คู่ความ” · ถ้าคดีมีโจทก์/จำเลยหลายคนให้เพิ่มที่หน้านั้น</p></div>
+  <div class="panel"><h3>ศาลและเลขคดี</h3>
+    ${group('ศาลและวันที่', `
+      ${field('ศาล (พิมพ์ค้นหาหรือเลือกจากรายการ)', 'court', { cls: 's12', list: 'dl-court', required: true, ph: 'เช่น ศาลจังหวัดเชียงราย' })}
+      ${field('วันที่รับฟ้อง', 'receivedDate', { cls: 's6', type: 'date', hint: 'วันที่จำเลยได้รับฟ้อง/หมายเรียก — ใช้ประกอบการนับกำหนดยื่นคำให้การ' })}
+      ${dateFields('date', 'วันที่ยื่นเอกสาร', { cls: 's12' })}`)}
+    ${group('เลขคดี (เว้นว่างได้)', `
+      ${caseNoPair('คดีหมายเลขดำที่', 'Black', 'เช่น อ.123')}
+      ${caseNoPair('คดีหมายเลขแดงที่', 'Red', 'เช่น พ.456')}`)}
+    ${group('ประเภทคดี', `<div class="f s12">${seg('type', [['criminal', 'คดีอาญา'], ['civil', 'คดีแพ่ง']], { rerender: true, label: 'ประเภทคดี' })}</div>`)}
+    <datalist id="dl-court">${courtOptions().map((n) => `<option value="${esc(n)}">`).join('')}</datalist></div>
+  <div class="toolbar tight pf-go">
+    <button type="button" class="btn outline" data-act="goTab" data-tab="witness">${icon('user', { size: 16 })}บัญชีพยานจำเลย / หมายเรียกพยาน</button>
+    <button type="button" class="btn outline" data-act="goTab" data-tab="motions">${icon('file', { size: 16 })}คำร้อง / คำแถลง / คำแถลงต่อสู้คดี</button>
+    <button type="button" class="btn outline" data-act="goTab" data-tab="extras">${icon('pen', { size: 16 })}คำให้การ</button>
+    <button type="button" class="btn outline" data-act="goTab" data-tab="export">${icon('download', { size: 16 })}ออกเอกสาร</button></div>`;
+}
+
 function tabCase() {
+  if (sideOf(S.c) === 'defendant') return tabCaseDefendant();
   const c = S.c, crim = c.type === 'criminal';
   const filed = isFiled(c);
   return `
@@ -722,7 +758,7 @@ function tabMotions() {
   { cls: 'item', open: !(x.title || x.text), attrs: `data-sum="motion" data-i="${i}"` })).join('') : emptyBox('ยังไม่มีคำร้อง — เลือกแม่แบบหรือเพิ่มคำร้องเปล่าด้านบน', 'file')}`;
 }
 const tplData = () => S.data.templates || { motions: [], answers: [], settlements: [] };
-const tplMotions = () => (tplData().motions || []).filter((x) => x.caseType === 'any' || x.caseType === S.c.type);
+const tplMotions = () => [...(sideOf(S.c) === 'defendant' ? DEF_MOTIONS : []), ...(tplData().motions || [])].filter((x) => x.caseType === 'any' || x.caseType === S.c.type);
 actions.addMotionTpl = () => {
   const tpl = tplMotions().find((x) => x.id === document.getElementById('motion-tpl')?.value);
   if (!tpl) return hooks.toast('เลือกแม่แบบก่อน');

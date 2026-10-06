@@ -1,5 +1,5 @@
 // ขั้นตอนทีละหน้า: ต้องกรอกข้อมูลที่จำเป็นของหน้าก่อนหน้าให้ครบ จึงไปหน้าถัดไปได้ (ย้อนกลับได้เสมอ)
-import { plaintiffs, defendants, partyName, partyLabel, isFiled } from '/shared/model.js';
+import { plaintiffs, defendants, partyName, partyLabel, isFiled, sideOf } from '/shared/model.js';
 import { validCitizenId, toNum } from '/shared/thai.js';
 import { esc } from './store.js';
 import { morphInto } from './morph.js';
@@ -28,6 +28,17 @@ export function stepMissing(key, c) {
   const m = [];
   if (!c) return m;
   const crim = c.type !== 'civil';
+  if (sideOf(c) === 'defendant') {
+    // ฝั่งจำเลย: ต้องการแค่ชื่อโจทก์-จำเลย และศาล (เลขคดีดำ/วันที่รับฟ้องไม่บังคับ) — ที่อยู่/เลขบัตรกรอกเมื่อจำเป็นต้องพิมพ์ในเอกสาร
+    if (key === 'case' && !filled(c.court)) m.push('ศาลที่รับฟ้อง');
+    if (key === 'parties') {
+      for (const p of [...plaintiffs(c), ...defendants(c)]) if (!filled(p.kind === 'juristic' ? p.name : p.first)) m.push(`ชื่อ${partyLabel(c, p)}`);
+      if (!plaintiffs(c).length) m.push('โจทก์อย่างน้อย 1 คน');
+      if (!defendants(c).length) m.push('จำเลยอย่างน้อย 1 คน');
+    }
+    if (key === 'counsel' && c.counsel?.enabled && !filled(c.counsel.first)) m.push('ชื่อทนายความ (หรือปิดตัวเลือก “มีทนายความ”)');
+    return m;
+  }
   if (key === 'case') {
     if (!filled(c.court)) m.push('ศาลที่ยื่นฟ้อง');
     if (!crim && !(toNum(c.amount?.baht) > 0)) m.push('ทุนทรัพย์ (คดีแพ่ง)');
@@ -63,7 +74,9 @@ export function stepMissing(key, c) {
   return m;
 }
 
-const applicable = (c) => STEPS.filter((s) => !s.only || s.only === (c.type === 'civil' ? 'civil' : 'criminal'));
+/** ฝั่งจำเลยไม่มีคำฟ้อง/คำขอท้ายฟ้อง/คำร้องส่งหมาย/หมายนัดไต่สวน (เอกสารของโจทก์) */
+export const DEF_HIDDEN_STEPS = new Set(['complaint', 'prayer', 'service', 'summons']);
+const applicable = (c) => STEPS.filter((s) => (!s.only || s.only === (c.type === 'civil' ? 'civil' : 'criminal')) && !(sideOf(c) === 'defendant' && DEF_HIDDEN_STEPS.has(s.key)));
 const keyOf = (k) => k;
 
 /**

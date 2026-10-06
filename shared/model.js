@@ -17,7 +17,7 @@ export function newParty(role = 'plaintiff') {
 
 export function newCase(type = 'criminal') {
   return {
-    id: uid(), title: '', type, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    id: uid(), title: '', type, side: 'plaintiff', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     court: '', caseNoBlack: '', caseYearBlack: '', caseNoRed: '', caseYearRed: '',
     date: todayParts(),
     amount: { baht: '', satang: '' },
@@ -48,6 +48,49 @@ export function newCase(type = 'criminal') {
     options: { thaiDigits: true, autoFill: true, selfWitness: true },
     closing: { mode: 'self' },                    // ข้อท้ายคำฟ้อง: self = ไม่ได้ร้องทุกข์ ประสงค์ดำเนินคดีเอง | police = ร้องทุกข์ต่อพนักงานสอบสวนแล้ว
   };
+}
+
+// ---------- ฝั่งโจทก์ / ฝั่งจำเลย ในคดีเดียวกัน ----------
+// ช่องข้อมูลที่แยกตามฝั่ง: ฝั่งที่เปิดอยู่ (c.side) อยู่ในช่องปกติของคดี (c.court, c.parties, c.witnesses …) ทำให้แท็บ/เอกสารเดิมทำงานได้ทุกอย่างโดยไม่ต้องแก้
+// ส่วนอีกฝั่งเก็บพักไว้ที่ c.stash แล้วสลับกันด้วย switchSide — ฝั่งจำเลยมีข้อมูลคดี คู่ความ ทนาย พยาน คำร้อง คำให้การ ชุดเอกสารของตัวเอง
+export const SIDE_KEYS = ['court', 'caseNoBlack', 'caseYearBlack', 'caseNoRed', 'caseYearRed', 'date', 'receivedDate', 'parties', 'counsel', 'witnesses', 'witnessExtraRound', 'motions', 'answer', 'docs', 'vars', 'copies', 'proxy', 'powers'];
+export const SIDE_LABEL = { plaintiff: 'ฝั่งโจทก์', defendant: 'ฝั่งจำเลย' };
+export const sideOf = (c) => (c?.side === 'defendant' ? 'defendant' : 'plaintiff');
+/** ชุดเอกสารเริ่มต้นของฝั่งจำเลย: บัญชีพยานจำเลย · คำร้อง/คำแถลง · หมายเรียกพยาน · คำให้การ (ไม่มีคำฟ้อง/คำขอท้ายฟ้อง/หมายนัดไต่สวน) */
+const DEF_DOCS = { complaint: false, prayer: false, attachment: false, service: false, witness: true, witnessExtra: true, witnessSummons: true, summons: false, attorney: false, proxy: false, motions: true, answer: true, settlement: false };
+
+/** ข้อมูลฝั่งจำเลยเริ่มต้น: คัดชื่อโจทก์/จำเลย ศาล เลขคดีดำ จากฝั่งโจทก์มาให้ก่อน (แก้ได้) ; วันที่รับฟ้องว่างไว้ให้กรอก */
+export function defaultDefendantSlots(c) {
+  const fresh = newCase(c.type);
+  const copy = (v) => JSON.parse(JSON.stringify(v));
+  return {
+    court: c.court || '', caseNoBlack: c.caseNoBlack || '', caseYearBlack: c.caseYearBlack || '', caseNoRed: '', caseYearRed: '',
+    date: fresh.date, receivedDate: '',
+    parties: copy(c.parties || fresh.parties).map((p) => ({ ...p, id: uid() })),
+    counsel: fresh.counsel, witnesses: [], witnessExtraRound: '', motions: [], answer: { defendantId: '', templateId: '', text: '' },
+    docs: { ...fresh.docs, ...DEF_DOCS }, vars: {}, copies: '', proxy: fresh.proxy, powers: '',
+  };
+}
+
+/** สลับฝั่งที่เปิดอยู่ (เปลี่ยน c โดยตรง) — ครั้งแรกที่เปิดฝั่งจำเลยจะสร้างข้อมูลเริ่มต้นให้ */
+export function switchSide(c, side) {
+  const to = side === 'defendant' ? 'defendant' : 'plaintiff';
+  if (sideOf(c) === to) return c;
+  const cur = Object.fromEntries(SIDE_KEYS.map((k) => [k, c[k]]));
+  const next = c.stash && typeof c.stash === 'object' && c.stash.parties ? c.stash : (to === 'defendant' ? defaultDefendantSlots(c) : null);
+  if (!next) return c;
+  const base = newCase(c.type);
+  for (const k of SIDE_KEYS) if (k in next) c[k] = next[k];
+  c.parties = (c.parties || base.parties).map((p) => ({ ...newParty(p.role), ...p, address: { ...newParty().address, ...p.address } }));
+  c.counsel = { ...base.counsel, ...c.counsel, address: { ...base.counsel.address, ...c.counsel?.address } };
+  c.docs = { ...base.docs, ...c.docs };
+  c.date = { ...base.date, ...c.date };
+  c.answer = { ...base.answer, ...c.answer };
+  c.proxy = { ...base.proxy, ...c.proxy, holder: { ...base.proxy.holder, ...c.proxy?.holder } };
+  c.witnesses = c.witnesses || []; c.motions = c.motions || [];
+  c.stash = cur;
+  c.side = to;
+  return c;
 }
 
 /** คำขอพื้นฐานท้ายคำฟ้อง: ให้จำเลยชำระค่าฤชาธรรมเนียมศาลและค่าทนายความแทนโจทก์ — อยู่เป็นข้อสุดท้ายเสมอ */
@@ -309,6 +352,23 @@ export function validateCase(c, idx) {
   const out = [];
   const add = (level, msg, tab) => out.push({ level, msg, tab });
   const pl = plaintiffs(c), df = defendants(c);
+  if (sideOf(c) === 'defendant') {
+    // ฝั่งจำเลย: ตรวจเฉพาะข้อมูลที่ใช้ในเอกสารของจำเลย (ไม่มีข้อหา/ข้อเท็จจริง/คำขอ/เลขประชาชนโจทก์/การส่งหมาย)
+    if (!c.court) add('error', 'ยังไม่ได้ระบุศาล', 'case');
+    if (!pl.length || !df.length || ![...pl, ...df].every((p) => partyName(p))) add('error', 'ยังไม่ได้ระบุชื่อโจทก์/จำเลย', 'parties');
+    if (!filledStr(c.caseNoBlack)) add('warn', 'ยังไม่ได้ระบุเลขคดีดำ — เอกสารจะเว้นจุดไข่ปลาให้เขียนเติม', 'case');
+    if (!filledStr(c.receivedDate)) add('warn', 'ยังไม่ได้ระบุวันที่รับฟ้อง', 'case');
+    const unnamed = (c.witnesses || []).filter((w) => !wFilled(w.name));
+    if (unnamed.length) add('warn', `มีพยาน ${unnamed.length} รายการที่ยังไม่ระบุชื่อ/รายการ — ยังไม่อยู่ในบัญชีพยานและไม่มีหมายเรียก`, 'witness');
+    for (const g of witnessSummonsPlan(c)) {
+      for (const r of g.rows) {
+        const lbl = `${WITNESS_KINDS[witnessKind(r.w)]}ลำดับที่ ${r.no} (${r.w.name.trim()})`;
+        if (g.kind === 'person' && !witnessAddrText(r.w)) add('warn', `${lbl}: ยังไม่ระบุที่อยู่ — หมายเรียกจะเว้นที่อยู่ไว้ให้เขียนเติมเอง`, 'witness');
+        if (g.kind === 'item' && !wFilled(r.w.holder) && !witnessAddrText(r.w)) add('warn', `${lbl}: ยังไม่ระบุผู้ครอบครอง/ที่อยู่ — หมายเรียกจะเว้นไว้ให้เขียนเติมเอง`, 'witness');
+      }
+    }
+    return out;
+  }
   if (!c.court) add('error', 'ยังไม่ได้เลือกศาล', 'case');
   if (!pl.length) add('error', 'ยังไม่มีโจทก์', 'parties');
   if (!df.length) add('error', 'ยังไม่มีจำเลย', 'parties');
