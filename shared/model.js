@@ -53,7 +53,7 @@ export function newCase(type = 'criminal') {
 // ---------- ฝั่งโจทก์ / ฝั่งจำเลย ในคดีเดียวกัน ----------
 // ช่องข้อมูลที่แยกตามฝั่ง: ฝั่งที่เปิดอยู่ (c.side) อยู่ในช่องปกติของคดี (c.court, c.parties, c.witnesses …) ทำให้แท็บ/เอกสารเดิมทำงานได้ทุกอย่างโดยไม่ต้องแก้
 // ส่วนอีกฝั่งเก็บพักไว้ที่ c.stash แล้วสลับกันด้วย switchSide — ฝั่งจำเลยมีข้อมูลคดี คู่ความ ทนาย พยาน คำร้อง คำให้การ ชุดเอกสารของตัวเอง
-export const SIDE_KEYS = ['court', 'caseNoBlack', 'caseYearBlack', 'caseNoRed', 'caseYearRed', 'date', 'receivedDate', 'parties', 'counsel', 'witnesses', 'witnessExtraRound', 'motions', 'answer', 'docs', 'vars', 'copies', 'proxy', 'powers'];
+export const SIDE_KEYS = ['court', 'caseNoBlack', 'caseYearBlack', 'caseNoRed', 'caseYearRed', 'date', 'receivedDate', 'parties', 'counsel', 'witnesses', 'witnessExtraRound', 'motions', 'answer', 'docs', 'options', 'vars', 'copies', 'proxy', 'powers'];
 export const SIDE_LABEL = { plaintiff: 'ฝั่งโจทก์', defendant: 'ฝั่งจำเลย' };
 export const sideOf = (c) => (c?.side === 'defendant' ? 'defendant' : 'plaintiff');
 /** ชุดเอกสารเริ่มต้นของฝั่งจำเลย: บัญชีพยานจำเลย · คำร้อง/คำแถลง · หมายเรียกพยาน · คำให้การ (ไม่มีคำฟ้อง/คำขอท้ายฟ้อง/หมายนัดไต่สวน) */
@@ -68,7 +68,7 @@ export function defaultDefendantSlots(c) {
     date: fresh.date, receivedDate: '',
     parties: copy(c.parties || fresh.parties).map((p) => ({ ...p, id: uid() })),
     counsel: fresh.counsel, witnesses: [], witnessExtraRound: '', motions: [], answer: { defendantId: '', templateId: '', text: '' },
-    docs: { ...fresh.docs, ...DEF_DOCS }, vars: {}, copies: '', proxy: fresh.proxy, powers: '',
+    docs: { ...fresh.docs, ...DEF_DOCS }, options: { ...fresh.options, ...(c.options || {}), selfWitness: true }, vars: {}, copies: '', proxy: fresh.proxy, powers: '',
   };
 }
 
@@ -84,6 +84,7 @@ export function switchSide(c, side) {
   c.parties = (c.parties || base.parties).map((p) => ({ ...newParty(p.role), ...p, address: { ...newParty().address, ...p.address } }));
   c.counsel = { ...base.counsel, ...c.counsel, address: { ...base.counsel.address, ...c.counsel?.address } };
   c.docs = { ...base.docs, ...c.docs };
+  c.options = { ...base.options, ...c.options };
   c.date = { ...base.date, ...c.date };
   c.answer = { ...base.answer, ...c.answer };
   c.proxy = { ...base.proxy, ...c.proxy, holder: { ...base.proxy.holder, ...c.proxy?.holder } };
@@ -183,7 +184,7 @@ export function syncWitnessSummons(w, changed) {
  */
 export function witnessList(c, which = 'all') {
   const own = (c.witnesses || []).filter((w) => wFilled(w.name));
-  const selfW = c.options?.selfWitness === false ? [] : plaintiffs(c)
+  const selfW = c.options?.selfWitness === false ? [] : (sideOf(c) === 'defendant' ? defendants(c) : plaintiffs(c))  // ฝ่ายผู้ยื่น: ฝั่งโจทก์ = โจทก์อ้างตนเอง · ฝั่งจำเลย = จำเลยอ้างตนเอง
     .filter((x) => partyName(x) && !own.some((w) => w.name === partyName(x)))
     .map((x) => ({ id: `self-${x.id}`, kind: 'person', name: partyName(x), addr: x.address, address: '', phone: x.phone || '', note: 'นำ', self: true }));
   const all = [...selfW, ...own.filter((w) => !w.extra), ...own.filter((w) => w.extra)].map((w, i) => ({ no: i + 1, w, self: !!w.self }));

@@ -717,7 +717,7 @@ function tabWitness() {
     ${filed ? '' : `<button class="btn outline" data-act="addWit" data-kind="person" data-extra="1" title="พยานที่เพิ่มภายหลังยื่นฟ้อง — ลงบัญชีพยาน (เพิ่มเติม) ครั้งที่ …">${icon('plus', { size: 16 })}<span>พยานเพิ่มเติม</span></button>`}
     <select class="sel-inline wit-from" data-onchange="witFromParty" aria-label="เพิ่มพยานจากรายชื่อคู่ความ"><option value="">เพิ่มจากรายชื่อคู่ความ…</option>${S.c.parties.map((p) => `<option value="${esc(p.id)}">${esc(partyLabel(S.c, p))}: ${esc(partyName(p))}</option>`).join('')}</select>
   </div>
-  <div class="panel compact">${check('โจทก์อ้างตนเองเป็นพยาน (ค่าเริ่มต้น — ใส่ชื่อโจทก์เป็นลำดับแรกในบัญชีพยานให้อัตโนมัติ)', 'options.selfWitness', { rerender: true, sw: true })}</div>
+  <div class="panel compact">${check(sideOf(S.c) === 'defendant' ? 'จำเลยอ้างตนเองเป็นพยาน (ค่าเริ่มต้น — ใส่ชื่อจำเลยเป็นลำดับแรกในบัญชีพยานให้อัตโนมัติ)' : 'โจทก์อ้างตนเองเป็นพยาน (ค่าเริ่มต้น — ใส่ชื่อโจทก์เป็นลำดับแรกในบัญชีพยานให้อัตโนมัติ)', 'options.selfWitness', { rerender: true, sw: true })}</div>
   ${witnessExtraPanel()}
   ${witnessSummonsPanel()}
   ${w.length ? `<p class="hint list-count">${w.length} รายการที่เพิ่มเอง · พยานบุคคล ${nPerson} · เอกสาร/วัตถุ ${w.length - nPerson}${nExtra ? ` · เพิ่มเติมภายหลังยื่นฟ้อง ${nExtra}` : ''}${unnamed ? ` · ยังไม่ระบุชื่อ ${unnamed} (ยังไม่นับในบัญชีและไม่ออกหมาย)` : ''}</p>` : ''}
