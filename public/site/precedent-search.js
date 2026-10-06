@@ -112,7 +112,13 @@ function init() {
     const keepY = yearSel.value, keepT = typeSel.value, keepL = lawSel.value || want.law;
     yearSel.length = 1; for (const r of f.years) yearSel.add(new Option(`พ.ศ. ${r.year} (${num(r.n)})`, String(r.year)));
     typeSel.length = 1; for (const r of f.types) typeSel.add(new Option(`คดี${r.type} (${num(r.n)})`, r.type));
-    lawSel.length = 1; for (const r of f.laws) lawSel.add(new Option(`${r.name || r.abbr} (${r.abbr}) · ${num(r.n)}`, r.abbr));
+    // ชื่อกฎหมายบางฉบับยาวและมีวงเล็บซ้ำกับชื่อย่อ → ตัดวงเล็บท้ายชื่อ ใส่ชื่อย่อสั้น ๆ แทน และจำกัดความยาวไม่ให้ดรอปดาวน์ล้นจอ (ชื่อเต็มอยู่ใน title)
+    const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+    lawSel.length = 1; for (const r of f.laws) {
+      const full = String(r.name || r.abbr), base = full.replace(/\s*\([^()]*\)\s*$/, '') || full;
+      const short = r.abbr && r.abbr.length <= 14 && base !== r.abbr ? ` (${r.abbr})` : '';
+      const o = new Option(`${clip(base, 44)}${short} · ${num(r.n)}`, r.abbr); o.title = full; lawSel.add(o);
+    }
     yearSel.value = keepY; typeSel.value = keepT; if (keepL) lawSel.value = keepL;
   }).catch(() => {});
   // เปิดหน้ามาแสดงฎีกาจากคลังทันที (ไม่มีเงื่อนไข = ล่าสุดก่อน) ไม่ต้องรอให้พิมพ์ค้น
