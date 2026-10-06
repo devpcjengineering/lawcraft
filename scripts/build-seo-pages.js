@@ -436,7 +436,7 @@ ${fees.items.map((f) => `<tr><th scope="row">${esc(f.title)}${f.verified === fal
     // ---------------- เขตอำนาจศาล ----------------
     const provPath = (p) => `/jurisdiction/${p.slug}/`;
     const asOf = thaiDate(D.jurisdiction?.asOf);
-    const asOfWarn = `ข้อมูลรายอำเภอ/เขตมาจากระบบสืบค้นเขตอำนาจศาลของสำนักงานศาลยุติธรรม${asOf ? ` ณ ${asOf}` : ''} อาจไม่รวมศาลที่จัดตั้งหรือเปลี่ยนแปลงเขตอำนาจภายหลังจากนั้น โปรดตรวจสอบกับศาลหรือสำนักงานศาลยุติธรรมก่อนยื่นฟ้องทุกครั้ง`;
+    const asOfWarn = `ข้อมูลรายอำเภอ/เขตมาจากระบบสืบค้นเขตอำนาจศาลของสำนักงานศาลยุติธรรม${asOf ? ` ยืนยันข้อมูลอัปเดตล่าสุด ${asOf}` : ''} โปรดตรวจสอบกับศาลหรือสำนักงานศาลยุติธรรมก่อนยื่นฟ้องทุกครั้ง`;
     const listCourts = (cs, p, scopeNeed) => {
       const sel = cs.filter((c) => (c.cat === 'main' && (c.scope === 'both' || c.scope === scopeNeed || !c.scope)) || c.cat === 'mag');
       return sel.map((c) => {
@@ -513,7 +513,7 @@ ${p.dirList.map((c) => `<tr><th scope="row">${esc(c.name)}</th><td>${esc(CAT_LAB
         const diff = p.rows.find((r) => sig(r) !== sig(first));
         for (const r of [first, diff].filter(Boolean)) sampleRows.push([p, r]);
       }
-      const exTbl = `<div class="tw"><table><caption>ตัวอย่างศาลที่มีเขตอำนาจ แยกตามอำเภอ/เขต (จากข้อมูล ณ ${esc(asOf)})</caption><thead><tr><th scope="col">จังหวัด</th><th scope="col">อำเภอ/เขต</th><th scope="col">ศาลชั้นต้น</th><th scope="col">ศาลแขวง</th></tr></thead><tbody>
+      const exTbl = `<div class="tw"><table><caption>ตัวอย่างศาลที่มีเขตอำนาจ แยกตามอำเภอ/เขต (ข้อมูลยืนยันอัปเดตล่าสุด ${esc(asOf)})</caption><thead><tr><th scope="col">จังหวัด</th><th scope="col">อำเภอ/เขต</th><th scope="col">ศาลชั้นต้น</th><th scope="col">ศาลแขวง</th></tr></thead><tbody>
 ${sampleRows.map(([p, r]) => `<tr><th scope="row">${A(provPath(p), esc(p.name))}</th><td>${p.W.d}${esc(r.name)}</td><td>${esc(names(r.main, 3)) || '—'}</td><td>${esc(names(r.mag, 2)) || '—'}</td></tr>`).join('\n')}
 </tbody></table></div>`;
 
@@ -605,7 +605,7 @@ ${sampleRows.map(([p, r]) => `<tr><th scope="row">${A(provPath(p), esc(p.name))}
       ${arts.map((a) => `<li><a href="/articles/?a=${esc(a.slug)}">${esc(a.title)}</a></li>`).join('\n      ')}
     </ul>
     ${ctaBox('เลือกศาลแล้ว ร่างคำฟ้องต่อได้เลย', 'เตรียมคำฟ้องและเอกสารยื่นศาลตามแบบพิมพ์ศาลยุติธรรมในระบบร่างคำฟ้อง หรือส่งเรื่องให้เจ้าหน้าที่ตรวจสอบเบื้องต้นก่อน การส่งข้อความไม่ใช่การว่าจ้างทนายความ', `${btn('/workspace/', 'เข้าสู่ระบบร่างคำฟ้อง')}${btn('/contact/', 'ติดต่อปรึกษากฎหมาย', 'ghost')}`)}
-    <div class="note warn"><p><b>ข้อมูลรายอำเภอ/เขตเป็นข้อมูล ณ ${esc(asOf)}</b> — ศาลอาจจัดตั้งใหม่หรือเปลี่ยนเขตอำนาจภายหลังจากนั้น โปรดตรวจสอบกับศาลหรือสำนักงานศาลยุติธรรมก่อนยื่นฟ้องทุกครั้ง</p></div>
+    <div class="note warn"><p><b>ข้อมูลรายอำเภอ/เขตยืนยันอัปเดตล่าสุด ${esc(asOf)}</b> — โปรดตรวจสอบกับศาลหรือสำนักงานศาลยุติธรรมก่อนยื่นฟ้องทุกครั้ง</p></div>
     ${noteEdu}`;
       add({
         type: 'hub', path: '/jurisdiction/', title: fit(60, `เขตอำนาจศาล ฟ้องคดีแพ่ง คดีอาญา ศาลไหน ค้นหาศาล${BRAND}`, 'เขตอำนาจศาล ฟ้องคดีแพ่ง คดีอาญา ศาลไหน ค้นหาศาล', 'เขตอำนาจศาล ฟ้องที่ศาลไหน ค้นหาศาล'),

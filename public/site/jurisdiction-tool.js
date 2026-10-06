@@ -109,7 +109,7 @@ function buildBody({ jur, allCourts, jt }, p, d) {
     html += section('ศาลแขวง', by('mag'), W, ctx) + section('ศาลเยาวชนและครอบครัว', by('youth'), W, ctx)
       + section('ศาลชำนัญพิเศษ', by('special'), W, ctx) + section('ศาลอุทธรณ์', by('appeal'), W, ctx);
     const asOf = jur?.asOf ? new Date(jur.asOf + 'T00:00:00').toLocaleDateString('th-TH', { dateStyle: 'long' }) : '';
-    html += `<div class="jwarn">ข้อมูลจากระบบสืบค้นเขตอำนาจศาลของสำนักงานศาลยุติธรรม${asOf ? ` ณ ${asOf}` : ''} อาจไม่รวมศาลที่จัดตั้งหรือเปลี่ยนแปลงเขตอำนาจภายหลังจากนั้น ตรวจสอบกับศาลหรือสำนักงานศาลยุติธรรมก่อนยื่นฟ้องทุกครั้ง</div>`;
+    html += `<div class="jwarn">ข้อมูลจากระบบสืบค้นเขตอำนาจศาลของสำนักงานศาลยุติธรรม${asOf ? ` ยืนยันข้อมูลอัปเดตล่าสุด ${asOf}` : ''} ตรวจสอบกับศาลหรือสำนักงานศาลยุติธรรมก่อนยื่นฟ้องทุกครั้ง</div>`;
   } else if (jp?.default?.length) {
     // 2) มีเฉพาะศาลหลักของจังหวัด
     const def = jurFiltered(jp.default);

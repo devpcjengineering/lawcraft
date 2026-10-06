@@ -45,7 +45,7 @@ function parseCourts(html) {
   return out;
 }
 
-const AS_OF = '2018-08-01'; // วันที่ข้อมูลตามที่หน้าเว็บของสำนักงานศาลยุติธรรมระบุ ("ข้อมูล ณ วันที่ 1 สิงหาคม 2561")
+const AS_OF = '2026-03-20'; // วันที่ยืนยันข้อมูลล่าสุด (ผู้ดูแลยืนยัน 20 มีนาคม 2569; หน้าเว็บต้นทางเดิมระบุ ณ 1 สิงหาคม 2561)
 const BASIS = 'ระบบสืบค้นเขตอำนาจศาล สำนักงานศาลยุติธรรม (ข้อมูล ณ 1 ส.ค. 2561)';
 const tag = (c) => ({ ...c, verified: true, basis: BASIS });
 const strip = (v) => v.replace(/^(เขต|อ\.|อำเภอ)\s*/, '').trim();
@@ -104,7 +104,7 @@ const out = {
   source: 'สำนักงานศาลยุติธรรม — ระบบสืบค้นเขตอำนาจศาล https://pubdata.coj.go.th/jurisdiction/',
   fetchedAt: new Date().toISOString().slice(0, 10),
   asOf: AS_OF,
-  note: 'ข้อมูลทางการรายอำเภอ/เขต ณ 1 ส.ค. 2561 (ตามที่ระบบของสำนักงานศาลยุติธรรมระบุ) อาจไม่รวมศาลที่จัดตั้งใหม่ภายหลัง. districts[ชื่อ] = รายการศาลที่มีเขตอำนาจ รวมศาลชั้นต้น ศาลชำนัญพิเศษ และศาลอุทธรณ์ (type: first | juvenile | specialized | appeal). default = ศาลชั้นต้นที่พบบ่อยในจังหวัด',
+  note: 'ข้อมูลรายอำเภอ/เขตจากระบบสืบค้นเขตอำนาจศาลของสำนักงานศาลยุติธรรม ยืนยันข้อมูลอัปเดตล่าสุด 20 มี.ค. 2569.districts[ชื่อ] = รายการศาลที่มีเขตอำนาจ รวมศาลชั้นต้น ศาลชำนัญพิเศษ และศาลอุทธรณ์ (type: first | juvenile | specialized | appeal). default = ศาลชั้นต้นที่พบบ่อยในจังหวัด',
   coverage: { provinces: provinces.length, districts: total, districtsWithCourts: withCourts },
   provinces: result,
 };
