@@ -322,8 +322,9 @@ function tabCounsel() {
   const h = c.proxy?.holder || {};
   const proxyFilled = !!(h.first || h.last || h.idCard || h.phone || c.proxy?.purpose);
   return `
-  ${pageHead('ผู้เรียงพิมพ์ / ทนายความ', 'ใช้ออกใบแต่งทนายความ — ถ้าโจทก์ทำเอง ปล่อยปิดไว้ ระบบใช้ชื่อโจทก์เป็นผู้เรียงและพิมพ์')}
-  <div class="panel"><div class="toolbar tight">${check('มีทนายความ / ผู้เรียงพิมพ์ที่ไม่ใช่โจทก์', 'counsel.enabled', { rerender: true, sw: true })}
+  ${pageHead('ผู้เรียงพิมพ์ / ทนายความ', `ใช้ออกใบแต่งทนายความ (แบบ ๙) — ถ้า${sideOf(c) === 'defendant' ? 'จำเลย' : 'โจทก์'}ทำเอง ปล่อยปิดไว้ ระบบใช้ชื่อ${sideOf(c) === 'defendant' ? 'จำเลย' : 'โจทก์'}เป็นผู้เรียงและพิมพ์`)}
+  <div class="panel"><div class="toolbar tight">${check(`มีทนายความ / ผู้เรียงพิมพ์ที่ไม่ใช่${sideOf(c) === 'defendant' ? 'จำเลย' : 'โจทก์'}`, 'counsel.enabled', { rerender: true, sw: true })}
+    ${cn.enabled ? check('ออกใบแต่งทนายความ (แบบ ๙) ในชุดเอกสาร', 'docs.attorney', { rerender: true, sw: true }) : ''}
     <span class="grow"></span>
     ${cn.enabled ? `${mine.length ? `<select class="sel-inline" data-onchange="useCounsel" aria-label="เลือกจากสมุดรายชื่อ"><option value="">เลือกจากสมุดรายชื่อ…</option>${mine.map((x) => `<option value="${esc(x.id)}">${esc(x.label)}</option>`).join('')}</select>` : ''}
     <button class="btn sm outline" data-act="saveCounsel">${icon('bookmark', { size: 15 })}บันทึกลงสมุดรายชื่อ</button>` : ''}</div>
@@ -341,7 +342,7 @@ function tabCounsel() {
       ${group('อำนาจที่มอบ', field('อำนาจที่มอบให้ทนายความเพิ่มเติม (ช่อง * ในใบแต่งทนายความ)', 'counsel.powers', { cls: 's12', type: 'textarea', rows: 2, hint: 'ตาม ป.วิ.พ. มาตรา 62 ต้องระบุชัดแจ้ง เช่น ถอนฟ้อง ประนีประนอมยอมความ อุทธรณ์/ฎีกา — ไม่ระบุหากไม่ให้อำนาจ' }))}
     </div>` : ''}
   </div>
-  ${disclose('proxy', '<span class="sum-main"><span class="sum-title">ใบมอบอำนาจ (ถ้าใช้)</span><span class="sum-meta">ผู้มอบอำนาจ = โจทก์คนแรก</span></span>', `
+  ${disclose('proxy', `<span class="sum-main"><span class="sum-title">ใบมอบอำนาจ (ถ้าใช้)</span><span class="sum-meta">ผู้มอบอำนาจ = ${sideOf(c) === 'defendant' ? 'จำเลย' : 'โจทก์'}คนแรก</span></span>`, `
     ${group('ผู้รับมอบอำนาจ', `
       ${proxyPicker()}
       ${field('คำนำหน้า', 'proxy.holder.prefix', { cls: 's3', list: 'dl-prefix' })}
@@ -921,9 +922,12 @@ function tabComplaint() {
 // ค่านำหมาย: จำเลยคนเดียว = กรอกอัตราเอง · จำเลยหลายคน = บวกค่านำหมายของจำเลยแต่ละคน แสดงยอดรวมแก้เองไม่ได้
 function feeBlock() {
   const fi = serviceFeeInfo(S.c), baht = (n) => n.toLocaleString('th-TH');
-  if (!fi.multi) return field('อัตราค่านำหมาย (บาท)', 'service.fee', { cls: 's6', type: 'number' });
+  const pick = `<div class="f s12"><span>วิธีส่งหมาย / อัตราค่านำหมาย</span>${seg('service.deliver', [['ems', 'ไปรษณีย์ตอบรับด่วนพิเศษ'], ['officer', 'ส่งโดยเจ้าพนักงาน'], ['self', 'โจทก์/อัยการจัดการเอง']], { rerender: true, label: 'วิธีส่งหมาย' })}</div>`;
+  if (fi.deliver === 'self') return `${pick}<p class="hint hint-row flush">โจทก์ (หรืออัยการ ถ้าอัยการเป็นโจทก์) จัดการส่งเอง — ไม่มีค่านำหมายในส่วนนี้</p>`;
+  if (fi.deliver === 'officer') return `${pick}<p class="hint hint-row flush">ส่งโดยเจ้าพนักงานตามอัตราของศาลปลายทาง — คำร้องไม่ระบุตัวเลข ชำระตามที่ศาลแจ้ง</p>`;
+  if (!fi.multi) return `${pick}<p class="hint hint-row flush">ไปรษณีย์ตอบรับด่วนพิเศษ อัตราค่านำหมาย <b>${baht(fi.unit)} บาท</b></p>`;
   const rows = defendants(S.c).map((d) => `<li><span>${esc(partyLabel(S.c, d))}${partyName(d) ? ` · ${esc(partyName(d))}` : ''}</span><b>${baht(fi.unit)} บาท</b></li>`).join('');
-  return `<div class="f s12 fee-sum"><span>ค่านำหมายรวม (บวกของจำเลยแต่ละคน — แก้ยอดรวมเองไม่ได้)</span>
+  return `${pick}<div class="f s12 fee-sum"><span>ค่านำหมายรวม (บวกของจำเลยแต่ละคน — แก้ยอดรวมเองไม่ได้)</span>
     <ul class="fee-list">${rows}</ul>
     <div class="fee-total"><span>รวม ${fi.n} คน</span><output aria-live="polite"><b>${baht(fi.total)}</b> บาท</output></div>
     <p class="hint flush">อัตราต่อจำเลย 1 คนตั้งไว้ ${baht(fi.unit)} บาท ยอดรวมคำนวณตามจำนวนจำเลยและใส่ในคำร้องให้เอง</p></div>`;

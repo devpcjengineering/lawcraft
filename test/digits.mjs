@@ -167,10 +167,13 @@ for (const [name, c] of Object.entries(CASES)) {
 {
   const c = build('civil', {});
   c.amount = { baht: '๑๒๓,๔๕๖', satang: '๕๐' };
-  c.service.fee = '๑,๓๐๐';
   c.date = { d: '๕', m: '๑๐', y: '๒๕๖๙' };
   c.parties[0].idCard = '๑๑๐๑๗๐๐๒๐๗๐๓๐';
-  assert.equal(serviceFeeInfo(c).unit, 1300);
+  // อัตราค่านำหมาย: ไปรษณีย์ตอบรับด่วนพิเศษ = 80 บาท/จำเลย 1 คน · เจ้าพนักงาน/โจทก์จัดการเอง = ไม่มีตัวเลข
+  assert.equal(serviceFeeInfo(c).unit, 80);
+  c.service.deliver = 'officer'; assert.equal(serviceFeeInfo(c).unit, 0);
+  c.service.deliver = 'self'; assert.equal(serviceFeeInfo(c).unit, 0);
+  c.service.deliver = 'ems';
   assert.ok(!validateCase(c, idx).some((i) => /ทุนทรัพย์|เลขประจำตัวประชาชนของโจทก์/.test(i.msg)), 'เลขไทยที่พิมพ์ต้องผ่านการตรวจ');
   const docs = buildDocuments(c, data);
   const amount = docs.find((d) => d.id === 'complaint').blocks.find((b) => b.t === 'amount');

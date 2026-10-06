@@ -38,13 +38,13 @@ export function newCase(type = 'criminal') {
     civilCause: '',                               // คดีแพ่ง: เรื่อง/มูลคดี
     witnesses: [],                                // [newWitness()] — kind: person | object | document (ดู newWitness / witnessSummonsPlan)
     motions: [],                                  // [{id, title, ids:[snippetId], text}]
-    service: { auto: true, mode: 'post', custom: false, text: '', fee: '1300', court: '' },   // mode: cross-post | post | cross | none
+    service: { auto: true, mode: 'post', custom: false, text: '', fee: '', deliver: 'ems', court: '' },   // mode: cross-post | post | cross | none
     powers: '',
     proxy: { holder: newParty('proxy'), purpose: '' },
     hearing: { date: '', time: '' },
     answer: { defendantId: '', templateId: '', text: '' },               // คำให้การจำเลย (แบบ ๑๑)
     settlement: { templateId: '', subject: '', clauses: [] },            // สัญญาประนีประนอมยอมความ (แบบ ๒๙)
-    docs: { complaint: true, prayer: true, attachment: true, service: true, witness: true, witnessExtra: true, witnessSummons: true, summons: true, attorney: false, proxy: false, motions: true, answer: false, settlement: false },
+    docs: { complaint: true, prayer: true, attachment: true, service: true, witness: true, witnessExtra: true, witnessSummons: true, summons: true, attorney: true, proxy: false, motions: true, answer: false, settlement: false },   // attorney: ออกใบแต่งทนายความเมื่อเปิด “มีทนายความ” (counsel.enabled) — ทั้งฝั่งโจทก์และฝั่งจำเลย
     options: { thaiDigits: true, autoFill: true, selfWitness: true },
     closing: { mode: 'self' },                    // ข้อท้ายคำฟ้อง: self = ไม่ได้ร้องทุกข์ ประสงค์ดำเนินคดีเอง | police = ร้องทุกข์ต่อพนักงานสอบสวนแล้ว
   };
@@ -57,7 +57,7 @@ export const SIDE_KEYS = ['court', 'caseNoBlack', 'caseYearBlack', 'caseNoRed', 
 export const SIDE_LABEL = { plaintiff: 'ฝั่งโจทก์', defendant: 'ฝั่งจำเลย' };
 export const sideOf = (c) => (c?.side === 'defendant' ? 'defendant' : 'plaintiff');
 /** ชุดเอกสารเริ่มต้นของฝั่งจำเลย: บัญชีพยานจำเลย · คำร้อง/คำแถลง · หมายเรียกพยาน · คำให้การ (ไม่มีคำฟ้อง/คำขอท้ายฟ้อง/หมายนัดไต่สวน) */
-const DEF_DOCS = { complaint: false, prayer: false, attachment: false, service: false, witness: true, witnessExtra: true, witnessSummons: true, summons: false, attorney: false, proxy: false, motions: true, answer: true, settlement: false };
+const DEF_DOCS = { complaint: false, prayer: false, attachment: false, service: false, witness: true, witnessExtra: true, witnessSummons: true, summons: false, attorney: true, proxy: false, motions: true, answer: true, settlement: false };
 
 /** ข้อมูลฝั่งจำเลยเริ่มต้น: คัดชื่อโจทก์/จำเลย ศาล เลขคดีดำ จากฝั่งโจทก์มาให้ก่อน (แก้ได้) ; วันที่รับฟ้องว่างไว้ให้กรอก */
 export function defaultDefendantSlots(c) {
@@ -504,10 +504,14 @@ export function caseListInfo(c) {
   };
 }
 /** ค่านำหมาย/ปิดหมาย: จำเลยหลายคน = บวกค่านำหมายของจำเลยแต่ละคน (ไม่ให้แก้ยอดรวมเอง) — unit = อัตราต่อจำเลย 1 คน */
+// วิธีส่งหมาย (service.deliver): ems = ไปรษณีย์ตอบรับด่วนพิเศษ คิดตายตัว 80 บาท/จำเลย 1 คน · officer = ส่งโดยเจ้าพนักงานตามอัตราของศาลปลายทาง (ไม่ระบุตัวเลข) · self = โจทก์/อัยการจัดการส่งเอง ไม่มีค่านำหมายในส่วนนี้
+export const SERVICE_DELIVER = { ems: 'ไปรษณีย์ตอบรับด่วนพิเศษ', officer: 'ส่งโดยเจ้าพนักงาน', self: 'โจทก์/อัยการจัดการส่งเอง' };
+export const EMS_FEE = 80;
 export function serviceFeeInfo(c) {
   const n = Math.max(1, defendants(c).length);
-  const unit = Number(toArabicDigits(c?.service?.fee ?? '').replace(/[^\d.]/g, '')) || 0;
-  return { n, unit, total: unit * n, multi: n > 1 };
+  const sd = c?.service?.deliver, deliver = sd === 'officer' || sd === 'self' ? sd : 'ems';
+  const unit = deliver === 'ems' ? EMS_FEE : 0;
+  return { n, unit, total: unit * n, multi: n > 1, deliver };
 }
 
 export function caseTitle(c) {

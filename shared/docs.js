@@ -673,9 +673,14 @@ export function serviceMotionText(c, data) {
   if (mode.includes('post')) {
     const fi = serviceFeeInfo(c);
     const money = (n) => n.toLocaleString('en-US');
-    const feePhrase = fi.multi && fi.unit ? `อัตราค่านำหมายรวม ${money(fi.total)} บาท (จำเลยคนละ ${money(fi.unit)} บาท จำนวน ${fi.n} คน)` : `อัตราค่านำหมาย ${svc.fee || '...'} บาท`;
     const base = c.type === 'civil' ? 'ประมวลกฎหมายวิธีพิจารณาความแพ่ง มาตรา 79' : 'ประมวลกฎหมายวิธีพิจารณาความแพ่ง มาตรา 79 ประกอบประมวลกฎหมายวิธีพิจารณาความอาญา มาตรา 15';
-    out.push(`หากเจ้าพนักงานเดินหมายไปส่งแล้วไม่พบ${dfWord} หรือไม่มีผู้ใดยอมรับไว้แทน โจทก์ขอให้ศาลอนุญาตให้ส่งโดยวิธีปิดหมาย ณ ภูมิลำเนาของ${dfWord}ดังกล่าว ตาม${base} โดยมี${feePhrase} โจทก์จะเป็นผู้ชำระแก่ศาลตามระเบียบต่อไป`);
+    const lead = `หากเจ้าพนักงานเดินหมายไปส่งแล้วไม่พบ${dfWord} หรือไม่มีผู้ใดยอมรับไว้แทน โจทก์ขอให้ศาลอนุญาตให้ส่งโดยวิธีปิดหมาย ณ ภูมิลำเนาของ${dfWord}ดังกล่าว ตาม${base}`;
+    if (fi.deliver === 'self') out.push(`${lead} โดยโจทก์จะเป็นผู้จัดการส่งเอง จึงไม่มีค่านำหมายในส่วนนี้`);
+    else if (fi.deliver === 'officer') out.push(`${lead} โดยส่งโดยเจ้าพนักงานตามอัตราของศาลปลายทาง โจทก์จะเป็นผู้ชำระแก่ศาลตามระเบียบต่อไป`);
+    else {
+      const feePhrase = fi.multi ? `อัตราค่านำหมายรวม ${money(fi.total)} บาท (จำเลยคนละ ${money(fi.unit)} บาท จำนวน ${fi.n} คน)` : `อัตราค่านำหมาย ${money(fi.unit)} บาท`;
+      out.push(`${lead} โดยส่งทางไปรษณีย์ตอบรับด่วนพิเศษ มี${feePhrase} โจทก์จะเป็นผู้ชำระแก่ศาลตามระเบียบต่อไป`);
+    }
   }
   return out.join('\n\n');
 }
@@ -735,7 +740,8 @@ export function buildDocuments(c, data, only) {
     if (df.length > 1) df.forEach((d) => docs.push(summonsDoc(c, idx, data, d)));
     else docs.push(summonsDoc(c, idx, data));
   }
-  if (want('attorney')) docs.push(attorneyDoc(c, idx));
+  // ใบแต่งทนายความ (แบบ ๙): ฝั่งโจทก์/จำเลยใช้ข้อมูลทนายของฝั่งตนเอง — ออกอัตโนมัติเมื่อเปิด “มีทนายความ” ; เลือกออกเองจากหน้าออกเอกสาร (only) ได้แม้ยังไม่เปิด (ได้แบบฟอร์มเว้นว่าง)
+  if (want('attorney') && (only || c.counsel?.enabled)) docs.push(attorneyDoc(c, idx));
   if (want('proxy')) docs.push(proxyDoc(c, idx));
   if (want('answer')) { const a = answerDoc(c, idx); if (a) docs.push(a); }
   if (want('settlement')) docs.push(settlementDoc(c, idx));
