@@ -397,7 +397,7 @@ dialog.modal .modal-card :focus:not(:focus-visible) {
 
   .login {
     min-height: 100dvh;
-    align-items: start;
+    align-items: center;
   }
 
   .login-card a {
@@ -2160,7 +2160,7 @@ dialog.modal::backdrop {
   .login-card {
     padding: 32px 20px 24px;
     border-radius: 22px;
-    margin-top: 2vh;
+    margin: 0 auto;
   }
 
   .login-back {

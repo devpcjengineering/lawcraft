@@ -43,7 +43,7 @@ for (const type of ['criminal', 'civil']) {
   assert.deepEqual([back[0].t, back[0].text, back[0].u, back[0].b], ['center', 'คำเตือน', true, true]);
   const head = back.find((b) => b.t === 'center' && /รายละเอียดที่ต้องจัดส่ง/.test(b.text));
   assert.equal(head.text, `รายละเอียดที่ต้องจัดส่งพยานหลักฐานตาม${type === 'civil' ? 'คำสั่งเรียก' : 'หมายเรียก'}ฉบับนี้`);
-  assert.ok(head.u && head.b);
+  assert.ok(head.b && !head.u, 'หัวเรื่องรายละเอียดท้ายหมายเรียก: ตัวหนา ไม่ขีดเส้นใต้');
   const items = back.filter((b) => b.t === 'p' && /^\(๑\)|^\(๒\)/.test(plain(b)));
   assert.equal(items.length, 2, `${type}: รายการ (๑) (๒)`);
   assert.ok(!back.some((b) => b.t === 'lines'), `${type}: ไม่มีเส้นประท้ายรายการ`);

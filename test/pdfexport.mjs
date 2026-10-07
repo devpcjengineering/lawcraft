@@ -47,6 +47,7 @@ c.charges = [{ itemId: it.id, related: [] }];
 c.incidentDate = '2026-05-01'; c.knownDate = '2026-05-02';
 c.facts = [{ id: 'f1', text: 'เมื่อวันที่ ๑ พฤษภาคม ๒๕๖๙ จำเลยได้บังอาจพูดจาดูหมิ่นโจทก์ต่อหน้าผู้อื่น ณ ถนนสมมติ ตำบลสมมติ อำเภอสมมติ จังหวัดเชียงราย อันเป็นการเหยียดหยามและดูถูกโจทก์ผู้เป็นเจ้าพนักงาน ฐานะผู้ปฏิบัติหน้าที่ตามกฎหมาย จำเลยกระทำโดยเจตนาให้โจทก์เสียหายและเสื่อมเสียเกียรติ เหตุเกิดที่ตำบลสมมติ อำเภอสมมติ จังหวัดเชียงราย ขอให้ศาลลงโทษจำเลยตามกฎหมาย', src: 'x' }];
 c.motions = [{ id: 'm1', title: 'ขอเลื่อนนัดสืบพยาน', kind: 'คำแถลง', text: 'โจทก์ขอยื่นคำแถลงนี้เพื่อประกอบการพิจารณาของศาล เนื่องจากพยานโจทก์ติดภารกิจสำคัญ ไม่สามารถมาเบิกความได้ในวันนัด จึงขอศาลได้โปรดอนุญาตให้เลื่อนนัดสืบพยานออกไป\\n\\nขอศาลได้โปรดพิจารณา' }]; // ใช้ตัวขีดฆ่า (.strike) ในหัวเอกสาร
+${process.env.PDFEXPORT_SCEN || ''}
 const docs = buildDocuments(c, data);
 await documentFontsReady();
 const htmls = docs.map((x) => paginateHtml(docHtml(x, data.layout)));
@@ -121,7 +122,7 @@ try {
   const send = (method, params = {}) => new Promise((r) => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
   const evalPage = async (expr) => { const ev = await send('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true }); if (ev.result?.exceptionDetails) throw new Error(ev.result.exceptionDetails.exception?.description || JSON.stringify(ev.result.exceptionDetails)); return ev.result?.result?.value; };
   await send('Page.enable'); await send('Runtime.enable');
-  await send('Emulation.setDeviceMetricsOverride', { width: 900, height: 1200, deviceScaleFactor: 1, mobile: false });
+  await send('Emulation.setDeviceMetricsOverride', { width: 900, height: 1200, deviceScaleFactor: Number(process.env.PDFEXPORT_DPR) || 1, mobile: false });
   await send('Page.navigate', { url: `http://127.0.0.1:${port}/css/doc.css` });
   await sleep(800);
 
@@ -155,7 +156,7 @@ try {
     await sleep(300);
     const shots = [];
     for (const [i, q] of r.rects.entries()) {
-      const s = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: q.x, y: q.y, width: q.w, height: q.h, scale: 1.5 } });
+      const s = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: q.x, y: q.y, width: q.w, height: q.h, scale: 1.5 / (Number(process.env.PDFEXPORT_DPR) || 1) } });
       const buf = Buffer.from(s.result.data, 'base64');
       fs.writeFileSync(path.join(outDir, `html-${String(i + 1).padStart(2, '0')}.png`), buf);
       shots.push(s.result.data);

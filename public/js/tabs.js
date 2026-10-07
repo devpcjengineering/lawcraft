@@ -204,8 +204,8 @@ function partyCard(p, i) {
       ${select('', base + '.role', [['plaintiff', 'โจทก์'], ['defendant', 'จำเลย']], { rerender: true, aria: 'บทบาทในคดี' })}
       ${select('', base + '.kind', [['person', 'บุคคลธรรมดา'], ['juristic', 'นิติบุคคล']], { rerender: true, aria: 'ประเภทบุคคล' })}
       <span class="grow"></span>
-      ${mine.length ? `<select data-onchange="usePerson" data-i="${i}" aria-label="เลือกจากสมุดรายชื่อ"><option value="">เลือกจากสมุดรายชื่อ…</option>${mine.map((x) => `<option value="${esc(x.id)}">${esc(x.label)}</option>`).join('')}</select>` : ''}
-      <button class="btn sm outline" data-act="savePerson" data-i="${i}" title="บันทึกไว้ใช้ซ้ำในคดีอื่น">${icon('bookmark', { size: 15 })}บันทึกลงสมุดรายชื่อ</button>
+      <div class="tb-book">${mine.length ? `<select data-onchange="usePerson" data-i="${i}" aria-label="เลือกจากสมุดรายชื่อ"><option value="">เลือกจากสมุดรายชื่อ…</option>${mine.map((x) => `<option value="${esc(x.id)}">${esc(x.label)}</option>`).join('')}</select>` : ''}
+      <button class="btn sm outline" data-act="savePerson" data-i="${i}" title="บันทึกไว้ใช้ซ้ำในคดีอื่น">${icon('bookmark', { size: 15 })}บันทึกลงสมุดรายชื่อ</button></div>
       ${S.c.parties.length > 2 ? `<button class="btn sm danger" data-act="delParty" data-i="${i}">${icon('trash', { size: 15 })}ลบคู่ความ</button>` : ''}
     </div>
     ${personFields(base, p)}
@@ -465,8 +465,8 @@ function tabCharges() {
   return `
   ${pageHead(kind === 'civil' ? 'มูลคดีแพ่ง' : 'ข้อหา / ฐานความผิด', 'เลือกกฎหมายและมาตรา ระบบดึงตัวบท โทษ และร่างข้อเท็จจริง/คำขอมาให้แก้ต่อ เพิ่มได้หลายข้อหา')}
   <div class="panel"><h3>เลือกข้อหา</h3><div class="grid">
-    <label class="f s4"><span>กฎหมาย</span><select data-onchange="setLaw"><option value="">ทุกฉบับ</option>${lawsHere.map((l) => `<option value="${esc(l.id)}" ${S.ui.law === l.id ? 'selected' : ''}>${esc(l.short ? l.short + ' — ' : '')}${esc(l.name)}</option>`).join('')}</select></label>
-    <label class="f s8"><span>ค้นหา (มาตรา / ชื่อข้อหา)</span><input type="search" id="charge-q" value="${esc(S.ui.q)}" data-oninput="setQ" placeholder="เช่น ฉ้อโกง, 341, หมิ่นประมาท"></label>
+    <label class="f s12"><span>กฎหมาย</span><select data-onchange="setLaw"><option value="">ทุกฉบับ</option>${lawsHere.map((l) => `<option value="${esc(l.id)}" ${S.ui.law === l.id ? 'selected' : ''}>${esc(l.short ? l.short + ' — ' : '')}${esc(l.name)}</option>`).join('')}</select></label>
+    <label class="f s12"><span>ค้นหา (มาตรา / ชื่อข้อหา)</span><input type="search" id="charge-q" value="${esc(S.ui.q)}" data-oninput="setQ" placeholder="เช่น ฉ้อโกง, 341, หมิ่นประมาท"></label>
     <label class="f s12"><span>ข้อหา <span class="hint">(พบ ${list.length} รายการ)</span></span><select id="charge-sel" size="1">${itemOptions() || '<option value="">— ไม่พบรายการ —</option>'}</select></label>
   </div>
   <div class="toolbar foot"><button class="btn primary" data-act="addCharge">${icon('plus', { size: 16 })}เพิ่มข้อหานี้</button>
@@ -537,10 +537,12 @@ actions.setQ = (el) => {
 };
 
 // ===================== ช่องตัวแปร + snippet =====================
-function varsPanel() {
+// onlyMissing = หน้าอื่นที่ไม่ใช่คำฟ้อง: แสดงเฉพาะตอนที่ยังมีช่องค้าง (กรอกครบแล้ว = ไปดู/แก้ที่หน้าคำฟ้องหน้าเดียว)
+function varsPanel(onlyMissing = false) {
   const vars = collectVars(S.c);
   if (!vars.length) return '';
   const missing = vars.filter((v) => !(S.c.vars[v] || '').trim()).length;
+  if (onlyMissing && !missing && sideOf(S.c) !== 'defendant') return ''; // ฝั่งจำเลยไม่มีหน้าคำฟ้อง จึงยังแสดงไว้แก้ค่าได้
   // ยังมีช่องค้าง = เปิดให้กรอก · ครบแล้ว = พับเก็บเหลือแถวเดียว (กดดู/แก้ค่าได้) ไม่ให้กินที่หน้าจอ
   const summary = `<span class="sum-main"><span class="sum-title">ช่องข้อมูลที่ต้องกรอก</span>${missing ? badge(`ค้าง ${missing}`, 'warn') : badge('ครบแล้ว', 'ok')}</span>`;
   const body = `<p class="hint">ข้อความ <code>{{…}}</code> ในร่างจะถูกแทนด้วยค่าที่กรอกที่นี่ ช่องที่ยังว่างจะเป็นแถบเหลืองในตัวอย่าง</p>
@@ -636,7 +638,7 @@ function interestPanel() {
 function tabPrayer() {
   const crim = S.c.type === 'criminal';
   return `${pageHead('คำขอท้ายคำฟ้อง', crim ? 'แบบ ๖ — ระบบใส่ “การที่จำเลยได้กระทำ… เป็นความผิดตามบทมาตรา …” ให้อัตโนมัติ' : 'แบบ ๕ คำขอท้ายคำฟ้องแพ่ง')}
-  ${varsPanel()}
+  ${varsPanel(true)}
   <div class="panel"><h3>การยื่น</h3><div class="grid">
     ${crim ? select('ขอให้ศาล', 'summonKind', ['ออกหมายนัดไต่สวนมูลฟ้อง/หมายเรียก', 'ออกหมายเรียก', 'ออกหมายจับ'], { cls: 's8', rerender: true }) : ''}
     ${field('จำนวนสำเนาคำฟ้องที่ยื่นมาด้วย (ฉบับ)', 'copies', { cls: crim ? 's4' : 's6', type: 'number' })}</div></div>
@@ -727,8 +729,8 @@ function witnessFields(x, i) {
       ${person ? field('ประเด็นที่จะให้พยานเบิกความ (ไม่บังคับ — พิมพ์ลงช่องว่างด้านหลังหมายเรียก)', `${base}.purpose`, { cls: 's12', type: 'textarea', rows: 2 }) : ''}
       ${field('หมายเหตุ (ลงในบัญชีพยาน)', `${base}.note`, { cls: 's6', list: 'dl-wnote', ph: 'นำ / หมายเรียก', hint: `หมายเหตุเป็นหลัก: พิมพ์ “หมายเรียก” = ขอให้ศาลออกหมาย · “นำ” = โจทก์นำมาเอง (ไม่ออกหมาย) · เว้นว่างหรือข้อความอื่น = ตามสวิตช์ด้านขวา (ระบบเติม “หมายเรียก”/“นำ” ลงบัญชีพยานให้)${person ? ' · พยานเป็นเด็กอายุไม่เกิน ๑๘ ปี ให้ระบุในช่องนี้' : ''}` })}
       <div class="f s6"><span>หมายเรียก</span>${check('ขอให้ศาลออกหมายเรียกพยานรายนี้', `${base}.summons`, { sw: true, rerender: true })}</div>
-      ${x.summons !== false && witnessNoteKeyword(x) !== 'นำ' ? `<div class="f s12 wit-deliver" role="group" aria-label="วิธีส่งหมายเรียก"><span>วิธีส่งหมายเรียก (ใช้ในคำร้องขอให้ศาลออกหมายเรียก)</span>${seg(`${base}.deliver`, [['ems', 'ไปรษณีย์ตอบรับด่วนพิเศษ'], ['officer', 'เจ้าพนักงานศาล']], { rerender: true, label: 'วิธีส่งหมายเรียก' })}
-        <small class="hint">${x.deliver === 'officer' ? 'ถ้าเจ้าพนักงานส่งไม่ได้เพราะไม่มีผู้รับหมายโดยชอบ คำร้องจะขอให้ศาลสั่งส่งโดยวิธีปิดหมาย' : 'ส่งทางไปรษณีย์ตอบรับด่วนพิเศษ (อัตราค่านำหมายตามระเบียบศาล)'}</small></div>
+      ${x.summons !== false && witnessNoteKeyword(x) !== 'นำ' ? `<div class="f s12 wit-deliver" role="group" aria-label="วิธีส่งหมายเรียก"><span>วิธีส่งหมายเรียก (ใช้ในคำร้องขอให้ศาลออกหมายเรียก)</span>${seg(`${base}.deliver`, [['ems', 'ไปรษณีย์ตอบรับด่วนพิเศษ'], ['officer', 'เจ้าพนักงานศาล'], ['self', 'ส่งเอง']], { rerender: true, label: 'วิธีส่งหมายเรียก' })}
+        <small class="hint">${x.deliver === 'officer' ? 'ถ้าเจ้าพนักงานส่งไม่ได้เพราะไม่มีผู้รับหมายโดยชอบ คำร้องจะขอให้ศาลสั่งส่งโดยวิธีปิดหมาย' : x.deliver === 'self' ? 'ส่งเอง: ต้องมีผู้ลงลายมือชื่อรับหมาย และนำหางหมายส่งคืนศาล (ปิดหมายไม่ได้)' : 'ไปรษณีย์ตอบรับด่วนพิเศษ: ต้องมีผู้ลงลายมือชื่อรับหมาย (ปิดหมายไม่ได้)'}</small></div>
       <div class="f s12">${check('พยาน/ผู้ครอบครองอยู่นอกเขตอำนาจของศาล — ขอส่งหมายผ่านศาลปลายทาง', `${base}.outside`, { sw: true, rerender: true })}</div>
       ${x.outside ? field('ศาลปลายทางที่จะส่งหมาย', `${base}.destCourt`, { cls: 's12', list: 'dl-court-w', ph: 'เช่น ศาลจังหวัดเชียงใหม่' }) : ''}` : ''}
       <div class="f s12"><span>บัญชีพยาน</span>${check('เพิ่มเติมภายหลังยื่นฟ้อง — ลงบัญชีพยาน (เพิ่มเติม) ครั้งที่ … ไม่ลงบัญชีพยานเดิม', `${base}.extra`, { sw: true, rerender: true })}</div>
@@ -737,7 +739,7 @@ function witnessFields(x, i) {
 
 function tabWitness() {
   const w = S.c.witnesses;
-  for (const x of w) { if (x.summons === undefined) x.summons = true; if (x.deliver !== 'officer') x.deliver = 'ems'; if (x.outside === undefined) x.outside = false; x.addr = { ...emptyAddress(), ...x.addr }; } // ข้อมูลเดิมไม่มีช่องใหม่ → เติมค่าเริ่มต้น
+  for (const x of w) { if (x.summons === undefined) x.summons = true; if (x.deliver !== 'officer' && x.deliver !== 'self') x.deliver = 'ems'; if (x.outside === undefined) x.outside = false; x.addr = { ...emptyAddress(), ...x.addr }; } // ข้อมูลเดิมไม่มีช่องใหม่ → เติมค่าเริ่มต้น
   const nPerson = w.filter((x) => witnessKind(x) === 'person').length;
   const unnamed = w.filter((x) => !(x.name || '').trim()).length;
   const filed = isFiled(S.c), nExtra = w.filter((x) => x.extra).length;
@@ -779,9 +781,9 @@ function motionSummary(x, i) {
 function tabMotions() {
   const m = S.c.motions;
   return `${pageHead('คำร้อง / คำแถลง / คำขอ', 'นอกเหนือจากคำร้องส่งหมาย — แต่ละฉบับออกเป็นเอกสารแยก')}
-  ${varsPanel()}
+  ${varsPanel(true)}
   <div class="panel"><h3>เพิ่มคำร้อง</h3>
-    <div class="row"><select id="motion-tpl" class="sel-grow" aria-label="แม่แบบคำร้อง"><option value="">เลือกแม่แบบคำร้อง / คำแถลง (${tplMotions().length} แบบ)…</option>${MOTION_KINDS_ALL.map((k) => { const l = tplMotions().filter((x) => x.kind === k); return l.length ? `<optgroup label="${esc(k)} (${l.length})">${l.map((x) => `<option value="${esc(x.id)}">${esc(x.title)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>
+    <div class="row motion-add"><select id="motion-tpl" class="sel-grow" aria-label="แม่แบบคำร้อง"><option value="">เลือกแม่แบบคำร้อง / คำแถลง (${tplMotions().length} แบบ)…</option>${MOTION_KINDS_ALL.map((k) => { const l = tplMotions().filter((x) => x.kind === k); return l.length ? `<optgroup label="${esc(k)} (${l.length})">${l.map((x) => `<option value="${esc(x.id)}">${esc(x.title)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>
       <button class="btn outline" data-act="addMotionTpl">เพิ่มจากแม่แบบ</button>
       <button class="btn outline" data-act="addMotion">${icon('plus', { size: 16 })}คำร้องเปล่า</button></div>
     <div class="caution">${icon('alert', { size: 18 })}<div>แม่แบบเขียนขึ้นเองตามโครงเอกสารทั่วไป เลขมาตราที่อ้างยังไม่ผ่านการตรวจกับแหล่งทางการ ตรวจก่อนยื่นทุกครั้ง</div></div></div>
@@ -811,7 +813,7 @@ function tabExtras() {
   const sets = (T.settlements || []).filter((x) => x.caseType === c.type);
   const dfs = defendants(c);
   return `${pageHead('คำให้การ & สัญญาประนีประนอม', 'คำให้การจำเลย (แบบ ๑๑) และสัญญาประนีประนอมยอมความ (แบบ ๒๙) ใช้ข้อมูลคู่ความชุดเดียวกัน')}
-  ${varsPanel()}
+  ${varsPanel(true)}
   <div class="panel"><h3>คำให้การจำเลย (แบบ ๑๑)<span class="grow"></span>${check('ออกในชุดเอกสาร', 'docs.answer', { rerender: true, sw: true })}</h3>
     ${group('จำเลยและแม่แบบ', `
       <label class="f s6"><span>จำเลยผู้ให้การ</span><select data-bind="answer.defendantId" data-rerender="1">${dfs.map((d) => `<option value="${esc(d.id)}" ${c.answer.defendantId === d.id ? 'selected' : ''}>${esc(partyLabel(c, d))}: ${esc(partyName(d))}</option>`).join('')}</select></label>
@@ -966,15 +968,19 @@ function tabComplaint() {
 // ค่านำหมาย: จำเลยคนเดียว = กรอกอัตราเอง · จำเลยหลายคน = บวกค่านำหมายของจำเลยแต่ละคน แสดงยอดรวมแก้เองไม่ได้
 function feeBlock() {
   const fi = serviceFeeInfo(S.c), baht = (n) => n.toLocaleString('th-TH');
-  const pick = `<div class="f s12"><span>วิธีส่งหมาย / อัตราค่านำหมาย</span>${seg('service.deliver', [['ems', 'ไปรษณีย์ตอบรับด่วนพิเศษ'], ['officer', 'ส่งโดยเจ้าพนักงาน'], ['self', 'โจทก์/อัยการจัดการเอง']], { rerender: true, label: 'วิธีส่งหมาย' })}</div>`;
-  if (fi.deliver === 'self') return `${pick}<p class="hint hint-row flush">โจทก์ (หรืออัยการ ถ้าอัยการเป็นโจทก์) จัดการส่งเอง — ไม่มีค่านำหมายในส่วนนี้</p>`;
-  if (fi.deliver === 'officer') return `${pick}<p class="hint hint-row flush">ส่งโดยเจ้าพนักงานตามอัตราของศาลปลายทาง — คำร้องไม่ระบุตัวเลข ชำระตามที่ศาลแจ้ง</p>`;
-  if (!fi.multi) return `${pick}<p class="hint hint-row flush">ไปรษณีย์ตอบรับด่วนพิเศษ อัตราค่านำหมาย <b>${baht(fi.unit)} บาท</b></p>`;
-  const rows = defendants(S.c).map((d) => `<li><span>${esc(partyLabel(S.c, d))}${partyName(d) ? ` · ${esc(partyName(d))}` : ''}</span><b>${baht(fi.unit)} บาท</b></li>`).join('');
-  return `${pick}<div class="f s12 fee-sum"><span>ค่านำหมายรวม (บวกของจำเลยแต่ละคน — แก้ยอดรวมเองไม่ได้)</span>
+  // วิธีส่งหมายเลือกรายจำเลยได้ (party.deliver): ไปรษณีย์ตอบรับด่วนพิเศษ 80 บาท · เจ้าพนักงานศาล (อัตราศาลปลายทาง ขอปิดหมายได้ถ้าไม่มีผู้รับโดยชอบ) · ส่งเอง (นำหางหมายคืนศาล)
+  // ไปรษณีย์/ส่งเอง ปิดหมายไม่ได้ — ต้องมีผู้ลงลายมือชื่อรับหมาย
+  const note = { ems: `อัตราค่านำหมาย ${baht(fi.unit)} บาท · ต้องมีผู้ลงลายมือชื่อรับหมาย (ปิดหมายไม่ได้)`, officer: 'อัตราของศาลปลายทาง (ไม่ระบุตัวเลข) · ถ้าไม่มีผู้รับหมายโดยชอบ ขอให้ศาลสั่งปิดหมายได้', self: 'โจทก์รับหมายไปส่งเอง · ต้องมีผู้ลงลายมือชื่อรับ และนำหางหมายส่งคืนศาล (ปิดหมายไม่ได้ ไม่มีค่านำหมาย)' };
+  const rows = fi.per.filter((r) => r.party).map((r) => {
+    const i = S.c.parties.indexOf(r.party);
+    return `<li class="fee-row"><span class="fee-who">${esc(partyLabel(S.c, r.party))}${partyName(r.party) ? ` · ${esc(partyName(r.party))}` : ''}</span>
+      <select data-bind="parties.${i}.deliver" data-rerender="1" aria-label="วิธีส่งหมาย ${esc(partyLabel(S.c, r.party))}">${[['ems', 'ไปรษณีย์ตอบรับด่วนพิเศษ'], ['officer', 'เจ้าพนักงานศาล'], ['self', 'ส่งเอง']].map(([v, t]) => `<option value="${v}"${r.method === v ? ' selected' : ''}>${t}</option>`).join('')}</select>
+      <small class="hint">${esc(note[r.method])}</small></li>`;
+  }).join('');
+  return `<div class="f s12 fee-sum"><span>วิธีส่งหมายและค่านำหมาย — เลือกแยกรายจำเลย</span>
     <ul class="fee-list">${rows}</ul>
-    <div class="fee-total"><span>รวม ${fi.n} คน</span><output aria-live="polite"><b>${baht(fi.total)}</b> บาท</output></div>
-    <p class="hint flush">อัตราต่อจำเลย 1 คนตั้งไว้ ${baht(fi.unit)} บาท ยอดรวมคำนวณตามจำนวนจำเลยและใส่ในคำร้องให้เอง</p></div>`;
+    <div class="fee-total"><span>ค่านำหมายไปรษณีย์ รวม ${fi.nEms} คน</span><output aria-live="polite"><b>${baht(fi.total)}</b> บาท</output></div>
+    <p class="hint flush">ไปรษณีย์ตอบรับด่วนพิเศษคนละ ${baht(fi.unit)} บาท · เจ้าพนักงานศาลตามอัตราของศาลปลายทาง · ส่งเองไม่มีค่านำหมาย — ยอดรวมคำนวณและใส่ในคำร้องให้เอง</p></div>`;
 }
 
 // ===================== หน้า: คำร้องส่งหมายนอกเขต / ปิดหมาย =====================

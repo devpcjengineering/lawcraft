@@ -16,6 +16,8 @@ const t = (text, extra = {}) => ({ text, ...extra });
 const val = (text) => (text ? { text, kind: 'val' } : null);
 const dots = (len = 24) => ({ text: '', kind: 'dots', len });
 const bold = (text) => ({ text, b: true });
+/** ป้ายเลขข้อ “ข้อ N.” — ตัวหนา + ขีดเส้นใต้ทุกข้อ (คำฟ้อง/คำร้อง/คำให้การ/ฯลฯ) ; ตัวเนื้อความไม่ขีดเส้นใต้ */
+const itemLabel = (no) => ({ text: `ข้อ ${no}.`, b: true, u: true });
 
 /** [label, value, optional] ... → runs; dash=true: ช่องที่ว่างแสดงเป็น "-" ตามที่ใช้ในแบบพิมพ์ศาล (ช่อง optional ถ้าว่างข้ามไป) */
 function fields(pairs, sep = ' ', dash = false) {
@@ -136,7 +138,7 @@ function authorLine(c, noun = 'คำฟ้อง', selfParty = null) {
 }
 
 function numbered(runsList, prefix = 'ข้อ', gap = true) {
-  return runsList.map((runs, i) => p([bold(`${prefix} ${i + 1}.`), t(' '), ...runs], { indent: 1.5, justify: true, gap }));
+  return runsList.map((runs, i) => p([prefix === 'ข้อ' ? itemLabel(i + 1) : bold(`${prefix} ${i + 1}.`), t(' '), ...runs], { indent: 1.5, justify: true, gap }));
 }
 
 /** บรรทัดที่เป็นข้อย่อย: ๓.๑  ๓.๑.๒  (๑)  (ก)  ก.  — ขึ้นต้นบรรทัดด้วยตัวเลขข้อย่อยแล้วเว้นวรรค */
@@ -148,7 +150,7 @@ const bodyLineBlock = (ln, c, idx) => p(resolveRuns(ln.trim(), c, idx), { indent
 function itemParas(no, raw, c, idx) {
   const lines = multiline(String(raw || '').replace(/^ข้อ\s*[0-9๐-๙]+[.)]?\s*/, ''));
   const first = lines.shift() || '';
-  return [p([bold(`ข้อ ${no}.`), t(' '), ...resolveRuns(first, c, idx)], { indent: 1.5, justify: true }), ...lines.map((ln) => bodyLineBlock(ln, c, idx))];
+  return [p([itemLabel(no), t(' '), ...resolveRuns(first, c, idx)], { indent: 1.5, justify: true }), ...lines.map((ln) => bodyLineBlock(ln, c, idx))];
 }
 
 function multiline(text) {
@@ -233,11 +235,11 @@ function complaintDoc(c, idx) {
     facts.forEach((f, i) => {
       const lines = multiline(f.text);
       const first = lines.shift() || '';
-      blocks.push(p([bold(`ข้อ ${i + 1}.`), t(' '), ...resolveRuns(first, c, idx)], { indent: 1.5, justify: true }));
+      blocks.push(p([itemLabel(i + 1), t(' '), ...resolveRuns(first, c, idx)], { indent: 1.5, justify: true }));
       lines.forEach((ln) => blocks.push(bodyLineBlock(ln, c, idx)));
     });
   } else {
-    blocks.push(p([bold('ข้อ 1.'), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 12 });
+    blocks.push(p([itemLabel(1), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 12 });
   }
   blocks.push(p([t(ft('motion.closing.2'))], { align: 'right', gap: true }));
   return { id: 'complaint', title: civil ? 'คำฟ้อง (แพ่ง)' : 'คำฟ้อง (อาญา)', blocks };
@@ -290,7 +292,7 @@ function motionDoc(c, idx, m, n) {
   ];
   if (items.length) {
     items.forEach((it, i) => blocks.push(...itemParas(i + 1, it, c, idx)));
-  } else blocks.push(p([bold('ข้อ 1.'), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 6 });
+  } else blocks.push(p([itemLabel(1), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 6 });
   blocks.push(
     p([t(ft('motion.closing.1'))], { indent: 1.5, gap: true }),
     p([t(ft('motion.closing.2'))], { align: 'right' }),
@@ -323,7 +325,9 @@ function witnessRequestItemRuns(c, w) {
   const recv = kind === 'person' ? 'พยาน' : 'ผู้ครอบครอง';
   if (witnessDeliver(w) === 'officer') {
     runs.push(t(` โดยขอให้เจ้าพนักงานศาลเป็นผู้นำหมายไปส่ง หากไม่มีผู้รับหมายโดยชอบ ขอให้ศาลมีคำสั่งให้ส่งโดยวิธีปิดหมาย ณ ภูมิลำเนาหรือสถานที่ทำการของ${recv}ดังกล่าว`));
-  } else runs.push(t(' โดยขอให้ส่งหมายทางไปรษณีย์ตอบรับด่วนพิเศษ'));
+  } else if (witnessDeliver(w) === 'self') {
+    runs.push(t(` โดย${filerWord(c)}ขอรับหมายไปส่งให้${recv}เอง ซึ่งต้องมีผู้ลงลายมือชื่อรับหมายไว้ และ${filerWord(c)}จะนำหางหมายที่มีผู้รับลงชื่อแล้วส่งคืนต่อศาล`));
+  } else runs.push(t(' โดยขอให้ส่งหมายทางไปรษณีย์ตอบรับด่วนพิเศษ ซึ่งต้องมีผู้ลงลายมือชื่อรับหมายไว้เป็นหลักฐาน'));
   if (w.outside) {
     const a = witnessAddrText(w), d = String(w.destCourt || '').trim();
     runs.push(t(' เนื่องจาก'), a ? val(a) : dots(30), t('อยู่นอกเขตอำนาจของศาลนี้ จึงขอให้ศาลส่งหมายไปยัง'), d ? val(d) : dots(24), t('เพื่อจัดการส่งให้ต่อไป'));
@@ -344,7 +348,7 @@ function witnessRequestDoc(c, idx) {
     betweenBlock(c),
     ...sideIntro(c, filerRole(c)),
     p([t(ft('motion.intro'))], { indent: 0 }),
-    ...list.map((w, i) => p([bold(`ข้อ ${i + 1}.`), t(' '), ...witnessRequestItemRuns(c, w)], { indent: 1.5, justify: true, gap: true })),
+    ...list.map((w, i) => p([itemLabel(i + 1), t(' '), ...witnessRequestItemRuns(c, w)], { indent: 1.5, justify: true, gap: true })),
     p([t(ft('motion.closing.1'))], { indent: 1.5, gap: true }),
     p([t(ft('motion.closing.2'))], { align: 'right' }),
     { t: 'rule' },
@@ -624,7 +628,7 @@ function witnessSummonsDoc(c, data, g) {
     { t: 'center', text: 'คำเตือน', u: true, b: true },
     p([t(ft(crim ? 'wsum.item.warn.criminal' : 'wsum.item.warn.civil'))], { indent: 1.5, justify: true, gap: true }),
     { t: 'rule' },
-    { t: 'center', text: `รายละเอียดที่ต้องจัดส่งพยานหลักฐานตาม${crim ? 'หมายเรียก' : 'คำสั่งเรียก'}ฉบับนี้`, u: true, b: true },
+    { t: 'center', text: `รายละเอียดที่ต้องจัดส่งพยานหลักฐานตาม${crim ? 'หมายเรียก' : 'คำสั่งเรียก'}ฉบับนี้`, b: true }, // ไม่ขีดเส้นใต้ (ตามที่ผู้ใช้กำหนด)
     ...items.map((x, i) => p([t(items.length > 1 ? `(${i + 1}) ` : ''), val(x)], { indent: 0, align: 'center' })),
   );
   return { id: g.id, title: g.title, fitFront: true, blocks };
@@ -645,7 +649,7 @@ function answerDoc(c, idx) {
   ];
   if (items.length) {
     items.forEach((it, i) => blocks.push(...itemParas(i + 1, it, c, idx)));
-  } else blocks.push(p([bold('ข้อ 1.'), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 6 });
+  } else blocks.push(p([itemLabel(1), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 6 });
   blocks.push(
     p([t(ft('motion.closing.2'))], { align: 'right' }),
     { t: 'rule' },
@@ -670,7 +674,7 @@ function settlementDoc(c, idx) {
     p([t('ขอทำสัญญาประนีประนอมยอมความต่อหน้าศาล มีข้อความตามที่จะกล่าวต่อไปนี้')], { indent: 0 }),
   ];
   if (clauses.length) clauses.forEach((cl, i) => blocks.push(...itemParas(i + 1, cl, c, idx)));
-  else blocks.push(p([bold('ข้อ 1.'), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 8 });
+  else blocks.push(p([itemLabel(1), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 8 });
   blocks.push(
     p([t(ft('settlement.closing'))], { indent: 1.5, justify: true, gap: true }),
     sigBlock([
@@ -727,12 +731,20 @@ export function serviceMotionText(c, data) {
     const fi = serviceFeeInfo(c);
     const money = (n) => n.toLocaleString('en-US');
     const base = c.type === 'civil' ? 'ประมวลกฎหมายวิธีพิจารณาความแพ่ง มาตรา 79' : 'ประมวลกฎหมายวิธีพิจารณาความแพ่ง มาตรา 79 ประกอบประมวลกฎหมายวิธีพิจารณาความอาญา มาตรา 15';
-    const lead = `หากเจ้าพนักงานเดินหมายไปส่งแล้วไม่พบ${dfWord} หรือไม่มีผู้ใดยอมรับไว้แทน โจทก์ขอให้ศาลอนุญาตให้ส่งโดยวิธีปิดหมาย ณ ภูมิลำเนาของ${dfWord}ดังกล่าว ตาม${base}`;
-    if (fi.deliver === 'self') out.push(`${lead} โดยโจทก์จะเป็นผู้จัดการส่งเอง จึงไม่มีค่านำหมายในส่วนนี้`);
-    else if (fi.deliver === 'officer') out.push(`${lead} โดยส่งโดยเจ้าพนักงานตามอัตราของศาลปลายทาง โจทก์จะเป็นผู้ชำระแก่ศาลตามระเบียบต่อไป`);
-    else {
-      const feePhrase = fi.multi ? `อัตราค่านำหมายรวม ${money(fi.total)} บาท (จำเลยคนละ ${money(fi.unit)} บาท จำนวน ${fi.n} คน)` : `อัตราค่านำหมาย ${money(fi.unit)} บาท`;
-      out.push(`${lead} โดยส่งทางไปรษณีย์ตอบรับด่วนพิเศษ มี${feePhrase} โจทก์จะเป็นผู้ชำระแก่ศาลตามระเบียบต่อไป`);
+    // วิธีส่งเลือกรายจำเลยได้: ไปรษณีย์ตอบรับด่วนพิเศษ (80 บาท/คน) · เจ้าพนักงานศาล (อัตราศาลปลายทาง ขอปิดหมายได้ถ้าไม่มีผู้รับโดยชอบ) · ส่งเอง (นำหางหมายคืนศาล)
+    // ไปรษณีย์/ส่งเอง ขอปิดหมายไม่ได้ — ต้องมีผู้ลงลายมือชื่อรับหมาย
+    const who = (rows) => (fi.multi ? ` ให้แก่${rows.map((r) => (r.party ? partyLabel(c, r.party) : '')).filter(Boolean).join(' ')}` : '');
+    const rowsOf = (m) => fi.per.filter((r) => r.method === m);
+    const ems = rowsOf('ems'), officer = rowsOf('officer'), self = rowsOf('self');
+    if (ems.length) {
+      const feePhrase = ems.length > 1 ? `อัตราค่านำหมายรวม ${money(ems.length * fi.unit)} บาท (คนละ ${money(fi.unit)} บาท จำนวน ${ems.length} คน)` : `อัตราค่านำหมาย ${money(fi.unit)} บาท`;
+      out.push(`โจทก์ขอให้ศาลส่งสำเนาคำฟ้องและหมายทางไปรษณีย์ตอบรับด่วนพิเศษ${who(ems)} มี${feePhrase} โดยต้องมีผู้ลงลายมือชื่อรับหมายไว้เป็นหลักฐาน โจทก์จะเป็นผู้ชำระแก่ศาลตามระเบียบต่อไป`);
+    }
+    if (officer.length) {
+      out.push(`โจทก์ขอให้ศาลส่งสำเนาคำฟ้องและหมายโดยเจ้าพนักงานศาล${who(officer)} ตามอัตราของศาลปลายทาง โจทก์จะเป็นผู้ชำระแก่ศาลตามระเบียบต่อไป หากเจ้าพนักงานเดินหมายไปส่งแล้วไม่พบ${officer.length > 1 ? 'จำเลยดังกล่าว' : dfWord} หรือไม่มีผู้รับหมายโดยชอบ โจทก์ขอให้ศาลอนุญาตให้ส่งโดยวิธีปิดหมาย ณ ภูมิลำเนาของ${officer.length > 1 ? 'จำเลยดังกล่าว' : dfWord} ตาม${base}`);
+    }
+    if (self.length) {
+      out.push(`โจทก์ขอรับหมายและสำเนาคำฟ้องไปส่งเอง${who(self)} โดยต้องมีผู้ลงลายมือชื่อรับหมายไว้ และโจทก์จะนำหางหมายที่มีผู้รับลงชื่อแล้วส่งคืนต่อศาลภายในกำหนด (ไม่มีค่านำหมายในส่วนนี้)`);
     }
   }
   return out.join('\n\n');
@@ -757,10 +769,33 @@ export const DOC_TYPES = [
 ];
 
 /** เอกสารหลังยื่นฟ้อง = หมายเรียกพยาน · บัญชีพยานเพิ่มเติม · คำร้อง/คำแถลง (ไม่รวมคำร้องส่งหมายซึ่งเป็นของชุดคำฟ้อง) */
-export const POST_FILING_KEYS = ['witnessSummons', 'witnessExtra', 'motions'];
-export const isPostFilingDoc = (d) => /^(witnessSummons-|motion-)/.test(d.id) || d.id === 'witnessExtra';
-/** ลำดับกลุ่มหลังยื่นฟ้อง: หมายเรียกพยาน → บัญชีพยานเพิ่มเติม → คำร้อง/คำแถลง → (ชุดคำฟ้อง) */
-const postRank = (d) => (d.id.startsWith('witnessSummons-') ? 0 : d.id === 'witnessExtra' ? 1 : d.id.startsWith('motion-') ? 2 : 3);
+export const POST_FILING_KEYS = ['motions', 'witnessExtra', 'witnessRequest', 'witnessSummons'];
+export const isPostFilingDoc = (d) => /^(witnessSummons-|motion-)/.test(d.id) || d.id === 'witnessExtra' || d.id === 'witnessRequest';
+
+/**
+ * ลำดับเอกสารและการแบ่งชั้น (ตามที่ผู้ใช้กำหนด)
+ *  ชั้น 'pre'   = ก่อนฟ้อง / ไต่สวนมูลฟ้อง : คำฟ้อง → คำขอท้ายคำฟ้อง → เอกสารแนบท้าย → คำร้องส่งหมาย/ปิดหมาย → บัญชีพยาน → หมายนัดไต่สวนมูลฟ้อง → ใบแต่งทนาย → ใบมอบอำนาจ
+ *  ชั้น 'trial' = พิจารณา (หลังฟ้อง)    : คำร้องอื่น ๆ → บัญชีพยานเพิ่มเติม → คำร้องขอให้ศาลออกหมายเรียกพยาน → หมายเรียกพยาน → คำให้การ → สัญญาประนีประนอม
+ *  (คำร้องขอหมายเรียกพยาน/หมายเรียกพยานเป็นของเสริม — ผู้ฟ้องจะขอเมื่อไรก็ได้ จึงอยู่ลำดับท้ายสุดของชุดก่อนฟ้อง และจัดเป็นชั้นพิจารณา)
+ * คดีที่ฟ้องแล้ว (มีเลขคดี) : ชั้นพิจารณามาก่อน แล้วตามด้วยชั้นก่อนฟ้อง
+ */
+export const DOC_ORDER = ['complaint', 'prayer', 'attachment', 'service', 'witness', 'summons', 'attorney', 'proxy',
+  'motions', 'witnessExtra', 'witnessRequest', 'witnessSummons', 'answer', 'settlement'];
+export const DOC_STAGE = {
+  complaint: 'pre', prayer: 'pre', attachment: 'pre', service: 'pre', witness: 'pre', summons: 'pre', attorney: 'pre', proxy: 'pre',
+  motions: 'trial', witnessExtra: 'trial', witnessRequest: 'trial', witnessSummons: 'trial', answer: 'trial', settlement: 'trial',
+};
+/** id เอกสาร (หรือ object เอกสาร) → คีย์ชนิดเอกสาร : 'motion-x' → 'motions' · 'witnessSummons-p-…' → 'witnessSummons' · 'summons-<id>' → 'summons' */
+export function docKey(idOrDoc) {
+  const id = String((idOrDoc && idOrDoc.id) ?? idOrDoc ?? '');
+  if (id.startsWith('motion-')) return 'motions';
+  if (id.startsWith('witnessSummons-')) return 'witnessSummons';
+  if (id.startsWith('summons-')) return 'summons';
+  return id;
+}
+/** ชั้นของเอกสาร: 'pre' (ก่อนฟ้อง/ไต่สวนมูลฟ้อง) | 'trial' (พิจารณา) — ไม่รู้จัก = 'pre' */
+export const docStage = (idOrDoc) => DOC_STAGE[docKey(idOrDoc)] || 'pre';
+const docRank = (d) => { const i = DOC_ORDER.indexOf(docKey(d)); return i < 0 ? DOC_ORDER.length : i; };
 
 /** เลขไทยบังคับในเอกสารทุกชนิด (แบบพิมพ์ศาลใช้เลขไทย) : แปลงข้อความที่มองเห็นทั้งหมดที่จุดเดียวนี้ — เว้นอีเมล/ที่อยู่เว็บ ; ข้อมูลคดีที่เก็บไว้ไม่ถูกแก้ */
 function deepDigits(o) {
@@ -800,8 +835,11 @@ export function buildDocuments(c, data, only) {
   if (want('proxy')) docs.push(proxyDoc(c, idx));
   if (want('answer')) { const a = answerDoc(c, idx); if (a) docs.push(a); }
   if (want('settlement')) docs.push(settlementDoc(c, idx));
-  // คดีที่ฟ้องแล้ว: เอกสารหลังยื่นฟ้องมาก่อน (คงลำดับเดิมในกลุ่ม) ตามกลุ่มบนหน้าออกเอกสาร
-  if (!only && isFiled(c)) docs.sort((a, b) => postRank(a) - postRank(b));
+  // เรียงตาม DOC_ORDER (คงลำดับเดิมของเอกสารชนิดเดียวกัน เช่น คำร้องหลายฉบับ/หมายเรียกหลายฉบับ) ;
+  // คดีที่ฟ้องแล้ว: ชั้นพิจารณา (เอกสารหลังยื่นฟ้อง) มาก่อนชั้นก่อนฟ้อง ตามกลุ่มบนหน้าออกเอกสาร
+  const trialFirst = !only && isFiled(c);
+  const rank = (d) => (docStage(d) === 'trial' ? (trialFirst ? 0 : 1) : (trialFirst ? 1 : 0)) * 100 + docRank(d);
+  docs.sort((a, b) => rank(a) - rank(b));
   const clean = docs.map((d) => ({ ...d, blocks: d.blocks.map((b) => (b.runs ? { ...b, runs: b.runs.filter(Boolean) } : b)) }));
   return clean.map(deepDigits);
 }

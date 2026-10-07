@@ -395,3 +395,34 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
   .main:has(> .wiz-nav) > .wiz-nav::before { content: ''; display: block; height: 32px; margin: -44px -40px 12px; pointer-events: none; background: linear-gradient(to bottom, transparent, var(--bg, #f5f5f7)); opacity: 0; }
   .main:has(> .wiz-nav) > :nth-last-child(2) { margin-bottom: 32px; }
 }
+
+/* ---------- จัดวางตามข้อสังเกตหน้าจอ ---------- */
+/* หน้าคู่ความ: ปุ่ม “เพิ่มโจทก์” กับ “เพิ่มจำเลย” กว้างเท่ากัน (ครึ่งต่อครึ่ง) · ปุ่มสลับอยู่แถวล่างเต็มความกว้าง */
+.toolbar:has(> [data-act="addParty"]) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.toolbar:has(> [data-act="addParty"]) > .grow { display: none; }
+.toolbar:has(> [data-act="addParty"]) > .btn { width: 100%; min-width: 0; justify-content: center; text-align: center; }
+.toolbar:has(> [data-act="addParty"]) > [data-act="swapRoles"] { grid-column: 1 / -1; }
+
+/* การ์ดคู่ความ/จำเลย: บทบาท + ประเภทบุคคล แบ่งครึ่งเท่ากันพอดีความกว้าง ตัวหนังสือกึ่งกลาง ·
+   “เลือกจากสมุดรายชื่อ” + “บันทึกลงสมุดรายชื่อ” อยู่แถวเดียวกัน · ปุ่มลบเต็มแถวล่างสุด */
+.item-toolbar:has(> .tb-book) > .grow { display: none; }
+.item-toolbar:has(> .tb-book) > label.f { flex: 1 1 calc(50% - 4px); min-width: 0; }
+.item-toolbar:has(> .tb-book) > label.f > select { width: 100%; min-width: 0; padding-inline: 26px; text-align: center; text-align-last: center; background-position: right 10px center; }
+.tb-book { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; min-width: 0; }
+.tb-book > select { flex: 1 1 0; width: auto; min-width: 0; text-overflow: ellipsis; }
+.tb-book > .btn { flex: none; white-space: nowrap; }
+.item-toolbar:has(> .tb-book) > .btn.danger { flex: 1 1 100%; justify-content: center; }
+
+/* หน้าคำร้อง: เลือกแม่แบบ = ช่องเดียวเต็มแถว · ปุ่ม “เพิ่มจากแม่แบบ” กับ “คำร้องเปล่า” แถวเดียวกัน กว้างครึ่งต่อครึ่ง */
+.row.motion-add { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
+.row.motion-add > select { grid-column: 1 / -1; width: 100%; max-width: none; min-width: 0; flex: none; }
+.row.motion-add > .btn { width: 100%; min-width: 0; justify-content: center; text-align: center; }
+
+/* ช่องวันที่/เวลา: ตัวเลขชิดซ้ายและอยู่กลางช่องในแนวตั้งเหมือนช่องข้อความ (กัน Safari/มือถือที่ค่าวันที่ลอยกลางหรือสูงต่ำกว่าช่องอื่น) */
+input[type=date], input[type=time] { line-height: 1.4; text-align: left; font-variant-numeric: tabular-nums; }
+input[type=date]::-webkit-date-and-time-value, input[type=time]::-webkit-date-and-time-value { text-align: left; margin: 0; min-height: 1.4em; }
+input[type=date]::-webkit-datetime-edit, input[type=time]::-webkit-datetime-edit { padding: 0; }
+
+/* หน้าตำแหน่งตัวหนังสือ & ตราครุฑ: กลุ่ม (หน้ากระดาษ · ตัวอักษร · ตราครุฑ …) เรียงแนวตั้ง แถวละหนึ่งกลุ่ม เต็มความกว้าง */
+.fit .gtabs { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 6px; overflow: visible; margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
+.fit .gtabs button { width: 100%; justify-content: flex-start; border-radius: 10px; padding: 0 16px; }

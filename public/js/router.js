@@ -25,7 +25,8 @@ export const urls = {
   home: () => BASE + '/',
   login: () => BASE + '/login',
   setup: () => BASE + '/setup',
-  newCase: (type, charge) => `${BASE}/new/${type === 'civil' ? 'civil' : 'criminal'}${charge ? '?charge=' + encodeURIComponent(charge) : ''}`,
+  // side = 'defendant' → เปิดคดีฝั่งจำเลย (1 คดีเป็นโจทก์หรือจำเลยอย่างใดอย่างหนึ่งเท่านั้น เลือกตอนสร้างแล้วสลับไม่ได้)
+  newCase: (type, charge, side) => `${BASE}/new/${type === 'civil' ? 'civil' : 'criminal'}${charge ? '?charge=' + encodeURIComponent(charge) : side === 'defendant' ? '?side=defendant' : ''}`,
   caseTab: (id, tab = 'case') => `${BASE}/case/${encodeURIComponent(id)}/${tab}`,
   contacts: () => BASE + '/contacts',
   inbox: () => BASE + '/inbox',
@@ -44,8 +45,8 @@ export function parseRoute(pathname = location.pathname, search = location.searc
   if (a === 'login' && !b) return r({ name: 'login', canonical: urls.login() });
   if (a === 'setup' && !b) return r({ name: 'setup', canonical: urls.setup() });
   if (a === 'new' && (b === 'criminal' || b === 'civil') && !c) {
-    const charge = q.get('charge') || '';
-    return r({ name: 'new', type: b, charge, canonical: urls.newCase(b, charge) });
+    const charge = q.get('charge') || '', side = q.get('side') === 'defendant' ? 'defendant' : 'plaintiff';
+    return r({ name: 'new', type: b, charge, side, canonical: urls.newCase(b, charge, side) });
   }
   if (a === 'case' && b && ID.test(b)) {
     let tab = TAB_ALIAS[c] || c || 'case';

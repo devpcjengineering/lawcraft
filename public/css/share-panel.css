@@ -1,0 +1,70 @@
+/* แผง “PDF ชุดเอกสาร & แชร์” (js/share.js) — จัดวางปุ่มเป็นกล่องเท่ากัน: แถวเต็มความกว้าง หรือสองกล่องคนละครึ่งแถว
+   โหลดโดย share.js ตอนวาดแผงครั้งแรก (ต่อท้าย <head> จึงอยู่หลัง app.css และ admin-*.css) — ใช้ .panel.share-panel นำหน้าเพื่อชนะกฎของหน้าอื่น
+   แถวปุ่ม = .share-grid : สองคอลัมน์เท่ากัน ; ปุ่มที่ใส่ .share-full ยาวเต็มแถว (ปุ่มเดี่ยวในแถวก็ยาวเต็มแถวเอง) */
+.panel.share-panel .share-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-items: stretch;
+  margin: 12px 0 0;
+}
+.panel.share-panel .share-grid > .btn {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  justify-content: center;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.35;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.panel.share-panel .share-grid > .share-full,
+.panel.share-panel .share-grid > .btn:only-child { grid-column: 1 / -1; }
+.panel.share-panel .share-grid > .btn > span { min-width: 0; overflow-wrap: anywhere; }
+
+/* ช่องลิงก์ + ช่องกรอกอีเมล เต็มแถว ; ปุ่มเชิญอยู่ข้างช่องกรอก (จอแคบลงมาอยู่ใต้ช่อง เต็มแถว) */
+.panel.share-panel .share-link { display: block; margin: 0; }
+.panel.share-panel .share-link input { width: 100%; box-sizing: border-box; }
+.panel.share-panel .share-invite { margin-top: 12px; }
+.panel.share-panel .share-invite .btn { min-height: 44px; justify-content: center; white-space: nowrap; }
+
+/* ผู้ร่วมแก้ไข: ปุ่ม “ส่งอีเมลอีกครั้ง” กับ “ถอนสิทธิ์” คนละครึ่งของกลุ่มปุ่ม (ปุ่มเดียว = เต็มกลุ่ม) */
+.panel.share-panel .share-members > li > .r-act {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 292px;
+  max-width: 100%;
+}
+.panel.share-panel .share-members > li > .r-act > .btn {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  justify-content: center;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.35;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.panel.share-panel .share-members > li > .r-act > .btn:only-child { grid-column: 2; } /* ปุ่มเดียว (เช่น ถอนสิทธิ์ตัวเอง) = กล่องครึ่งขวา ขนาดเท่ากล่องอื่น */
+
+@media (max-width: 760px) {
+  /* admin-preview.css วางปุ่มท้ายแถวเป็นคอลัมน์ที่ 2 ชิดซ้าย → ให้ยืดเต็มความกว้างของแถว เป็นสองกล่องเท่ากัน */
+  .main .panel.share-panel .share-members > li > .r-act { width: auto; grid-column: 1 / -1; justify-self: stretch; margin-top: 8px; }
+  .panel.share-panel .share-invite { flex-wrap: wrap; }
+  .panel.share-panel .share-invite input { flex-basis: 100%; }
+  .panel.share-panel .share-invite .btn { flex: 1 1 100%; }
+}
+@media (max-width: 360px) {
+  /* จอแคบมาก: ปุ่มในแถวผู้ร่วมแก้ไขซ้อนเป็นแถวเดียวต่อปุ่ม ไม่ให้ข้อความไทยถูกบีบ */
+  .panel.share-panel .share-members > li > .r-act { grid-template-columns: minmax(0, 1fr); }
+  .panel.share-panel .share-members > li > .r-act > .btn:only-child { grid-column: 1; }
+}
+@media (max-width: 320px) {
+  .panel.share-panel .share-grid { grid-template-columns: minmax(0, 1fr); }
+}

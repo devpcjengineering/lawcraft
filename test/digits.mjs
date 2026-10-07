@@ -170,10 +170,14 @@ for (const [name, c] of Object.entries(CASES)) {
   c.date = { d: '๕', m: '๑๐', y: '๒๕๖๙' };
   c.parties[0].idCard = '๑๑๐๑๗๐๐๒๐๗๐๓๐';
   // อัตราค่านำหมาย: ไปรษณีย์ตอบรับด่วนพิเศษ = 80 บาท/จำเลย 1 คน · เจ้าพนักงาน/โจทก์จัดการเอง = ไม่มีตัวเลข
-  assert.equal(serviceFeeInfo(c).unit, 80);
-  c.service.deliver = 'officer'; assert.equal(serviceFeeInfo(c).unit, 0);
-  c.service.deliver = 'self'; assert.equal(serviceFeeInfo(c).unit, 0);
+  const nDef = c.parties.filter((p) => p.role === 'defendant').length;
+  assert.equal(serviceFeeInfo(c).total, 80 * nDef);
+  c.service.deliver = 'officer'; assert.equal(serviceFeeInfo(c).total, 0);
+  c.service.deliver = 'self'; assert.equal(serviceFeeInfo(c).total, 0);
   c.service.deliver = 'ems';
+  // เลือกวิธีส่งรายจำเลย: จำเลยคนแรก = ไปรษณีย์ · คนอื่น = เจ้าพนักงาน/ส่งเอง → ค่านำหมายรวมเฉพาะไปรษณีย์ 80 บาท
+  { const dfs = c.parties.filter((p) => p.role === 'defendant'); dfs[0].deliver = 'ems'; dfs.slice(1).forEach((d, i) => { d.deliver = i % 2 ? 'self' : 'officer'; });
+    const fi = serviceFeeInfo(c); assert.deepEqual([fi.total, fi.nEms], [80, 1]); if (dfs.length > 1) assert.equal(fi.deliver, 'mixed'); dfs.forEach((d) => delete d.deliver); }
   assert.ok(!validateCase(c, idx).some((i) => /ทุนทรัพย์|เลขประจำตัวประชาชนของโจทก์/.test(i.msg)), 'เลขไทยที่พิมพ์ต้องผ่านการตรวจ');
   const docs = buildDocuments(c, data);
   const amount = docs.find((d) => d.id === 'complaint').blocks.find((b) => b.t === 'amount');

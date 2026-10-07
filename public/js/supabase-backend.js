@@ -20,7 +20,17 @@ const must = ({ data, error }) => { if (error) fail(error); return data; };
 let role = 'user';
 const seen = new Map(); // id คดี → updated_at ที่เห็นล่าสุด (ใช้ตรวจว่ามีผู้อื่นบันทึกคดีเดียวกันไปก่อนหรือไม่)
 const PDF_BUCKET = 'case-pdfs';
-const pdfPath = (caseId) => `${caseId}/bundle.pdf`;
+// ไฟล์ PDF ของคดี: “ไฟล์เดียวต่อคดี” ในความหมายของผู้ใช้ แต่ชื่อวัตถุใน Storage ใหม่ทุกครั้งที่อัปโหลด (<คดี>/bundle-<เวลา>-<สุ่ม>.pdf) แล้วลบตัวเก่าทิ้ง
+// ห้ามอัปโหลดทับชื่อเดิม (upsert): Storage อยู่หลัง CDN (Cloudflare) ที่แคชตามพาธ — หลังทับไฟล์ ผู้อ่านบางรายยังได้ไบต์ของไฟล์เก่า/ปนกับขนาดของไฟล์ใหม่ → PDF เปิดไม่ขึ้นหรือเป็นฉบับเก่า
+// (พบเฉพาะตอนทับด้วยไฟล์ที่เล็กกว่าเดิม; พาธที่ไม่เคยมีมาก่อนไม่มีแคชค้าง) — พาธล่าสุดอยู่ที่ case_pdfs.path; คดีเก่าที่ยังเป็น <คดี>/bundle.pdf ใช้ต่อได้และถูกแทนที่ตอนอัปโหลดครั้งถัดไป
+const legacyPdfPath = (caseId) => `${caseId}/bundle.pdf`;
+const newPdfPath = (caseId) => `${caseId}/bundle-${Date.now().toString(36)}-${(globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)).replace(/-/g, '').slice(0, 12)}.pdf`;
+/** พาธของ PDF ล่าสุดตามรายการในตาราง case_pdfs ('' = ยังไม่มี) */
+async function currentPdfPath(caseId) {
+  const { data, error } = await sb.from('case_pdfs').select('path').eq('case_id', caseId).maybeSingle();
+  if (error) { if (error.code === '42P01') return ''; fail(error); }
+  return data?.path || '';
+}
 /** ลิงก์ดู PDF สาธารณะ (Edge Function `pdf` — ต้องรู้ token เท่านั้น ปิดลิงก์แล้วใช้ไม่ได้) */
 const shareUrl = (token) => `${url}/functions/v1/pdf/${token}.pdf`;
 
@@ -157,7 +167,12 @@ export const supabaseBackend = {
   async deleteCase(id) {
     // เจ้าของ/แอดมินลบคดี: ลบไฟล์ PDF ใน Storage ก่อน (หลังลบคดีแล้วนโยบาย Storage จะไม่เห็นว่าเป็นคดีของใคร) ; ผู้แก้ไขที่ไม่ใช่เจ้าของลบไม่ได้
     const owner = await sb.rpc('is_case_owner', { cid: id });
-    if (owner.data === true) { try { await sb.storage.from(PDF_BUCKET).remove([pdfPath(id)]); } catch { /* ข้าม: ไฟล์ค้างไม่กระทบการใช้งาน */ } }
+    if (owner.data === true) {
+      try { // ลบทุกไฟล์ในโฟลเดอร์ของคดี (ปกติมีไฟล์เดียว; อาจมีตัวเก่าค้างถ้าลบตัวเก่าตอนอัปโหลดไม่สำเร็จ)
+        const names = ((await sb.storage.from(PDF_BUCKET).list(id, { limit: 100 })).data || []).map((o) => `${id}/${o.name}`);
+        await sb.storage.from(PDF_BUCKET).remove(names.length ? names : [legacyPdfPath(id)]);
+      } catch { /* ข้าม: ไฟล์ค้างไม่กระทบการใช้งาน */ }
+    }
     const rows = must(await sb.from('cases').delete().eq('id', id).select('id'));
     if (!rows.length) { const e = new Error('ลบไม่ได้ — เฉพาะเจ้าของคดีหรือผู้ดูแลระบบ'); e.status = 403; throw e; }
     seen.delete(id);
@@ -210,19 +225,30 @@ export const supabaseBackend = {
     if (!data) return null;
     return { sizeBytes: data.size_bytes, pages: data.pages, updatedAt: data.updated_at, by: data.updated_by_email || '', shareUrl: data.share_token ? shareUrl(data.share_token) : '' };
   },
-  /** อัปโหลด PDF ชุดเอกสาร “ทับไฟล์เดิม” (ไฟล์เดียวต่อคดี: <คดี>/bundle.pdf) แล้วบันทึกรายการให้ลิงก์ดูชี้ไฟล์ล่าสุดเสมอ */
+  /**
+   * อัปโหลด PDF ชุดเอกสารแทนไฟล์เดิมของคดี (ผู้ใช้เห็นเป็นไฟล์เดียว): อัปโหลดเป็นวัตถุใหม่ → บันทึกพาธใหม่ลง case_pdfs (ลิงก์ดูชี้ไฟล์ล่าสุดทันที) → ลบวัตถุเก่า
+   * ไม่อัปโหลดทับพาธเดิม เพราะ CDN หน้า Storage แคชตามพาธ (ดูหมายเหตุที่ newPdfPath) ; ถ้าบันทึกรายการไม่สำเร็จ ไฟล์ใหม่ที่เพิ่งอัปโหลดจะถูกลบและไฟล์เดิมยังใช้งานได้ตามปกติ
+   */
   async uploadCasePdf(caseId, blob, { pages = null } = {}) {
-    const up = await sb.storage.from(PDF_BUCKET).upload(pdfPath(caseId), blob, { upsert: true, contentType: 'application/pdf', cacheControl: '0' });
+    const head = new Uint8Array(await blob.slice(0, 5).arrayBuffer()), tail = new TextDecoder('latin1').decode(await blob.slice(Math.max(0, blob.size - 32)).arrayBuffer());
+    if (new TextDecoder('latin1').decode(head) !== '%PDF-' || !tail.includes('%%EOF')) throw new Error('สร้างไฟล์ PDF ไม่สมบูรณ์ (ไฟล์ไม่ครบ) — ลองกดสร้างใหม่อีกครั้ง');
+    const old = await currentPdfPath(caseId).catch(() => '');
+    const path = newPdfPath(caseId);
+    const up = await sb.storage.from(PDF_BUCKET).upload(path, blob, { upsert: false, contentType: 'application/pdf', cacheControl: '3600' });
     if (up.error) {
-      const e = new Error(/row-level security|not authorized|403/i.test(up.error.message || '') ? 'ไม่มีสิทธิ์อัปโหลด PDF ของคดีนี้' : (up.error.message || 'อัปโหลดไม่สำเร็จ'));
-      e.status = /row-level security|not authorized|403/i.test(up.error.message || '') ? 403 : 500; throw e;
+      const denied = /row-level security|not authorized|403/i.test(up.error.message || '');
+      const e = new Error(denied ? 'ไม่มีสิทธิ์อัปโหลด PDF ของคดีนี้' : (up.error.message || 'อัปโหลดไม่สำเร็จ'));
+      e.status = denied ? 403 : 500; throw e;
     }
-    must(await sb.from('case_pdfs').upsert({ case_id: caseId, path: pdfPath(caseId), size_bytes: blob.size, pages }, { onConflict: 'case_id' }));
+    const row = await sb.from('case_pdfs').upsert({ case_id: caseId, path, size_bytes: blob.size, pages }, { onConflict: 'case_id' });
+    if (row.error) { try { await sb.storage.from(PDF_BUCKET).remove([path]); } catch { /* ข้าม */ } fail(row.error); }
+    if (old && old !== path) { try { await sb.storage.from(PDF_BUCKET).remove([old]); } catch { /* ข้าม: ไฟล์เก่าค้างไม่กระทบการใช้งาน */ } }
     return this.getCasePdf(caseId);
   },
-  /** ลิงก์ชั่วคราว (5 นาที) สำหรับเปิดดู PDF ที่อัปโหลดไว้ในแท็บใหม่ */
+  /** ลิงก์ชั่วคราว (5 นาที) สำหรับเปิดดู PDF ล่าสุดที่อัปโหลดไว้ในแท็บใหม่ */
   async casePdfViewUrl(caseId) {
-    const r = await sb.storage.from(PDF_BUCKET).createSignedUrl(pdfPath(caseId), 300);
+    const path = (await currentPdfPath(caseId)) || legacyPdfPath(caseId);
+    const r = await sb.storage.from(PDF_BUCKET).createSignedUrl(path, 300);
     if (r.error) fail(r.error);
     return r.data.signedUrl;
   },

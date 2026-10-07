@@ -72,7 +72,16 @@ export function defaultDefendantSlots(c) {
   };
 }
 
-/** สลับฝั่งที่เปิดอยู่ (เปลี่ยน c โดยตรง) — ครั้งแรกที่เปิดฝั่งจำเลยจะสร้างข้อมูลเริ่มต้นให้ */
+/** สร้างคดีใหม่ตามฝั่ง — 1 คดีเป็นโจทก์หรือจำเลยอย่างใดอย่างหนึ่งเท่านั้น เลือกตอนสร้างและสลับไม่ได้ (ฝั่งจำเลยเริ่มด้วยชุดเอกสารของจำเลย) */
+export function newCaseFor(type = 'criminal', side = 'plaintiff') {
+  const c = newCase(type);
+  if (side !== 'defendant') return c;
+  Object.assign(c, defaultDefendantSlots(c));
+  c.side = 'defendant';
+  return c;
+}
+
+/** (ใช้ในเทสต์/ย้ายข้อมูลเท่านั้น — หน้าจอไม่มีปุ่มสลับฝั่งแล้ว) สลับฝั่งที่เปิดอยู่ (เปลี่ยน c โดยตรง) — ครั้งแรกที่เปิดฝั่งจำเลยจะสร้างข้อมูลเริ่มต้นให้ */
 export function switchSide(c, side) {
   const to = side === 'defendant' ? 'defendant' : 'plaintiff';
   if (sideOf(c) === to) return c;
@@ -140,7 +149,7 @@ export function newWitness(kind = 'person', extra = false) {
   return { id: uid(), kind: kind === 'object' || kind === 'document' ? kind : 'person', name: '', position: '', holder: '', holderPos: '', address: '', addr: emptyAddress(), phone: '', purpose: '', note: '', summons: true, extra: !!extra, deliver: 'ems', outside: false, destCourt: '' };
 }
 /** วิธีส่งหมายเรียกพยาน: 'officer' = เจ้าพนักงานศาล · อย่างอื่น/ว่าง (ข้อมูลเดิม) = 'ems' ไปรษณีย์ตอบรับด่วนพิเศษ */
-export const witnessDeliver = (w) => (w?.deliver === 'officer' ? 'officer' : 'ems');
+export const witnessDeliver = (w) => (w?.deliver === 'officer' ? 'officer' : w?.deliver === 'self' ? 'self' : 'ems');   // ems | officer | self
 /**
  * ผู้รับหมายเรียก แยกชื่อ / ตำแหน่ง (ยศ) ออกจากกัน — พยานบุคคล: name + position ; เอกสาร/วัตถุ: holder (ผู้ครอบครอง) + holderPos
  * ข้อมูลเดิมที่มีแต่ name ก็ใช้ได้ (position ว่าง) · คืน {name, pos} ที่ตัดช่องว่างแล้ว
@@ -509,11 +518,16 @@ export function caseListInfo(c) {
 // วิธีส่งหมาย (service.deliver): ems = ไปรษณีย์ตอบรับด่วนพิเศษ คิดตายตัว 80 บาท/จำเลย 1 คน · officer = ส่งโดยเจ้าพนักงานตามอัตราของศาลปลายทาง (ไม่ระบุตัวเลข) · self = โจทก์/อัยการจัดการส่งเอง ไม่มีค่านำหมายในส่วนนี้
 export const SERVICE_DELIVER = { ems: 'ไปรษณีย์ตอบรับด่วนพิเศษ', officer: 'ส่งโดยเจ้าพนักงาน', self: 'โจทก์/อัยการจัดการส่งเอง' };
 export const EMS_FEE = 80;
+export const DELIVER_LABEL = { ems: 'ไปรษณีย์ตอบรับด่วนพิเศษ', officer: 'เจ้าพนักงานศาล', self: 'ส่งเอง' };
+const validDeliver = (v) => (v === 'officer' || v === 'self' ? v : v === 'ems' ? 'ems' : '');
+/** วิธีส่งหมายของจำเลยแต่ละคน (party.deliver) — ไม่ได้เลือกเฉพาะคนให้ใช้ค่ารวมเดิม service.deliver (ไม่มี = ไปรษณีย์) ; ไปรษณีย์/ส่งเอง = ต้องมีผู้ลงชื่อรับ ปิดหมายไม่ได้ (ส่งเองต้องนำหางหมายคืนศาล) · เจ้าพนักงานศาล = ถ้าไม่มีผู้รับโดยชอบขอปิดหมายได้ */
+export const partyDeliver = (c, d) => validDeliver(d?.deliver) || validDeliver(c?.service?.deliver) || 'ems';
 export function serviceFeeInfo(c) {
-  const n = Math.max(1, defendants(c).length);
-  const sd = c?.service?.deliver, deliver = sd === 'officer' || sd === 'self' ? sd : 'ems';
-  const unit = deliver === 'ems' ? EMS_FEE : 0;
-  return { n, unit, total: unit * n, multi: n > 1, deliver };
+  const df = defendants(c), n = Math.max(1, df.length);
+  const per = (df.length ? df : [null]).map((d) => ({ party: d, method: partyDeliver(c, d), fee: partyDeliver(c, d) === 'ems' ? EMS_FEE : 0 }));
+  const total = per.reduce((a, r) => a + r.fee, 0);
+  const kinds = [...new Set(per.map((r) => r.method))];
+  return { n, unit: EMS_FEE, total, multi: n > 1, deliver: kinds.length === 1 ? kinds[0] : 'mixed', per, nEms: per.filter((r) => r.method === 'ems').length };
 }
 
 export function caseTitle(c) {

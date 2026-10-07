@@ -58,9 +58,16 @@ function setBusy(text) {
   if (el && !!text === was) el.textContent = text; else hooks.rerender();
 }
 
+/** สไตล์เฉพาะแผงนี้ (css/share-panel.css) — โหลดครั้งแรกที่วาดแผง ต่อท้าย <head> จึงอยู่หลังไฟล์ CSS ของหน้า */
+function ensureCss() {
+  if (document.getElementById('share-css')) return;
+  const l = document.createElement('link'); l.id = 'share-css'; l.rel = 'stylesheet'; l.href = '/css/share-panel.css'; document.head.appendChild(l);
+}
+
 /** แผงในหน้าออกเอกสาร (ว่างเมื่อไม่ใช่ Supabase) */
 export function panelHtml() {
   if (!available()) return '';
+  ensureCss();
   const s = st();
   const b = !!s.busy, dis = b ? ' disabled' : '';
   const pdf = s.pdf;
@@ -68,22 +75,22 @@ export function panelHtml() {
     ? `<span class="st-ico ok" aria-hidden="true">${icon('check')}</span><span class="r-main">ไฟล์ล่าสุดบน Supabase: ${pdf.pages ? pdf.pages + ' แผ่น · ' : ''}${esc(fmtSize(pdf.sizeBytes || 0))}<span class="r-note">อัปโหลดเมื่อ ${esc(fmtTime(pdf.updatedAt))}${pdf.by ? ' โดย ' + esc(pdf.by) : ''} · อัปโหลดใหม่จะทับไฟล์นี้</span></span>`
     : `<span class="st-ico todo" aria-hidden="true">${icon('circle')}</span><span class="r-main">ยังไม่เคยอัปโหลด PDF ของคดีนี้<span class="r-note">กด “สร้าง PDF แล้วอัปโหลด” — ไฟล์จะรวมทุกฉบับในชุดที่เลือกไว้ด้านบน</span></span>`;
   const shareBox = !pdf ? '' : pdf.shareUrl
-    ? `<div class="share-link"><input type="text" readonly value="${esc(pdf.shareUrl)}" aria-label="ลิงก์ดู PDF" onfocus="this.select()">
-        <button class="btn sm primary" data-act="shareCopy"${dis}>${icon('copy', { size: 15 })}<span>คัดลอก</span></button></div>
-      <div class="btn-group share-btns"><button class="btn sm outline" data-act="shareNewLink"${dis}>${icon('refresh', { size: 15 })}<span>ออกลิงก์ใหม่ (ลิงก์เดิมใช้ไม่ได้)</span></button>
-        <button class="btn sm danger" data-act="shareOff"${dis}><span>ปิดลิงก์</span></button></div>
+    ? `<div class="share-link"><input type="text" readonly value="${esc(pdf.shareUrl)}" aria-label="ลิงก์ดู PDF" onfocus="this.select()"></div>
+      <div class="btn-group share-btns share-grid"><button class="btn primary" data-act="shareCopy"${dis}>${icon('copy', { size: 15 })}<span>คัดลอกลิงก์</span></button>
+        <button class="btn danger" data-act="shareOff"${dis}><span>ปิดลิงก์</span></button>
+        <button class="btn outline share-full" data-act="shareNewLink"${dis}>${icon('refresh', { size: 15 })}<span>ออกลิงก์ใหม่ (ลิงก์เดิมใช้ไม่ได้)</span></button></div>
       <p class="hint">ใครมีลิงก์นี้ก็ดู PDF ได้โดยไม่ต้องล็อกอิน (ดูอย่างเดียว แก้ไม่ได้) และเห็นไฟล์ล่าสุดเสมอ — PDF มีข้อมูลส่วนบุคคลของคู่ความ ส่งให้เฉพาะคนที่ไว้ใจ</p>`
-    : `<button class="btn outline" data-act="shareOn"${dis}>${icon('link', { size: 16 })}<span>เปิดลิงก์ดู PDF</span></button>
+    : `<div class="btn-group share-btns share-grid"><button class="btn outline share-full" data-act="shareOn"${dis}>${icon('link', { size: 16 })}<span>เปิดลิงก์ดู PDF</span></button></div>
       <p class="hint">เปิดแล้วจะได้ลิงก์ที่ส่งให้ใครก็ได้ดู PDF โดยไม่ต้องล็อกอิน (ดูอย่างเดียว) — ปิดหรือออกลิงก์ใหม่ได้ทุกเมื่อ</p>`;
   const notified = (m) => (m.notified_at ? `ส่งอีเมลแจ้งเมื่อ ${fmtTime(m.notified_at)}` : 'ยังไม่ได้ส่งอีเมลแจ้ง');
   const members = s.members.length
-    ? `<ul class="rows">${s.members.map((m) => `<li><span class="st-ico ok" aria-hidden="true">${icon('user')}</span><span class="r-main">${esc(m.email)}${m.email === s.me ? ' (ฉัน)' : ''}${s.owner && m.email !== s.me ? `<span class="r-note">${esc(notified(m))}</span>` : ''}</span>
+    ? `<ul class="rows share-members">${s.members.map((m) => `<li><span class="st-ico ok" aria-hidden="true">${icon('user')}</span><span class="r-main">${esc(m.email)}${m.email === s.me ? ' (ฉัน)' : ''}${s.owner && m.email !== s.me ? `<span class="r-note">${esc(notified(m))}</span>` : ''}</span>
         <span class="r-act">${s.owner ? `${m.email !== s.me ? `<button class="btn sm outline" data-act="shareResend" data-email="${esc(m.email)}" data-since="${esc(m.notified_at || '')}"${dis} title="ส่งอีเมลเชิญซ้ำได้หลายครั้ง (เว้นอย่างน้อย 30 วินาที)">${icon('send', { size: 14 })}<span class="rs-t">ส่งอีเมลอีกครั้ง</span></button> ` : ''}<button class="btn sm danger" data-act="shareRemove" data-email="${esc(m.email)}"${dis}>ถอนสิทธิ์</button>` : m.email === s.me ? `<button class="btn sm outline" data-act="shareLeave"${dis}>ออกจากคดีนี้</button>` : ''}</span></li>`).join('')}</ul>`
     : '<p class="hint">ยังไม่มีผู้ร่วมแก้ไข — คดีนี้เห็นและแก้ได้เฉพาะเจ้าของ</p>';
   const invite = s.owner
     ? `<div class="share-invite"><input type="email" id="share-email" placeholder="อีเมล Google ของผู้ร่วมแก้ไข เช่น name@gmail.com" autocomplete="off" aria-label="อีเมลผู้ร่วมแก้ไข">
         <button class="btn sm primary" data-act="shareInvite"${dis}>${icon('plus', { size: 15 })}<span>เชิญแก้ไขคดี</span></button></div>
-      <div class="btn-group share-btns"><button class="btn sm outline" data-act="shareCopyCase">${icon('copy', { size: 15 })}<span>คัดลอกลิงก์เปิดคดี</span></button></div>
+      <div class="btn-group share-btns share-grid"><button class="btn outline share-full" data-act="shareCopyCase">${icon('copy', { size: 15 })}<span>คัดลอกลิงก์เปิดคดี</span></button></div>
       <p class="hint">เชิญแล้วระบบส่งอีเมลแจ้งให้อัตโนมัติ (ผู้ส่ง alert@law-craft.co) · ผู้ที่ถูกเชิญเข้าสู่ระบบด้วย Google ด้วยอีเมลนี้ แล้วเปิดลิงก์คดี (หรือเลือกคดีนี้จากรายการ) จะเห็นและแก้คดีนี้ได้ · ลบคดี/เชิญคนอื่นไม่ได้ · ถ้ามีคนแก้พร้อมกัน ระบบจะเตือนก่อนเขียนทับ</p>`
     : '<p class="hint">เฉพาะเจ้าของคดีหรือผู้ดูแลระบบเท่านั้นที่เชิญหรือถอนผู้ร่วมแก้ไขได้</p>';
   return `<div class="panel share-panel"><h3>PDF ชุดเอกสาร &amp; แชร์</h3>
@@ -91,8 +98,8 @@ export function panelHtml() {
     ${s.err ? `<div class="share-err" role="alert">${icon('alertCircle', { size: 16 })}<span>${esc(s.err)}</span></div>` : ''}
     <ul class="rows"><li>${s.loading && !s.loaded ? `<span class="r-main">กำลังโหลด…</span>` : status}
       <span class="r-act"></span></li></ul>
-    <div class="btn-group share-btns"><button class="btn primary" data-act="shareUpload"${dis}>${icon('upload', { size: 16 })}<span>${pdf ? 'สร้าง PDF แล้วอัปโหลดทับไฟล์เดิม' : 'สร้าง PDF แล้วอัปโหลด'}</span></button>
-      ${pdf ? `<button class="btn outline" data-act="shareOpenPdf"${dis}>${icon('eye', { size: 16 })}<span>เปิดดูไฟล์ที่อัปโหลดไว้</span></button>` : ''}</div>
+    <div class="btn-group share-btns share-grid"><button class="btn primary share-full" data-act="shareUpload"${dis}>${icon('upload', { size: 16 })}<span>${pdf ? 'สร้าง PDF แล้วอัปโหลดทับไฟล์เดิม' : 'สร้าง PDF แล้วอัปโหลด'}</span></button>
+      ${pdf ? `<button class="btn outline share-full" data-act="shareOpenPdf"${dis}>${icon('eye', { size: 16 })}<span>เปิดดูไฟล์ที่อัปโหลดไว้</span></button>` : ''}</div>
     <div class="hint share-prog" id="share-prog" role="status" aria-live="polite">${esc(s.busy)}</div>
     <div class="dl-sub share-sub">ลิงก์ดู PDF (ไม่ต้องล็อกอิน)</div>
     ${pdf ? shareBox : '<p class="hint">อัปโหลด PDF ก่อน จึงเปิดลิงก์ดูได้</p>'}

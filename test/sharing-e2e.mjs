@@ -64,8 +64,13 @@ try {
   ok('member uploads pdf', !up.error, up.error?.message);
   up = await M.storage.from('case-pdfs').upload(path, pdfBytes('v2-overwritten'), { upsert: true, contentType: 'application/pdf', cacheControl: '0' });
   ok('member overwrites same path (upsert)', !up.error, up.error?.message);
-  const dl = await A.storage.from('case-pdfs').download(path);
-  ok('owner downloads latest (overwritten) content', !dl.error && (await text(dl.data)).includes('v2-overwritten'));
+  // สิทธิ์ทับพาธเดิมยังทดสอบข้างบน แต่แอปไม่ทับพาธเดิมแล้ว (CDN แคชตามพาธ → อ่านกลับได้ไฟล์เก่า/ไม่ครบ): ไฟล์ใหม่ทุกครั้งใช้ชื่อใหม่ในโฟลเดอร์คดี แล้วค่อยลบตัวเก่า — ดู uploadCasePdf ใน public/js/supabase-backend.js
+  const v2 = `${caseId}/bundle-v2.pdf`;
+  up = await M.storage.from('case-pdfs').upload(v2, pdfBytes('v2-overwritten'), { upsert: false, contentType: 'application/pdf', cacheControl: '3600' });
+  ok('member uploads new version to a fresh path', !up.error, up.error?.message);
+  const dl = await A.storage.from('case-pdfs').download(v2);
+  ok('owner downloads latest content', !dl.error && (await text(dl.data)).includes('v2-overwritten'));
+  let cur = v2;
   up = await S.storage.from('case-pdfs').upload(path, pdfBytes('evil'), { upsert: true, contentType: 'application/pdf' });
   ok('stranger cannot overwrite pdf', !!up.error);
   const sdl = await S.storage.from('case-pdfs').download(path);
@@ -74,9 +79,9 @@ try {
   ok('member cannot write another case folder', !!up.error);
 
   // รายการ PDF + ลิงก์ดู
-  res = await M.from('case_pdfs').upsert({ case_id: caseId, path, size_bytes: 77, pages: 2 }, { onConflict: 'case_id' });
+  res = await M.from('case_pdfs').upsert({ case_id: caseId, path: cur, size_bytes: 77, pages: 2 }, { onConflict: 'case_id' });
   ok('member registers pdf row', !res.error, res.error?.message);
-  res = await M.from('case_pdfs').upsert({ case_id: caseId, path, size_bytes: 88, pages: 3 }, { onConflict: 'case_id' });
+  res = await M.from('case_pdfs').upsert({ case_id: caseId, path: cur, size_bytes: 88, pages: 3 }, { onConflict: 'case_id' });
   ok('registering again (overwrite) works', !res.error, res.error?.message);
   res = await M.from('case_pdfs').update({ share_token: 'forged' }).eq('case_id', caseId);
   ok('client cannot forge share_token', !!res.error);
@@ -90,16 +95,27 @@ try {
   let f = await view(tok1);
   ok('public link serves pdf without login', f.status === 200 && /application\/pdf/.test(f.headers.get('content-type')) && /inline/.test(f.headers.get('content-disposition') || ''), `${f.status} ${f.headers.get('content-type')}`);
   ok('public link serves LATEST overwritten file', (await f.text()).includes('v2-overwritten'));
-  up = await A.storage.from('case-pdfs').upload(path, pdfBytes('v3-newest'), { upsert: true, contentType: 'application/pdf', cacheControl: '0' });
-  assert.ifError(up.error);
+  // ฟังก์ชันช่วย: เหมือนที่แอปทำ — อัปโหลดชื่อใหม่ → ชี้แถวในตารางไปชื่อใหม่ → ลบชื่อเก่า
+  let ver = 2;
+  const putVersion = async (client, blob) => {
+    const next = `${caseId}/bundle-v${++ver}.pdf`;
+    const u = await client.storage.from('case-pdfs').upload(next, blob, { upsert: false, contentType: 'application/pdf', cacheControl: '3600' });
+    assert.ifError(u.error);
+    const rr = await client.from('case_pdfs').upsert({ case_id: caseId, path: next, size_bytes: blob.size, pages: 1 }, { onConflict: 'case_id' });
+    assert.ifError(rr.error);
+    const old = cur; cur = next;
+    const rm0 = await client.storage.from('case-pdfs').remove([old]);
+    assert.ifError(rm0.error);
+  };
+  await putVersion(A, pdfBytes('v3-newest'));
   f = await view(tok1);
   ok('same link shows newest after another overwrite', (await f.text()).includes('v3-newest'));
   // PDF จริงจากตัวสร้าง (E2E_REAL_PDF=<path> เช่น out.pdf ของ test/pdfexport.mjs): อัปโหลดทับแล้วลิงก์ดูต้องส่งไบต์เดียวกันทุกไบต์
   if (process.env.E2E_REAL_PDF) {
     const { readFileSync } = await import('node:fs'); const { createHash } = await import('node:crypto');
     const real = readFileSync(process.env.E2E_REAL_PDF);
-    up = await M.storage.from('case-pdfs').upload(path, new Blob([real], { type: 'application/pdf' }), { upsert: true, contentType: 'application/pdf', cacheControl: '0' });
-    ok('real pdf uploaded over existing file', !up.error, up.error?.message);
+    await putVersion(M, new Blob([real], { type: 'application/pdf' }));
+    ok('real pdf uploaded in place of existing file', cur.endsWith('.pdf'));
     f = await view(tok1);
     const got = Buffer.from(await f.arrayBuffer());
     ok(`public link returns the real pdf byte-for-byte (${Math.round(real.length / 1024)} KB)`, f.status === 200 && createHash('sha256').update(got).digest('hex') === createHash('sha256').update(real).digest('hex') && got.subarray(0, 5).toString() === '%PDF-');
@@ -156,15 +172,17 @@ try {
   // เจ้าของลบคดี (ลบไฟล์ใน Storage ก่อนตามที่แอปทำ)
   const own = await A.rpc('is_case_owner', { cid: caseId });
   ok('is_case_owner true for owner', own.data === true);
-  const rm = await A.storage.from('case-pdfs').remove([path]);
-  ok('owner removes pdf object', !rm.error && rm.data.length === 1);
+  const names = ((await A.storage.from('case-pdfs').list(caseId)).data || []).map((o) => `${caseId}/${o.name}`); // เหมือน deleteCase: ลบทุกไฟล์ในโฟลเดอร์คดี
+  ok('owner lists the case folder (current + first version)', names.includes(cur) && names.includes(path), names.join(','));
+  const rm = await A.storage.from('case-pdfs').remove(names);
+  ok('owner removes pdf objects', !rm.error && rm.data.length === names.length);
   res = await A.from('cases').delete().eq('id', caseId).select('id');
   ok('owner deletes case', !res.error && res.data.length === 1);
   res = await admin.from('case_pdfs').select('case_id').eq('case_id', caseId);
   ok('pdf row cascaded', res.data.length === 0);
   console.log(`\n${pass} ตรวจผ่านทั้งหมด`);
 } finally {
-  try { await admin.storage.from('case-pdfs').remove([`${caseId}/bundle.pdf`]); } catch { /* ข้าม */ }
+  try { const left = ((await admin.storage.from('case-pdfs').list(caseId)).data || []).map((o) => `${caseId}/${o.name}`); if (left.length) await admin.storage.from('case-pdfs').remove(left); } catch { /* ข้าม */ }
   try { await admin.from('cases').delete().eq('id', caseId); } catch { /* ข้าม */ }
   for (const id of created) { try { await admin.auth.admin.deleteUser(id); } catch { /* ข้าม */ } }
   console.log(`ลบผู้ใช้ทดสอบ ${created.length} คน และข้อมูลทดสอบแล้ว`);

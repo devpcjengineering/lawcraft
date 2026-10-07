@@ -18,8 +18,11 @@ Deno.serve(async (req) => {
   const token = (url.searchParams.get('t') || last).toLowerCase();
   if (!/^[a-f0-9]{64}$/.test(token)) return notFound();
 
-  const { data: row, error } = await admin.from('case_pdfs').select('path, updated_at, cases(title)').eq('share_token', token).maybeSingle();
+  const { data: row, error } = await admin.from('case_pdfs').select('case_id, path, updated_at, cases(title)').eq('share_token', token).maybeSingle();
   if (error || !row) return notFound();
+  // พาธต้องอยู่ในโฟลเดอร์ของคดีนี้เท่านั้น (ผู้แก้ไขเขียนคอลัมน์ path เองได้ — กันชี้ไปไฟล์ของคดีอื่นแล้วเปิดลิงก์แชร์ดึงไปดู)
+  // ไฟล์ใหม่ทุกครั้งที่อัปโหลดใช้ชื่อใหม่ (ไม่ทับพาธเดิม เพราะ CDN หน้า Storage แคชตามพาธ จึงอาจส่งไฟล์เก่า/ไบต์ไม่ครบ) → ที่นี่ดาวน์โหลดตามพาธล่าสุดในตารางเสมอ
+  if (typeof row.path !== 'string' || !row.path.startsWith(`${row.case_id}/`) || row.path.includes('..')) return notFound();
   const { data: file, error: dlErr } = await admin.storage.from('case-pdfs').download(row.path);
   if (dlErr || !file) return notFound();
 
@@ -29,8 +32,8 @@ Deno.serve(async (req) => {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Length': String(file.size),
-      'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(name)}`,
-      'Cache-Control': 'private, no-store', // อัปโหลดทับแล้วลิงก์เดิมต้องเห็นไฟล์ล่าสุดเสมอ
+      'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(name.toWellFormed()).replace(/['()*]/g, (ch) => '%' + ch.charCodeAt(0).toString(16).toUpperCase())}`, // RFC 5987: ' ( ) * ต้องเข้ารหัสด้วย (ชื่อคดีมีอักขระเหล่านี้ได้)
+      'Cache-Control': 'private, no-store', // อัปโหลดใหม่แล้วลิงก์เดิมต้องเห็นไฟล์ล่าสุดเสมอ
       'X-Robots-Tag': 'noindex, nofollow',
       'Referrer-Policy': 'no-referrer',
       'Access-Control-Allow-Origin': '*',

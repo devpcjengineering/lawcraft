@@ -2,7 +2,7 @@
 import { S, esc, actions, hooks, setPath } from './store.js';
 import { NAV, TABS, postFilingState } from './tabs.js';
 import { provinceList, refreshGeo, idStateHtml } from './ui.js';
-import { syncWitnessSummons, newCase, indexLaw, caseTitle, caseLabel, validateCase, newParty, uid, applyServiceAuto, isFiled, filedBadge, newWitness, splitCaseNo, migrateCaseYears, switchSide, sideOf } from '/shared/model.js';
+import { syncWitnessSummons, newCase, indexLaw, caseTitle, caseLabel, validateCase, newParty, uid, applyServiceAuto, isFiled, filedBadge, newWitness, splitCaseNo, migrateCaseYears, newCaseFor, sideOf } from '/shared/model.js';
 import { buildDocuments, isPostFilingDoc } from '/shared/docs.js';
 import { resolveLayout, layoutCssVars } from '/shared/layout.js';
 import { docsHtml, docHtml } from './render-html.js';
@@ -228,6 +228,8 @@ async function showHome() {
     <div class="cards">
       ${act('is-new', 'data-act="newCase" data-type="criminal"', ico2('gavel'), 'คดีอาญา', 'ราษฎรเป็นโจทก์ฟ้องเอง (ป.วิ.อ. มาตรา 28(2)) — คำฟ้อง คำขอท้ายฟ้อง คำร้องส่งหมาย บัญชีพยาน หมายนัดไต่สวนมูลฟ้อง', '', '/workspace/new/criminal')}
       ${act('is-new', 'data-act="newCase" data-type="civil"', ico2('scale'), 'คดีแพ่ง', 'คำฟ้องแพ่ง คำขอท้ายฟ้อง ทุนทรัพย์และค่าขึ้นศาล มูลหนี้ตาม ป.พ.พ.', '', '/workspace/new/civil')}
+      ${act('is-new', 'data-act="newCase" data-type="criminal" data-side="defendant"', ico2('shield'), 'คดีอาญา — ฝั่งจำเลย', 'ถูกฟ้องเป็นจำเลย — คำให้การ คำแถลงต่อสู้คดี บัญชีพยานจำเลย คำร้อง หมายเรียกพยาน (1 คดีเป็นโจทก์หรือจำเลยอย่างเดียว)', '', '/workspace/new/criminal?side=defendant')}
+      ${act('is-new', 'data-act="newCase" data-type="civil" data-side="defendant"', ico2('shield'), 'คดีแพ่ง — ฝั่งจำเลย', 'ถูกฟ้องเป็นจำเลย — คำให้การ บัญชีพยานจำเลย คำร้อง หมายเรียกพยาน', '', '/workspace/new/civil?side=defendant')}
       ${act('', 'data-act="openBook"', ico2('users'), 'สมุดรายชื่อ', 'เพิ่ม/แก้ไขบุคคล นิติบุคคล และทนายความไว้ล่วงหน้า แล้วกดเลือกเป็นโจทก์ จำเลย หรือทนายในคดีใดก็ได้', '', '/workspace/contacts')}
     </div></section>
     <section class="home-sec" data-admin-only aria-labelledby="hs-site"><h2 class="section-title" id="hs-site">จัดการเว็บไซต์ <span class="sec-note">เฉพาะผู้ดูแลระบบ</span></h2>
@@ -306,9 +308,9 @@ function openCase(c, tab = 'case') {
 }
 
 /** /workspace/new/<criminal|civil>[?charge=<id>] → สร้างคดีใหม่ แล้วเปลี่ยน URL เป็น /case/<id>/case */
-function createCase(type, charge = '') {
+function createCase(type, charge = '', side = 'plaintiff') {
   view = 'case';
-  const c = newCase(type);
+  const c = newCaseFor(type, side);
   if (type === 'civil') c.docs = { ...c.docs, summons: false };
   const hasCharge = charge && S.data.items.some((x) => x.id === charge);
   if (hasCharge) c.charges.push({ itemId: charge, related: [] });
@@ -343,7 +345,7 @@ actions.googleLogin = async () => {
   try { await backend.signInWithGoogle(); } // เบราว์เซอร์จะถูกพาไปหน้า Google แล้วกลับมาที่ /admin/ (หน้าเด้งต่อไป /workspace/ พร้อม ?code=…)
   catch (e) { const el = $('.login-err'); if (el) el.textContent = e.message; else alertBox(e.message, { title: 'Login ด้วย Google ไม่สำเร็จ', tone: 'warn' }); }
 };
-actions.newCase = (el) => { go(urls.newCase(el.dataset.type)); };
+actions.newCase = (el) => { go(urls.newCase(el.dataset.type, '', el.dataset.side)); };
 actions.openCase = (el) => { go(urls.caseTab(el.dataset.id)); };
 actions.dupCase = async (el) => {
   const c = await backend.getCase(el.dataset.id);
@@ -372,20 +374,6 @@ actions.goTab = (el) => {
   const t = resolveTab(want);
   if (t.blk) { WIZ_NOTE(t.blk); if (t.blk.key === S.tab) return; }
   go(urls.caseTab(S.c.id, t.tab));
-};
-actions.switchSide = (el) => {
-  if (!S.c || view !== 'case') return;
-  const side = el.dataset.side === 'defendant' ? 'defendant' : 'plaintiff';
-  if (sideOf(S.c) === side) return;
-  switchSide(S.c, side); // ไม่เรียก applyServiceAuto ตอนสลับ — ข้อมูลของแต่ละฝั่งถูกสลับเข้าฟิลด์คดีตามเดิม
-  if (side === 'defendant' && DEF_HIDDEN_STEPS.has(S.tab)) S.tab = 'case';
-  S.ui.pvDoc = ''; alerted.clear();
-  syncPreviewDoc();
-  hooks.changed();
-  replaceUrl(urls.caseTab(S.c.id, S.tab)); setTitle(TAB_NAMES[S.tab]);
-  closeNav({ restore: false });
-  smoothSwap(() => { renderShell(true); updateReady(); });
-  hooks.toast(side === 'defendant' ? 'สลับเป็นฝั่งจำเลย' : 'สลับเป็นฝั่งโจทก์');
 };
 /** เปลี่ยนหน้าแบบจางข้ามกัน (View Transitions) ถ้าเบราว์เซอร์รองรับ ไม่งั้นสลับทันที */
 /** การเปลี่ยนที่ถูกอันใหม่ข้าม (AbortError) ไม่ใช่ข้อผิดพลาด — กันขึ้น unhandled rejection ในคอนโซล */
@@ -433,7 +421,8 @@ function renderSteps() {
   // หัวลิ้นชักเมนูบนมือถือ (จอใหญ่ซ่อนด้วย CSS) — อยู่ในรายการที่ morph ได้ จึงคงอยู่ตอนวาดเมนูใหม่
   const drawerHead = `<div class="steps-head"><b id="steps-title">เมนูคดี</b><button type="button" class="steps-x" data-act="closeNav" aria-label="ปิดเมนูคดี">${ico2('x', { size: 22 })}</button></div>`;
   const side = sideOf(S.c), isDef = side === 'defendant';
-  const sideNav = `<div class="side-switch" role="group" aria-label="เลือกฝั่งของคดี">${[['plaintiff', 'ฝั่งโจทก์'], ['defendant', 'ฝั่งจำเลย']].map(([k, l]) => `<button type="button" class="${side === k ? 'on' : ''}" aria-pressed="${side === k}" data-act="switchSide" data-side="${k}">${l}</button>`).join('')}</div>${isDef ? '<div class="side-note">ชุดเอกสารของจำเลย: บัญชีพยาน · คำร้อง · คำให้การ · หมายเรียกพยาน</div>' : ''}`;
+  // 1 คดีเป็นโจทก์หรือจำเลยอย่างใดอย่างหนึ่งเท่านั้น (เลือกตอนสร้างคดี สลับไม่ได้) — แสดงเป็นป้ายบอกฝั่งเฉยๆ
+  const sideNav = isDef ? '<div class="side-note"><b>คดีฝั่งจำเลย</b> · ชุดเอกสาร: บัญชีพยาน · คำร้อง/คำแถลง · คำให้การ · หมายเรียกพยาน</div>' : '';
   const stepsHtml = drawerHead + filedNav + sideNav + navGroups.map((g) => {
     const items = g.items.filter((t) => authUi.navItemVisible(t) && !(isDef && DEF_HIDDEN_STEPS.has(t.key)) && (!t.only || t.only === S.c.type || (t.only === 'criminal' && crim)));
     const hint = filed && g.group === 'เพิ่มเติม' ? 'หลังยื่นฟ้อง' : g.hint;
@@ -891,7 +880,7 @@ async function runRoute(r, seq) {
     }
     case 'new':
       await leaveCurrent(); if (stale(seq)) return;
-      createCase(r.type, r.charge); return;
+      createCase(r.type, r.charge, r.side); return;
     case 'contacts':
       await leaveCurrent(); if (stale(seq)) return;
       view = 'book'; showBook(app); return;
