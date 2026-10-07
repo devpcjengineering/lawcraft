@@ -18,7 +18,8 @@ export function courtPhones(jur) {
 
 export function loadData() {
   const laws = new Map(), items = [];
-  for (const f of ['criminal-code.json', 'criminal-special.json', 'civil-code.json']) {
+  // criminal-code-full.json = ป.อ. ภาค ๒–๓ ที่เหลือทุกมาตรา (คัดจาก PDF กฤษฎีกา, verified:false) — ให้เลือกข้อหาได้ครบ ; ข้ามมาตราที่มีใน criminal-code.json (ฉบับคัดตรวจแล้ว) แล้ว
+  for (const f of ['criminal-code.json', 'criminal-code-full.json', 'criminal-special.json', 'civil-code.json']) {
     const j = readJson(f);
     if (!j) continue;
     for (const l of j.laws || (j.law ? [j.law] : [])) laws.set(l.id, { ...l, file: f });
