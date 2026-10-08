@@ -16,8 +16,8 @@ const t = (text, extra = {}) => ({ text, ...extra });
 const val = (text) => (text ? { text, kind: 'val' } : null);
 const dots = (len = 24) => ({ text: '', kind: 'dots', len });
 const bold = (text) => ({ text, b: true });
-/** ป้ายเลขข้อ “ข้อ N.” — ตัวหนาทุกข้อ ; ขีดเส้นใต้ตั้งแต่ข้อ ๒ เป็นต้นไป (ข้อ ๑ ไม่ขีด — ทั้งคำฟ้อง/คำร้อง/คำให้การ) ; ตัวเนื้อความไม่ขีดเส้นใต้ */
-const itemLabel = (no) => ({ text: `ข้อ ${no}.`, b: true, u: Number(no) > 1 });
+/** ป้ายเลขข้อ “ข้อ N.” — ตัวหนา ไม่ขีดเส้นใต้ทุกข้อ (ทั้งคำฟ้อง/คำร้อง/คำให้การ) ; ตัวเนื้อความไม่ขีดเส้นใต้เช่นกัน */
+const itemLabel = (no) => ({ text: `ข้อ ${no}.`, b: true });
 
 /** [label, value, optional] ... → runs; dash=true: ช่องที่ว่างแสดงเป็น "-" ตามที่ใช้ในแบบพิมพ์ศาล (ช่อง optional ถ้าว่างข้ามไป) */
 function fields(pairs, sep = ' ', dash = false) {

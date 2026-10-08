@@ -86,16 +86,16 @@ assert.equal(docKey('witnessSummons-i-9'), 'witnessSummons');
   order('complaint', 'prayer'); order('prayer', 'service'); order('service', 'witness'); order('witness', 'summons'); order('summons', 'attorney'); order('attorney', 'proxy');
 }
 
-// ---------- ป้าย “ข้อ N.”: ข้อ ๑ ไม่ขีดเส้นใต้ ข้อ ๒ เป็นต้นไปขีด (ทั้งคำฟ้อง/คำร้อง — หน้าเอกสาร + HTML + Word) ----------
+// ---------- ป้าย “ข้อ N.”: ตัวหนา ไม่ขีดเส้นใต้ทุกข้อ (ทั้งคำฟ้อง/คำร้อง — หน้าเอกสาร + HTML + Word) ----------
 {
   const c = base('criminal');
   const docs = buildDocuments(c, data);
   const labelRuns = (d) => d.blocks.filter((b) => b.t === 'p').flatMap((b) => b.runs).filter((r) => /^ข้อ [๐-๙]+\.$/.test(r.text));
-  const ruleOk = (rs) => rs.every((r, i) => r.b && (i === 0 ? !r.u : r.u));
+  const ruleOk = (rs) => rs.every((r) => r.b && !r.u);
   const complaint = docs.find((d) => d.id === 'complaint');
   const lr = labelRuns(complaint);
   assert.ok(lr.length >= 3, 'คำฟ้องมีอย่างน้อย 3 ข้อ (ข้อท้ายฟ้องอัตโนมัติอาจต่อท้าย)');
-  assert.ok(ruleOk(lr), 'คำฟ้อง: ข้อ ๑ หนาไม่ขีดเส้นใต้ ข้อ ๒ ขึ้นไปหนา+ขีดเส้นใต้');
+  assert.ok(ruleOk(lr), 'คำฟ้อง: ป้ายเลขข้อหนาและไม่ขีดเส้นใต้ทุกข้อ');
   assert.deepEqual(lr.slice(0, 3).map((r) => r.text), ['ข้อ ๑.', 'ข้อ ๒.', 'ข้อ ๓.'], 'เลขไทย');
   // เนื้อความต้องไม่ขีดเส้นใต้
   const bodyRuns = complaint.blocks.filter((b) => b.t === 'p').flatMap((b) => b.runs).filter((r) => /ข้อเท็จจริงสมมติ/.test(r.text));
@@ -103,26 +103,23 @@ assert.equal(docKey('witnessSummons-i-9'), 'witnessSummons');
   const motion = docs.find((d) => d.id === 'motion-m1');
   const mr = labelRuns(motion);
   assert.equal(mr.length, 2, 'คำร้อง 2 ข้อ');
-  assert.ok(ruleOk(mr), 'คำร้อง: ข้อ ๑ ไม่ขีด ข้อ ๒ ขีดเส้นใต้');
+  assert.ok(ruleOk(mr), 'คำร้อง: ป้ายเลขข้อไม่ขีดเส้นใต้');
   const wreq = docs.find((d) => d.id === 'witnessRequest');
   assert.ok(wreq && labelRuns(wreq).length >= 1 && ruleOk(labelRuns(wreq)), 'คำร้องขอหมายเรียกพยานใช้กติกาเดียวกัน');
 
-  // HTML: ข้อ ๑ ไม่มี class u ; ข้อ ๒–๓ มี ; เนื้อความไม่มี
+  // HTML: ป้ายเลขข้อมี class b แต่ไม่มี u ; เนื้อความไม่มี u
   const html = docsHtml(docs, {});
-  assert.ok(/<span class="r b">ข้อ ๑\.<\/span>/.test(html) && !/<span class="r b u">ข้อ ๑\.<\/span>/.test(html), 'HTML: ข้อ ๑. ต้องไม่มี class u');
-  assert.ok(/<span class="r b u">ข้อ ๒\.<\/span>/.test(html), 'HTML: ข้อ ๒. ต้องมี class u');
-  assert.ok(/<span class="r b u">ข้อ ๓\.<\/span>/.test(html), 'HTML: ข้อ ๓. ต้องมี class u');
+  assert.ok(/<span class="r b">ข้อ ๑\.<\/span>/.test(html) && /<span class="r b">ข้อ ๓\.<\/span>/.test(html), 'HTML: ป้ายเลขข้อหนา ไม่ขีดเส้นใต้');
+  assert.ok(!/class="r[^"]*\bu\b[^"]*">ข้อ [๐-๙]+\./.test(html), 'HTML: ไม่มีป้ายเลขข้อที่มี class u');
   assert.ok(!/class="r[^"]*\bu\b[^"]*">ข้อเท็จจริง/.test(html), 'HTML: เนื้อความไม่ขีดเส้นใต้');
 
-  // Word: run ของ “ข้อ ๑.” ไม่มี <w:u> ; ข้อ ๒ ขึ้นไปมี
+  // Word: run ของ “ข้อ N.” ทุกอันไม่มี <w:u>
   const zip = await JSZip.loadAsync(await renderDocx(docs, 'ทดสอบ'));
   const xml = await zip.file('word/document.xml').async('string');
   const runs = xml.match(/<w:r>.*?<\/w:r>/gs) || [];
   const wl = runs.filter((r) => /<w:t[^>]*>ข้อ [๐-๙]+\.<\/w:t>/.test(r));
   assert.ok(wl.length >= 6, 'Word: พบป้ายเลขข้อ');
-  const w1 = wl.filter((r) => /<w:t[^>]*>ข้อ ๑\.<\/w:t>/.test(r)), wN = wl.filter((r) => !/<w:t[^>]*>ข้อ ๑\.<\/w:t>/.test(r));
-  assert.ok(w1.length >= 2 && w1.every((r) => !/<w:u /.test(r)), 'Word: ข้อ ๑. ไม่มีเส้นใต้');
-  assert.ok(wN.length >= 3 && wN.every((r) => /<w:u /.test(r)), 'Word: ข้อ ๒ ขึ้นไปมีเส้นใต้');
+  assert.ok(wl.every((r) => !/<w:u /.test(r) && /<w:b\b/.test(r)), 'Word: ป้ายเลขข้อหนา ไม่มีเส้นใต้');
   const body = runs.filter((r) => /<w:t[^>]*>[^<]*ข้อเท็จจริงสมมติ[^<]*<\/w:t>/.test(r));
   assert.ok(body.length >= 3 && body.every((r) => !/<w:u /.test(r)), 'Word: เนื้อความไม่ขีดเส้นใต้');
 }
