@@ -40,26 +40,34 @@ function loadFonts() {
 }
 
 // ---------- iframe สำหรับวัด (มีเฉพาะ css/doc.css, ไม่ซูม) ----------
+// วัดในเอกสารหลัก (ที่หน้าตัวอย่างแสดงแผ่นเดียวกันอยู่) ไม่ใช่ใน iframe แยก — Safari/iPhone จัดบรรทัดและฟอนต์ใน iframe ที่ซ่อนต่างจากหน้าหลัก
+// ทำให้ PDF ที่อัปโหลดไม่ตรงกับตัวอย่าง (ตัดคำกลางคำ ตัวอักษรกระจาย) ; วัดในเอกสารเดียวกับตัวอย่าง = เอนจิน ฟอนต์ และการตัดคำชุดเดียวกัน
 async function openMeasureFrame(sheetsHtml, fonts) {
-  const f = document.createElement('iframe');
-  f.setAttribute('aria-hidden', 'true');
-  f.tabIndex = -1;
-  f.style.cssText = 'position:absolute;left:-10000px;top:0;width:900px;height:1200px;border:0;visibility:hidden;pointer-events:none;';
-  // text-size-adjust:100% — กัน iOS ขยายตัวอักษรเองในเฟรมที่ไม่มี viewport (ทำให้บรรทัดไม่ตรงกับหน้าตัวอย่าง)
-  f.srcdoc = `<!doctype html><html lang="th" style="-webkit-text-size-adjust:100%;text-size-adjust:100%"><head><meta charset="utf-8"><base href="${location.origin}/"><link rel="stylesheet" href="css/doc.css"></head><body style="margin:0;zoom:1"></body></html>`;
-  await new Promise((resolve) => { f.onload = resolve; document.body.appendChild(f); });
-  const d = f.contentDocument;
-  // ลงทะเบียนฟอนต์ THSarabunIT9 จากไบต์เดียวกับที่ฝังใน PDF โดยตรง (ไม่พึ่ง @font-face/เครือข่ายในเฟรมที่ซ่อน — บน Safari/iPhone เฟรมนี้อาจใช้ฟอนต์สำรองที่แคบกว่า ทำให้ตำแหน่งตัวอักษรไม่ตรงกับตัวอย่าง)
+  const d = document;
+  const host = d.createElement('div');
+  host.setAttribute('aria-hidden', 'true');
+  host.lang = 'th';
+  // zoom:1 กันค่าซูมของแผงตัวอย่าง · ไม่ใช้ display:none (ต้องมีเลย์เอาต์) · เว้นช่องกว้างพอกับแผ่น A4 (793.7px)
+  // ซ่อนด้วยตำแหน่งนอกจอเท่านั้น — ห้ามใช้ visibility:hidden (ตัวเดินเอกสารข้ามโหนดที่ visibility ไม่ใช่ visible) หรือ display:none (ไม่มีเลย์เอาต์)
+  host.style.cssText = 'position:absolute;left:-20000px;top:0;width:900px;zoom:1;pointer-events:none;contain:layout style;';
+  // ถ้าหน้านี้ยังไม่มี css/doc.css (หน้าที่ไม่มีตัวอย่าง) ใส่ให้ก่อน แล้วรอโหลด
+  if (![...d.styleSheets].some((s) => (s.href || '').includes('/css/doc.css'))) {
+    await new Promise((resolve) => { const l = d.createElement('link'); l.rel = 'stylesheet'; l.href = '/css/doc.css'; l.onload = l.onerror = resolve; d.head.appendChild(l); });
+  }
+  // ให้แน่ใจว่าฟอนต์ที่ใช้วัดคือ THSarabunIT9 ตัวเดียวกับที่ฝังใน PDF: ถ้า @font-face ยังไม่พร้อม ลงทะเบียนจากไบต์ที่โหลดมาแล้วโดยตรง
   try {
-    const FF = f.contentWindow.FontFace;
-    const faces = [new FF('THSarabunIT9', fonts.regular.slice(0), { weight: '400' }), new FF('THSarabunIT9', fonts.bold.slice(0), { weight: '700' })];
-    await Promise.all(faces.map((x) => x.load()));
-    faces.forEach((x) => d.fonts.add(x));
-  } catch { /* ถ้าไม่ได้ ใช้ @font-face ในหน้า CSS ตามเดิม */ }
-  d.body.insertAdjacentHTML('beforeend', sheetsHtml);
-  try { await Promise.all([d.fonts.load('16px THSarabunIT9', 'ก'), d.fonts.load('bold 16px THSarabunIT9', 'ก')]); await d.fonts.ready; } catch { /* ใช้ฟอนต์สำรอง (ตำแหน่งยังตรง แต่รูปอักษรอาจต่าง) */ }
-  await Promise.all([...d.images].map((im) => (im.decode ? im.decode().catch(() => {}) : null)));
-  return { frame: f, doc: d };
+    await Promise.all([d.fonts.load('16px THSarabunIT9', 'ก'), d.fonts.load('bold 16px THSarabunIT9', 'ก')]);
+    if (!d.fonts.check('16px THSarabunIT9', 'ก') || !d.fonts.check('bold 16px THSarabunIT9', 'ก')) {
+      const faces = [new FontFace('THSarabunIT9', fonts.regular.slice(0), { weight: '400' }), new FontFace('THSarabunIT9', fonts.bold.slice(0), { weight: '700' })];
+      await Promise.all(faces.map((x) => x.load()));
+      faces.forEach((x) => d.fonts.add(x));
+    }
+    await d.fonts.ready;
+  } catch { /* ใช้ฟอนต์ตามที่หน้ามี */ }
+  host.insertAdjacentHTML('beforeend', sheetsHtml);
+  d.body.appendChild(host);
+  await Promise.all([...host.querySelectorAll('img')].map((im) => (im.decode ? im.decode().catch(() => {}) : null)));
+  return { frame: host, doc: d };
 }
 
 /** ระยะจากขอบบนกล่องตัวอักษร (Range rect) ถึงเส้นฐาน (px) ที่ขนาดจริง — วัดด้วยตัวตรวจขนาด 0 ที่วางข้างตัวอักษร (Chrome ปัดค่า ascent เป็นจำนวนเต็มตามขนาดตัวอักษรที่ใช้จริง จึงต้องวัดที่ขนาดนั้น ๆ) */
@@ -397,8 +405,8 @@ function createRenderer({ doc, d, ascentOf, emblem, stats }) {
 }
 
 /** ย่อภาพตราครุฑให้พอดีความละเอียดที่ใช้ (เก็บความโปร่งใส) แล้วคืน PDFKit image object ใช้ซ้ำได้ทุกจุด (ฝังลง PDF ครั้งเดียว) */
-async function prepareEmblem(doc, d) {
-  const imgs = [...d.images].filter((im) => im.naturalWidth > 0);
+async function prepareEmblem(doc, root) {
+  const imgs = [...root.querySelectorAll('img')].filter((im) => im.naturalWidth > 0);
   if (!imgs.length) return { image: null };
   let maxW = 0;
   for (const im of imgs) maxW = Math.max(maxW, im.getBoundingClientRect().width);
@@ -424,7 +432,7 @@ export async function buildPdf(sheetsHtml, { title = 'ชุดเอกสา�
   const { frame, doc: d } = await openMeasureFrame(sheetsHtml, fonts);
   const ascentOf = makeAscentProbe(d);
   try {
-    const sheets = [...d.querySelectorAll('section.sheet')];
+    const sheets = [...frame.querySelectorAll('section.sheet')]; // เฉพาะแผ่นในกล่องวัด (เอกสารหลักมีแผ่นของหน้าตัวอย่างอยู่ด้วย)
     const stats = { sheets: sheets.length, strings: 0, images: 0, spread: 0, widthDiffMax: 0 };
     const pdf = new PDFDocument({ autoFirstPage: false, size: [PAGE_W, PAGE_H], margin: 0, compress: true, info: { Title: title, Producer: 'PDFKit', Creator: 'เอกสารศาล' }, displayTitle: true });
     const chunks = [];
@@ -442,7 +450,7 @@ export async function buildPdf(sheetsHtml, { title = 'ชุดเอกสา�
       const pw = pdf.font('R').fontSize(32 * PT).widthOfString(probe.textContent) / PT;
       stats.probe = { browser: +bw.toFixed(1), pdf: +pw.toFixed(1), fontOk: !!d.fonts.check('32px THSarabunIT9', 'ก') };
     } catch { /* วินิจฉัยอย่างเดียว */ }
-    const emblem = await prepareEmblem(pdf, d);
+    const emblem = await prepareEmblem(pdf, frame);
     const r = createRenderer({ doc: pdf, d, ascentOf, emblem, stats });
     onProgress?.(0, sheets.length);
     for (let i = 0; i < sheets.length; i++) {
