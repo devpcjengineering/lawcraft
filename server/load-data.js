@@ -19,7 +19,8 @@ export function courtPhones(jur) {
 export function loadData() {
   const laws = new Map(), items = [];
   // criminal-code-full.json = ป.อ. ภาค ๒–๓ ที่เหลือทุกมาตรา (คัดจาก PDF กฤษฎีกา, verified:false) — ให้เลือกข้อหาได้ครบ ; ข้ามมาตราที่มีใน criminal-code.json (ฉบับคัดตรวจแล้ว) แล้ว
-  for (const f of ['criminal-code.json', 'criminal-code-full.json', 'criminal-special.json', 'civil-code.json']) {
+  // civil-code-full.json = ป.พ.พ. ทุกมาตราที่เหลือ (บรรพ ๑–๖, แก้ไขถึงฉบับที่ 25 พ.ศ. 2568, verified:false) — ข้ามมาตราที่มีใน civil-code.json แล้ว
+  for (const f of ['criminal-code.json', 'criminal-code-full.json', 'criminal-special.json', 'civil-code.json', 'civil-code-full.json']) {
     const j = readJson(f);
     if (!j) continue;
     for (const l of j.laws || (j.law ? [j.law] : [])) laws.set(l.id, { ...l, file: f });

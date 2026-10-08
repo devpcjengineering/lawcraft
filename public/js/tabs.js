@@ -419,7 +419,8 @@ function itemOptions() {
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g).push(it);
   }
-  const num = (s) => parseFloat(String(s).replace(/[^0-9.]/g, '')) || 0;
+  // เรียงเลขมาตรา: "193/30" อยู่หลัง 193 ก่อน 194 (ไม่ใช่ 19330), "1096 ทวิ" หลัง 1096
+  const num = (s) => { const m = /^(\d+)(?:\/(\d+))?/.exec(String(s).trim()); return m ? Number(m[1]) + (Number(m[2] || 0) + (/ทวิ|ตรี|จัตวา/.test(s) ? 0.5 : 0)) / 1000 : 0; };
   return [...groups].map(([g, list]) => `<optgroup label="${esc(g)}">${list.sort((a, b) => num(a.section) - num(b.section))
     .map((it) => { const taken = S.c.charges.some((x) => x.itemId === it.id); return `<option value="${esc(it.id)}" ${taken ? 'disabled' : ''}>${taken ? '(เลือกแล้ว) ' : ''}${esc((S.idx.laws.get(it.lawId)?.short || '') + ' ม.' + it.section + ' — ' + it.name)}</option>`; }).join('')}</optgroup>`).join('');
 }
