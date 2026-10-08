@@ -152,9 +152,9 @@ details[open] > summary > .cta-d-c { transform: rotate(180deg); }
   .cta-tools-top { flex-wrap: wrap; }
   .cta-q { flex-basis: 100%; }
   .cta-newbtn { flex: 1 1 100%; justify-content: center; min-height: 48px; }
-  .cta-fchips { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
-  .cta-fchips::-webkit-scrollbar { display: none; }
-  .cta-fc { min-height: 44px; flex: none; white-space: nowrap; }
+  /* มือถือ: ตัวกรองสถานะเรียงแนวตั้ง แถวละปุ่ม เต็มความกว้าง ตัวเลขชิดขวา (ไม่เลื่อนข้าง) */
+  .cta-fchips { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .cta-fc { min-height: 44px; width: 100%; justify-content: space-between; white-space: nowrap; padding: 0 10px 0 16px; }
   .cta-ib { width: 44px; height: 44px; }
   .cta-acts .btn.sm { min-height: 44px; }
   .cta-acts .cta-ib:nth-of-type(1) { margin-left: 0; }

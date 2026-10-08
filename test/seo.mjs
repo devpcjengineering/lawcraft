@@ -118,12 +118,26 @@ for (const [from, html] of linkSources) {
 // ---- sitemap (api/sitemap.js) รวมหน้าใหม่ และทนต่อความล้มเหลว ----
 {
   const real = globalThis.fetch;
-  const run = async () => {
+  // sitemap เป็นดัชนี: /sitemap.xml → sitemap-pages.xml (หน้า/บทความ/ข้อมูลกฎหมาย) + sitemap-precedents-N.xml (ฎีกาจาก Aiven)
+  const run = async (url = '/api/sitemap?part=pages') => {
     const { default: handler } = await import(pathToFileURL(path.join(root, 'api/sitemap.js')).href);
     let body = '';
-    await handler({ headers: { host: 'test.local' } }, { setHeader() {}, end(b) { body = b; }, set statusCode(_) {} });
+    await handler({ headers: { host: 'test.local' }, url }, { setHeader() {}, end(b) { body = b; }, set statusCode(_) {} });
     return body;
   };
+  {
+    const idx = await run('/api/sitemap');
+    if (!idx.includes('<sitemapindex') || !idx.includes(`<loc>${SITE}/sitemap-pages.xml</loc>`)) bad('sitemap.xml ต้องเป็นดัชนีที่ชี้ sitemap-pages.xml');
+    const nFiles = (idx.match(/sitemap-precedents-\d+\.xml/g) || []).length;
+    if (process.env.AIVEN_READER_URL) {
+      if (nFiles < 1) bad('sitemap index ไม่มีไฟล์ฎีกาแม้มีฐาน Aiven');
+      const p1 = await run('/sitemap-precedents-1.xml');
+      const n1 = (p1.match(/<loc>/g) || []).length;
+      if (n1 < 1 || n1 > 50000) bad(`sitemap-precedents-1.xml มี ${n1} URL`);
+      if (!/<loc>https?:\/\/[^<]+\/precedents\/[0-9-]+-\d+-[0-9a-z]+\/<\/loc>/.test(p1)) bad('URL ฎีกาใน sitemap ไม่ตรงรูปแบบ /precedents/<เลข>-<ปี>-<รหัส>/');
+      console.log(`sitemap: ฎีกา ${nFiles} ไฟล์ · ไฟล์แรก ${n1} URL`);
+    } else console.log('sitemap: ไม่มี AIVEN_READER_URL — ข้ามตรวจไฟล์ฎีกา');
+  }
   globalThis.fetch = async (u) => {
     const s = String(u);
     const m = s.match(/\/(seo-urls\.json|articles-data\/index\.json)$/);
