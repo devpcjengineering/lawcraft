@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>ชุดเอกสารคดี (PDF) · Law Craft</title>
+<meta name="description" content="เปิดดูชุดเอกสารคดี (PDF) ที่แชร์จากระบบร่างคำฟ้อง Law Craft — ดูได้โดยไม่ต้องล็อกอิน ไฟล์ล่าสุดเสมอ">
+<!-- หน้าพักสำหรับลิงก์ดู PDF: ตัวไฟล์จริงอยู่ที่ Supabase (functions/v1/pdf/<token>.pdf) ซึ่งเป็น PDF ล้วน แอปแชต (LINE/Facebook/Messenger) จึงไม่มีภาพตัวอย่าง
+     หน้านี้ให้ภาพตัวอย่าง (Open Graph) แล้วพาต่อไปยังไฟล์ทันที — token อยู่ในพาธ /p/<token> (vercel.json rewrite) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Law Craft Legal Consultants">
+<meta property="og:locale" content="th_TH">
+<meta property="og:title" content="ชุดเอกสารคดี (PDF) · Law Craft">
+<meta property="og:description" content="เอกสารยื่นศาลตามแบบพิมพ์ศาลยุติธรรม — แตะเพื่อเปิดดูไฟล์ล่าสุด (ไม่ต้องล็อกอิน)">
+<meta property="og:image" content="https://www.law-craft.co/og-pdf.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ชุดเอกสารคดี PDF จาก Law Craft">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ชุดเอกสารคดี (PDF) · Law Craft">
+<meta name="twitter:description" content="เอกสารยื่นศาลตามแบบพิมพ์ศาลยุติธรรม — แตะเพื่อเปิดดูไฟล์ล่าสุด">
+<meta name="twitter:image" content="https://www.law-craft.co/og-pdf.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>
+  html, body { margin: 0; min-height: 100%; background: #f5f5f7; color: #1d1d1f; font-family: 'Noto Sans Thai', system-ui, -apple-system, sans-serif; }
+  main { max-width: 520px; margin: 0 auto; padding: 56px 20px calc(40px + env(safe-area-inset-bottom)); text-align: center; }
+  .mark { width: 56px; height: 56px; margin: 0 auto 18px; }
+  h1 { font-size: 22px; margin: 0 0 8px; }
+  p { color: #6b7280; margin: 0 0 24px; line-height: 1.5; }
+  .btn { display: inline-block; min-width: 220px; padding: 14px 24px; border-radius: 999px; background: #0071e3; color: #fff; text-decoration: none; font-weight: 600; font-size: 17px; }
+  .btn[aria-disabled=true] { opacity: .6; pointer-events: none; }
+  .err { color: #b42318; }
+  .back { display: block; margin-top: 28px; color: #6b7280; font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <svg class="mark" viewBox="0 0 48 48" fill="none" stroke="#1d1d1f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="7" r="2"/><path d="M24 9v29M16 41h16M13 38h22M7 14h34"/><path d="M10 14 3 28M10 14l7 14M38 14l-7 14M38 14l7 14"/><path d="M3 28h14c-.5 5-3.5 7.5-7 7.5S3.5 33 3 28zM31 28h14c-.5 5-3.5 7.5-7 7.5S31.5 33 31 28z"/></svg>
+  <h1>ชุดเอกสารคดี (PDF)</h1>
+  <p id="msg">กำลังเปิดไฟล์…</p>
+  <a class="btn" id="open" href="#" aria-disabled="true">เปิดไฟล์ PDF</a>
+  <a class="back" href="/">www.law-craft.co</a>
+</main>
+<script type="module">
+  import config from '/js/config.js';
+  const msg = document.getElementById('msg'), btn = document.getElementById('open');
+  const token = (location.pathname.split('/').filter(Boolean).pop() || '').replace(/\.pdf$/i, '').toLowerCase();
+  const base = (config.supabase && config.supabase.url || '').replace(/\/$/, '');
+  if (!/^[a-f0-9]{64}$/.test(token) || !base) {
+    msg.textContent = 'ลิงก์นี้ไม่ถูกต้องหรือถูกยกเลิกแล้ว'; msg.className = 'err';
+  } else {
+    const file = `${base}/functions/v1/pdf/${token}.pdf`;
+    btn.href = file; btn.removeAttribute('aria-disabled');
+    msg.textContent = 'ถ้าไฟล์ไม่เปิดเอง แตะปุ่มด้านล่าง';
+    location.replace(file); // ผู้ใช้จริงถูกพาไปเปิดไฟล์ทันที — ตัวดึงภาพตัวอย่างของแอปแชตไม่รันสคริปต์ จึงเห็นแท็ก og:* ด้านบน
+  }
+</script>
+</body>
+</html>

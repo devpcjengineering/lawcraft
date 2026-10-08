@@ -150,10 +150,14 @@ export function makeTemplate({ site, chrome }) {
 <meta property="og:title" content="${t}">
 <meta property="og:description" content="${d}">
 <meta property="og:url" content="${esc(url)}">
-<meta property="og:image" content="${site}/apple-touch-icon.png">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="${site}/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Law Craft — ร่างคำฟ้องและเอกสารศาลตามแบบพิมพ์ศาลยุติธรรม">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${t}">
 <meta name="twitter:description" content="${d}">
+<meta name="twitter:image" content="${site}/og-image.png">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="alternate icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">

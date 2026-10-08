@@ -9,6 +9,8 @@
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/precedents/:slug([0-9a-z-]+-[0-9a-z]+)", "destination": "/api/precedent?slug=:slug" },
     { "source": "/precedents/:slug([0-9a-z-]+-[0-9a-z]+)/", "destination": "/api/precedent?slug=:slug" },
+    { "source": "/p/:token([a-f0-9]{64})", "destination": "/p/index.html" },
+    { "source": "/p/:token([a-f0-9]{64}).pdf", "destination": "/p/index.html" },
     { "source": "/workspace/:path*", "destination": "/workspace/index.html" },
     { "source": "/admin/:path+", "destination": "/admin/index.html" }
   ],

@@ -32,7 +32,8 @@ async function currentPdfPath(caseId) {
   return data?.path || '';
 }
 /** ลิงก์ดู PDF สาธารณะ (Edge Function `pdf` — ต้องรู้ token เท่านั้น ปิดลิงก์แล้วใช้ไม่ได้) */
-const shareUrl = (token) => `${url}/functions/v1/pdf/${token}.pdf`;
+// ลิงก์แชร์ชี้หน้าพัก /p/<token> ของเว็บเอง (public/p/index.html มีภาพตัวอย่าง og:image ให้แอปแชต แล้วพาต่อไปไฟล์จริงที่ ${url}/functions/v1/pdf/<token>.pdf — ลิงก์ตรงแบบเดิมยังใช้ได้)
+const shareUrl = (token) => `${location.origin}/p/${token}`;
 
 /** ข้อมูลกฎหมายสาธารณะ (law_data อ่านได้ทุกคนรวม anon) — โหมดทดลองใช้ฟังก์ชันนี้ร่วมกัน */
 export async function loadLaw() {

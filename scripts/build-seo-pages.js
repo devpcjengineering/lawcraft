@@ -711,8 +711,14 @@ function injectHome({ dist, site, items, provs, lawIds, lawSlug, lawClean, lawSh
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${site}/">
-<meta property="og:image" content="${site}/apple-touch-icon.png">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="${site}/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Law Craft — ร่างคำฟ้องและเอกสารศาลตามแบบพิมพ์ศาลยุติธรรม">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${site}/og-image.png">
 <script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebSite', name: 'Law Craft Legal Consultants', alternateName: 'สำนักงานกฎหมาย ลอว์คราฟต์', url: `${site}/`, inLanguage: 'th-TH' })}</script>`;
   const had = html.includes('<!--SEO-DIRECTORY-->') && html.includes('<!--SEO-HEAD-->');
   if (!had) console.warn('seo: public/index.html ไม่มีจุดแทรก <!--SEO-HEAD--> / <!--SEO-DIRECTORY-->');
