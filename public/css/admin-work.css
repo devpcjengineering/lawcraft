@@ -368,6 +368,8 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
 .wit-panel > h3 > .h-t { flex: 1 1 14em; min-width: 0; }
 .wit-panel > h3 > .chk { flex: none; }
 .wit-panel .rows .r-act .btn { min-width: 128px; justify-content: center; }
+/* เลือกชั้นที่ใช้คำร้องขอหมายเรียกพยาน (ไต่สวนมูลฟ้อง / พิจารณา) — อยู่ระหว่างหัวกล่องกับคำอธิบาย */
+.wit-panel > .wit-stage { margin: 6px 0 10px; }
 @media (max-width: 760px) {
   .wit-panel > h3 > .grow { display: none; }
   .wit-panel > h3 > .chk { flex: 1 1 100%; }

@@ -16,8 +16,8 @@ const t = (text, extra = {}) => ({ text, ...extra });
 const val = (text) => (text ? { text, kind: 'val' } : null);
 const dots = (len = 24) => ({ text: '', kind: 'dots', len });
 const bold = (text) => ({ text, b: true });
-/** ป้ายเลขข้อ “ข้อ N.” — ตัวหนา + ขีดเส้นใต้ทุกข้อ (คำฟ้อง/คำร้อง/คำให้การ/ฯลฯ) ; ตัวเนื้อความไม่ขีดเส้นใต้ */
-const itemLabel = (no) => ({ text: `ข้อ ${no}.`, b: true, u: true });
+/** ป้ายเลขข้อ “ข้อ N.” — ตัวหนาทุกข้อ ; ขีดเส้นใต้ตั้งแต่ข้อ ๒ เป็นต้นไป (ข้อ ๑ ไม่ขีด — ทั้งคำฟ้อง/คำร้อง/คำให้การ) ; ตัวเนื้อความไม่ขีดเส้นใต้ */
+const itemLabel = (no) => ({ text: `ข้อ ${no}.`, b: true, u: Number(no) > 1 });
 
 /** [label, value, optional] ... → runs; dash=true: ช่องที่ว่างแสดงเป็น "-" ตามที่ใช้ในแบบพิมพ์ศาล (ช่อง optional ถ้าว่างข้ามไป) */
 function fields(pairs, sep = ' ', dash = false) {
@@ -309,19 +309,24 @@ function motionDoc(c, idx, m, n) {
  * คำร้องขอให้ศาลออกหมายเรียกพยาน — ฉบับเดียวต่อคดี (ไม่ใช่ต่อพยาน) ใช้เค้าโครงคำร้อง (แบบ ๗) ;
  * ข้อละพยานที่ขอให้ศาลออกหมาย (witnessWantsSummons, มีชื่อ, ไม่ใช่ self, รวมพยานเพิ่มเติม) เรียง บุคคล → เอกสาร → วัตถุ ; null เมื่อไม่มี
  */
+/** คำร้องขอหมายเรียกพยานใช้ในชั้นไต่สวนมูลฟ้องหรือไม่ — เฉพาะคดีอาญาฝั่งโจทก์ที่เลือก c.witnessStage = 'preliminary' (ค่าเริ่มต้น = ชั้นพิจารณา) */
+const witnessPrelim = (c) => c.type === 'criminal' && filerRole(c) !== 'defendant' && c.witnessStage === 'preliminary';
+/** วันที่พยานต้องมา/ส่งของต่อศาล ตามชั้นที่เลือก */
+const witnessDayWord = (c) => (witnessPrelim(c) ? 'วันนัดไต่สวนมูลฟ้อง' : 'วันสืบพยาน');
+
 function witnessRequestItemRuns(c, w) {
-  const f = filerWord(c), kind = witnessKind(w), who = witnessWho(w);
+  const f = filerWord(c), kind = witnessKind(w), who = witnessWho(w), day = witnessDayWord(c);
   const nameOf = (x) => (x.name ? val(x.name) : dots(24));
   const runs = [];
   if (kind === 'person') {
     const full = [who.name, who.pos].filter(Boolean).join(' ');
-    runs.push(t(`${f}มีความจำเป็นต้องอ้าง `), val(full), t(` เป็นพยานบุคคล ซึ่ง${f}ไม่อาจนำมาเบิกความเองได้ ${f}จึงขอให้ศาลออกหมายเรียก `), val(who.name), t(' มาเบิกความเป็นพยานต่อศาลในวันสืบพยาน'));
+    runs.push(t(`${f}มีความจำเป็นต้องอ้าง `), val(full), t(` เป็นพยานบุคคล ซึ่ง${f}ไม่อาจนำมาเบิกความเองได้ ${f}จึงขอให้ศาลออกหมายเรียก `), val(who.name), t(` มาเบิกความเป็นพยานต่อศาลใน${day}`));
   } else {
     const noun = kind === 'object' ? 'พยานวัตถุ' : 'พยานเอกสาร', thing = kind === 'object' ? 'วัตถุ' : 'เอกสาร';
     const holder = [nameOf(who)];
     if (who.pos) holder.push(t(' '), val(who.pos));
     runs.push(t(`${f}มีความจำเป็นต้องใช้ `), val(w.name), t(` (${noun}) เป็นพยานหลักฐาน ${thing}ดังกล่าวอยู่ในความครอบครองของ `), ...holder,
-      t(` ซึ่ง${f}ไม่อาจนำมาเองได้ ${f}จึงขอให้ศาลออกหมายเรียกให้ `), ...holder, t(` ส่ง${thing}ดังกล่าวต่อศาลก่อนวันสืบพยาน`));
+      t(` ซึ่ง${f}ไม่อาจนำมาเองได้ ${f}จึงขอให้ศาลออกหมายเรียกให้ `), ...holder, t(` ส่ง${thing}ดังกล่าวต่อศาลก่อน${day}`));
   }
   const recv = kind === 'person' ? 'พยาน' : 'ผู้ครอบครอง';
   if (witnessDeliver(w) === 'officer') {
@@ -342,8 +347,10 @@ function witnessRequestDoc(c, idx) {
   const order = { person: 0, document: 1, object: 2 };
   const list = rows.map((r) => r.w).sort((a, b) => order[witnessKind(a)] - order[witnessKind(b)]);
   if (!list.length) return null;
-  const pl = filers(c);
-  const title = 'คำร้องขอให้ศาลออกหมายเรียกพยาน';
+  const pl = filers(c), prelim = witnessPrelim(c);
+  // คดีอาญาฝั่งโจทก์ระบุชั้นที่ใช้ในชื่อเรื่อง (ชั้นไต่สวนมูลฟ้อง / ชั้นพิจารณา) ; คดีแพ่งและฝั่งจำเลยไม่มีชั้นไต่สวนมูลฟ้อง
+  const stageTag = c.type === 'criminal' && filerRole(c) !== 'defendant' ? (prelim ? ' (ชั้นไต่สวนมูลฟ้อง)' : ' (ชั้นพิจารณา)') : '';
+  const title = 'คำร้องขอให้ศาลออกหมายเรียกพยาน' + stageTag;
   const blocks = [
     top(c, '๗', title, { courtUse: false, kinds: { all: MOTION_KINDS, on: 'คำร้อง' } }),
     courtBlock(c),
@@ -358,7 +365,8 @@ function witnessRequestDoc(c, idx) {
     sigBlock(pl.map((x) => ({ label: 'ผู้ร้อง', name: `(${partyName(x)})` }))),
     ...authorLine(c, 'คำร้อง').map((b) => (b.t === 'p' ? { ...b, runs: b.runs.map((r) => (r.text === 'คำฟ้องฉบับนี้ ข้าพเจ้า ' ? { ...r, text: 'คำร้องฉบับนี้ ข้าพเจ้า ' } : r)) } : b)),
   ];
-  return { id: 'witnessRequest', title, blocks };
+  // ชั้นไต่สวนมูลฟ้อง = เอกสารชุดก่อนฟ้อง (เรียงไว้กับคำฟ้อง/หมายนัดไต่สวน) ; ชั้นพิจารณา = ตาม DOC_STAGE ('trial')
+  return { id: 'witnessRequest', title, blocks, ...(prelim ? { stage: 'pre' } : {}) };
 }
 
 /** แถวของตารางบัญชีพยาน (ใช้ร่วมกันทั้งบัญชีเดิมและบัญชีพยานเพิ่มเติม — แบบ ๑๕ เดียวกัน) — ลำดับ = เลข no จากบัญชีรวม จึงต่อเนื่องกัน */
@@ -802,8 +810,8 @@ export function docKey(idOrDoc) {
   if (id.startsWith('witnessExtra-')) return 'witnessExtra';
   return id;
 }
-/** ชั้นของเอกสาร: 'pre' (ก่อนฟ้อง/ไต่สวนมูลฟ้อง) | 'trial' (พิจารณา) — ไม่รู้จัก = 'pre' */
-export const docStage = (idOrDoc) => DOC_STAGE[docKey(idOrDoc)] || 'pre';
+/** ชั้นของเอกสาร: 'pre' (ก่อนฟ้อง/ไต่สวนมูลฟ้อง) | 'trial' (พิจารณา) — เอกสารกำหนดเองได้ด้วย d.stage (คำร้องขอหมายเรียกพยานชั้นไต่สวนมูลฟ้อง) ; ไม่รู้จัก = 'pre' */
+export const docStage = (idOrDoc) => (idOrDoc && idOrDoc.stage) || DOC_STAGE[docKey(idOrDoc)] || 'pre';
 const docRank = (d) => { const i = DOC_ORDER.indexOf(docKey(d)); return i < 0 ? DOC_ORDER.length : i; };
 
 /** เลขไทยบังคับในเอกสารทุกชนิด (แบบพิมพ์ศาลใช้เลขไทย) : แปลงข้อความที่มองเห็นทั้งหมดที่จุดเดียวนี้ — เว้นอีเมล/ที่อยู่เว็บ ; ข้อมูลคดีที่เก็บไว้ไม่ถูกแก้ */

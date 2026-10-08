@@ -1,7 +1,7 @@
 // ทดสอบ “คำร้องขอให้ศาลออกหมายเรียกพยาน” (witnessRequest): ฉบับเดียวต่อคดี ข้อละพยาน เรียง บุคคล → เอกสาร → วัตถุ
 import assert from 'node:assert/strict';
 import { newCase, newParty, newWitness, switchSide, witnessDeliver } from '../shared/model.js';
-import { buildDocuments } from '../shared/docs.js';
+import { buildDocuments, docStage } from '../shared/docs.js';
 
 const data = { laws: [], items: [], courtPhones: {}, formText: {} };
 const addr = { no: '9', moo: '', building: '', soi: '', road: 'ถนนสมมติ', sub: 'ตำบลสมมติ', district: 'อำเภอสมมติ', province: 'เชียงราย', zip: '57000' };
@@ -41,7 +41,8 @@ c.witnesses = [
 let d = find(c);
 assert.ok(d, 'มีคำร้อง');
 assert.equal(buildDocuments(c, data).filter((x) => x.id === 'witnessRequest').length, 1, 'ฉบับเดียว');
-assert.equal(d.title, 'คำร้องขอให้ศาลออกหมายเรียกพยาน');
+assert.equal(d.title, 'คำร้องขอให้ศาลออกหมายเรียกพยาน (ชั้นพิจารณา)', 'คดีอาญาฝั่งโจทก์ ค่าเริ่มต้น = ชั้นพิจารณา');
+assert.equal(d.stage, undefined, 'ชั้นพิจารณาใช้ DOC_STAGE ปกติ (trial)');
 const its = items(d).map(text).map(digits);
 assert.equal(its.length, 5, 'พยานที่นำมาเองไม่รวม');
 its.forEach((s, i) => assert.ok(s.startsWith(`ข้อ ${i + 1}.`), 'เลขข้อเรียง ' + i));
@@ -55,6 +56,29 @@ assert.match(its[3], /นอกเขตอำนาจ/); assert.match(its[3], 
 assert.match(its[4], /มีดของกลาง/); assert.match(its[4], /พยานวัตถุ/); assert.match(its[4], /ส่งวัตถุดังกล่าวต่อศาล/);
 assert.ok(its.every((s) => s.includes('โจทก์')), 'ฝั่งโจทก์ใช้คำว่าโจทก์');
 assert.ok(!its[0].includes('นอกเขต'));
+assert.match(its[0], /มาเบิกความเป็นพยานต่อศาลในวันสืบพยาน/);
+
+// ชั้นไต่สวนมูลฟ้อง (คดีอาญาฝั่งโจทก์): ชื่อเรื่อง + ถ้อยคำเปลี่ยน + จัดเป็นเอกสารชุดก่อนฟ้อง
+assert.equal(newCase('criminal').witnessStage, 'trial');
+c.witnessStage = 'preliminary';
+d = find(c);
+assert.equal(d.title, 'คำร้องขอให้ศาลออกหมายเรียกพยาน (ชั้นไต่สวนมูลฟ้อง)');
+assert.equal(docStage(d), 'pre', 'ชั้นไต่สวนมูลฟ้อง = ชุดก่อนฟ้อง');
+const pi = items(d).map(text);
+assert.match(pi[0], /มาเบิกความเป็นพยานต่อศาลในวันนัดไต่สวนมูลฟ้อง/);
+assert.match(pi[3], /ส่งเอกสารดังกล่าวต่อศาลก่อนวันนัดไต่สวนมูลฟ้อง/);
+assert.ok(pi.every((s) => !s.includes('วันสืบพยาน')), 'ไม่มีคำว่าวันสืบพยานในชั้นไต่สวนมูลฟ้อง');
+// คดีแพ่งไม่มีชั้นไต่สวนมูลฟ้อง: ชื่อเรื่องไม่มีวงเล็บ แม้ตั้ง preliminary
+{
+  const cv = newCase('civil');
+  cv.parties = mk().parties; cv.witnesses = [{ ...newWitness('document'), name: 'เอกสารแพ่ง', holder: 'ผู้ถือ', addr }];
+  cv.witnessStage = 'preliminary';
+  const dv = find(cv);
+  assert.equal(dv.title, 'คำร้องขอให้ศาลออกหมายเรียกพยาน');
+  assert.match(items(dv).map(text)[0], /ก่อนวันสืบพยาน/);
+  assert.equal(docStage(dv), 'trial');
+}
+c.witnessStage = 'trial';
 
 // ฝั่งจำเลย
 switchSide(c, 'defendant');
@@ -62,6 +86,7 @@ c.parties = mk().parties;
 c.witnesses = [{ ...newWitness('person'), name: 'พยานจำเลย', addr }];
 d = find(c);
 assert.ok(d, 'ฝั่งจำเลยมีคำร้อง');
+assert.equal(d.title, 'คำร้องขอให้ศาลออกหมายเรียกพยาน', 'ฝั่งจำเลยไม่มีชั้นไต่สวนมูลฟ้อง');
 const di = items(d).map(text);
 assert.equal(di.length, 1);
 assert.ok(di[0].includes('จำเลยมีความจำเป็นต้องอ้าง') && !di[0].includes('โจทก์'), 'ฝั่งจำเลยใช้ จำเลย');

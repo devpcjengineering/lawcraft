@@ -711,7 +711,8 @@ function witnessRequestPanel() {
   const n = witnessSummonsPlan(c).reduce((a, g) => a + g.rows.length, 0);
   return `<div class="panel wit-panel">
     <h3>${icon('file', { size: 18 })}<span class="h-t">คำร้องขอให้ศาลออกหมายเรียกพยาน: ${on ? (n ? 'พร้อมสร้าง' : 'ยังไม่มีพยาน') : 'ปิดอยู่'}</span><span class="grow"></span>${check('สร้างคำร้องอัตโนมัติ', 'docs.witnessRequest', { sw: true, rerender: true })}</h3>
-    <p class="hint">ระบบรวมพยานที่ขอให้ศาลออกหมายเรียก (${n} รายการ) เป็นคำร้องฉบับเดียว แยกข้อละพยาน — พยานเอกสาร/วัตถุ: “มีความจำเป็นต้องใช้…ซึ่งไม่อาจนำมาเองได้ จึงขอให้ศาลออกหมายเรียกให้ผู้ครอบครองส่งต่อศาลก่อนวันสืบพยาน” · วิธีส่งเลือกรายพยาน (ไปรษณีย์ตอบรับด่วนพิเศษ / เจ้าพนักงานศาล — ถ้าไม่มีผู้รับโดยชอบขอให้ศาลสั่งปิดหมาย)</p>
+    ${c.type === 'criminal' && sideOf(c) !== 'defendant' ? `<div class="f s12 wit-stage" role="group" aria-label="ชั้นที่ใช้คำร้อง"><span>ใช้ในชั้น (ข้อความในคำร้องเปลี่ยนตามชั้นที่เลือก)</span>${seg('witnessStage', [['preliminary', 'ชั้นไต่สวนมูลฟ้อง'], ['trial', 'ชั้นพิจารณา']], { rerender: true, label: 'ชั้นที่ใช้คำร้อง' })}</div>` : ''}
+    <p class="hint">ระบบรวมพยานที่ขอให้ศาลออกหมายเรียก (${n} รายการ) เป็นคำร้องฉบับเดียว แยกข้อละพยาน — พยานเอกสาร/วัตถุ: “มีความจำเป็นต้องใช้…ซึ่งไม่อาจนำมาเองได้ จึงขอให้ศาลออกหมายเรียกให้ผู้ครอบครองส่งต่อศาลก่อน${c.type === 'criminal' && sideOf(c) !== 'defendant' && c.witnessStage === 'preliminary' ? 'วันนัดไต่สวนมูลฟ้อง' : 'วันสืบพยาน'}” · วิธีส่งเลือกรายพยาน (ไปรษณีย์ตอบรับด่วนพิเศษ / เจ้าพนักงานศาล — ถ้าไม่มีผู้รับโดยชอบขอให้ศาลสั่งปิดหมาย)</p>
     ${on && n ? `<div class="toolbar tight"><button type="button" class="btn sm outline" data-act="pvDoc" data-id="witnessRequest">${icon('eye', { size: 15 })}<span>ดูตัวอย่าง</span></button></div>` : ''}
   </div>`;
 }

@@ -37,6 +37,7 @@ export function newCase(type = 'criminal') {
     copies: '',                                   // จำนวนสำเนา
     civilCause: '',                               // คดีแพ่ง: เรื่อง/มูลคดี
     witnesses: [],                                // [newWitness()] — kind: person | object | document (ดู newWitness / witnessSummonsPlan)
+    witnessStage: 'trial',                        // คำร้องขอให้ศาลออกหมายเรียกพยานใช้ในชั้นใด (คดีอาญาฝั่งโจทก์): trial = ชั้นพิจารณา | preliminary = ชั้นไต่สวนมูลฟ้อง
     motions: [],                                  // [{id, title, ids:[snippetId], text}]
     service: { auto: true, mode: 'post', custom: false, text: '', fee: '', deliver: 'ems', court: '' },   // mode: cross-post | post | cross | none
     powers: '',
