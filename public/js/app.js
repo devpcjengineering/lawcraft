@@ -428,7 +428,8 @@ function renderSteps() {
   const side = sideOf(S.c), isDef = side === 'defendant';
   // 1 คดีเป็นโจทก์หรือจำเลยอย่างใดอย่างหนึ่งเท่านั้น (เลือกตอนสร้างคดี สลับไม่ได้) — แสดงเป็นป้ายบอกฝั่งเฉยๆ
   const sideNav = isDef ? '<div class="side-note"><b>คดีฝั่งจำเลย</b> · ชุดเอกสาร: บัญชีพยาน · คำร้อง/คำแถลง · คำให้การ · หมายเรียกพยาน</div>' : '';
-  const stepsHtml = drawerHead + filedNav + sideNav + navGroups.map((g) => {
+  // มือถือ: หัวลิ้นชักอยู่นิ่ง ส่วนรายการเลื่อนในกล่อง .steps-scroll ของตัวเอง (ไม่ใช้ position:sticky — Safari บน iPhone วาดหัวที่ sticky ผิด/หายหลังปล่อยนิ้ว)
+  const stepsHtml = drawerHead + '<div class="steps-scroll">' + filedNav + sideNav + navGroups.map((g) => {
     const items = g.items.filter((t) => authUi.navItemVisible(t) && !(isDef && DEF_HIDDEN_STEPS.has(t.key)) && (!t.only || t.only === S.c.type || (t.only === 'criminal' && crim)));
     const hint = filed && g.group === 'เพิ่มเติม' ? (sideOf(S.c) === 'defendant' ? 'หลังรับฟ้อง' : 'หลังยื่นฟ้อง') : g.hint;
     return `<div class="nav-group"><div class="nav-head">${esc(sideOf(S.c) === 'defendant' && g.group === 'เอกสารในชุดฟ้อง' ? 'เอกสารฝั่งจำเลย' : g.group)}${hint ? `<small>${esc(hint)}</small>` : ''}</div>${items.map((t) => {
@@ -441,7 +442,7 @@ function renderSteps() {
         ${t.key === 'export' && errors ? `<span class="badge">${errors}</span>` : ''}
         ${lock ? `<span class="lock" aria-hidden="true">${ico2('lock', { size: 14 })}</span>` : (st ? `<span class="dot ${st}" title="${STATUS_TXT[st]}" role="img" aria-label="${STATUS_TXT[st]}">${st === 'ok' ? ico2('check', { size: 11, stroke: 3 }) : ''}</span>` : '')}</a>`;
     }).join('')}</div>`;
-  }).join('');
+  }).join('') + '</div>';
   morphInto(el, stepsHtml, { mark: false });
   updateReady();
   updateFiledUi();

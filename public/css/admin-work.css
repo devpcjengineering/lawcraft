@@ -311,21 +311,23 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
   .nav-toggle:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
   .nav-toggle .ico { width: 24px; height: 24px; }
   .topbar:has(.nav-toggle) { transition: z-index 0s linear .3s; }
-  body:has(.work.navopen) .topbar { z-index: 1; transition-delay: 0s; }
+  /* ขณะลิ้นชักเปิด: ซ่อนแถบบนทั้งแถบ — Safari บน iPhone วาดแถบบน (sticky + backdrop-filter) ทับลิ้นชักแม้ z-index ต่ำกว่า ทำให้หัว “เมนูคดี” ถูกทับ/หาย */
+  body:has(.work.navopen) .topbar { z-index: 1; visibility: hidden; transition-delay: 0s; }
   html:has(.work.navopen), body:has(.work.navopen) { overflow: hidden; }
 
   .work > .steps {
     position: fixed; z-index: 70; top: 0; bottom: 0; left: 0; width: min(320px, 86vw); height: auto; min-height: 0;
     display: flex; flex-direction: column; padding: 0 0 calc(16px + env(safe-area-inset-bottom, 0px));
     background: #fff; border: 0; box-shadow: 10px 0 36px rgba(16, 24, 40, .2);
-    overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+    overflow: hidden; /* ตัวลิ้นชักไม่เลื่อนเอง — รายการเลื่อนใน .steps-scroll (หัว “เมนูคดี” จึงอยู่นิ่งโดยไม่ต้องใช้ sticky ซึ่ง Safari บน iPhone วาดผิด/หายหลังปล่อยนิ้ว) */
     transform: translateX(-104%); visibility: hidden; transition: transform .3s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .3s;
   }
+  .work > .steps > .steps-scroll { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; padding-bottom: 16px; }
   .work.navopen > .steps { transform: none; visibility: visible; transition: transform .3s cubic-bezier(.2, .8, .2, 1), visibility 0s; }
   .work > .steps-backdrop { display: block; position: fixed; inset: 0; z-index: 65; background: rgba(16, 24, 40, .46); opacity: 0; visibility: hidden; -webkit-tap-highlight-color: transparent; transition: opacity .3s ease, visibility 0s linear .3s; }
   .work.navopen > .steps-backdrop { opacity: 1; visibility: visible; transition: opacity .3s ease, visibility 0s; }
 
-  .steps-head { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 8px; position: sticky; top: 0; z-index: 2; min-height: 60px; padding: calc(8px + env(safe-area-inset-top, 0px)) 8px 8px calc(20px + env(safe-area-inset-left, 0px)); background: #fff; border-bottom: 1px solid var(--hair-2); }
+  .steps-head { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 8px; position: relative; z-index: 2; min-height: 60px; padding: calc(8px + env(safe-area-inset-top, 0px)) 8px 8px calc(20px + env(safe-area-inset-left, 0px)); background: #fff; border-bottom: 1px solid var(--hair-2); }
   .steps-head b { font-size: 18px; font-weight: 700; letter-spacing: -.005em; color: var(--ink); }
   .steps-x { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 12px; background: transparent; color: var(--ink-2); cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .steps-x:active { background: var(--surface-3); }
