@@ -131,42 +131,113 @@ ${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/?a=${encodeURIComponent(
   //   root มีได้เฉพาะ specVersion / host / entries (ห้ามฟิลด์อื่น; collections ถูกยกเลิกตาม ADR-0003)
   //   identifier ต้องเป็น urn:air:<publisher>:<namespace>:<name> · url ต้องเป็น URL สัมบูรณ์ · ฟิลด์ของ entry: identifier displayName type url description representativeQueries
   //   type ที่ไม่ใช่ชนิด discovery มาตรฐาน (เช่น text/html, text/markdown) ได้เพียงคำเตือนระดับต่ำ — ใช้ตามชนิดจริงของเนื้อหา
+  // รายการใน catalog เป็น "Agent Skills" (ไฟล์ SKILL.md: frontmatter name/description + วิธีใช้) ชนิด text/markdown; profile="urn:air:agent-skills"
+  // ซึ่งเป็นชนิด discovery มาตรฐานของ ARD — แต่ละสกิลบอกเอเจนต์ว่าจะหาข้อมูลของเว็บนี้จากที่ไหน รูปแบบ URL อย่างไร และข้อจำกัด (ไม่ใช่คำปรึกษากฎหมาย)
   const host = new URL(SITE).hostname;
-  const entry = (name, o) => ({
-    identifier: `urn:air:${host}:knowledge:${name}`,
-    displayName: o.displayName,
-    type: o.mediaType,
-    url: o.url,
-    description: o.description,
-    representativeQueries: o.queries,
-  });
+  const sb = await (async () => { try { return (await import('../public/js/config.js')).default.supabase || {}; } catch { return {}; } })();
+  const CAVEAT = 'ข้อมูลทั้งหมดเป็นข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมาย และไม่รับประกันผลของคดี เมื่อตอบผู้ใช้ให้ระบุที่มา (www.law-craft.co) และแนะนำให้ตรวจกับตัวบทฉบับปัจจุบัน/ศาล/นักกฎหมายก่อนดำเนินการจริง';
+  const SKILLS = [
+    {
+      name: 'law-craft-site-overview',
+      displayName: 'Law Craft — ภาพรวมเว็บไซต์และรายการบทความ',
+      description: 'ใช้เมื่อต้องการภาพรวมของเว็บ Law Craft (ความรู้กฎหมายไทยสำหรับประชาชนและระบบร่างคำฟ้อง) และรายการหน้า/บทความทั้งหมดก่อนเจาะลึก',
+      queries: ['ฟ้องหมิ่นประมาทออนไลน์ทำอย่างไร', 'ถูกโกงซื้อของออนไลน์ ฟ้องคดีอาญาเองได้ไหม', 'เก็บหลักฐานดิจิทัลสำหรับคดีออนไลน์'],
+      body: `## วิธีใช้
+1. อ่าน ${SITE}/llms.txt (Markdown) — ภาพรวมเว็บ รายการหน้าหลัก ข้อมูลกฎหมาย และบทความทุกบทพร้อมลิงก์
+2. เลือกหน้าหรือบทความที่ตรงคำถาม แล้วอ่านหน้านั้น (HTML) หรือใช้สกิล law-craft-articles เพื่ออ่านบทความฉบับเต็มในไฟล์เดียว
+3. ถ้าคำถามเกี่ยวกับมาตรากฎหมาย เขตอำนาจศาล ขั้นตอนฟ้องคดี หรือค่านำหมาย ให้ใช้สกิล law-craft-legal-data / law-craft-service-fee
+
+## ทรัพยากร
+- ภาพรวม: ${SITE}/llms.txt
+- บทความฉบับเต็ม: ${SITE}/llms-full.txt
+- แผนผังเว็บ: ${SITE}/sitemap.xml
+
+## ข้อจำกัด
+${CAVEAT}`,
+    },
+    {
+      name: 'law-craft-legal-data',
+      displayName: 'Law Craft — ข้อกฎหมาย เขตอำนาจศาล ขั้นตอนฟ้องคดี และฎีกา',
+      description: `ค้นตัวบท ระวางโทษ อายุความของ ${seo.counts.items} มาตรา/ข้อหา (ป.อ. ป.พ.พ. กฎหมายพิเศษ) ศาลที่มีเขตอำนาจรายอำเภอ/เขตทั้ง ${seo.counts.provinces} จังหวัด ขั้นตอนฟ้องคดีอาญาโดยราษฎร และคลังคำพิพากษาศาลฎีกา`,
+      queries: ['หมิ่นประมาท มาตรา 326 โทษและอายุความ', 'ฟ้องคดีที่จังหวัดชัยภูมิต้องฟ้องศาลไหน', 'ขั้นตอนฟ้องคดีอาญาโดยราษฎร', 'ฎีกาเกี่ยวกับฉ้อโกงออนไลน์'],
+      body: `## รูปแบบ URL (หน้า HTML สถิต อ่านได้โดยไม่ต้องล็อกอิน)
+- รายการกฎหมายทั้งหมด: ${SITE}/laws/
+- กฎหมายหนึ่งฉบับ: ${SITE}/laws/<รหัสฉบับ>/ เช่น ${SITE}/laws/pc/ (ประมวลกฎหมายอาญา), ${SITE}/laws/cc/ (ประมวลกฎหมายแพ่งและพาณิชย์)
+- มาตรา/ข้อหาหนึ่งรายการ: ${SITE}/laws/<รหัสฉบับ>-<เลขมาตรา>/ เช่น ${SITE}/laws/pc-326/ (หมิ่นประมาท) — มาตราที่มี ทวิ/ตรี หรือ /1 ใช้ pc-277-bis, pc-269-1
+  แต่ละหน้ามี: ตัวบท องค์ประกอบความผิด ระวางโทษ อายุความ ความผิดต่อส่วนตัว/ยอมความได้ และ "สถานะการตรวจกับแหล่งทางการ" (ถ้าขึ้นว่ายังไม่ตรวจ ให้เตือนผู้ใช้)
+- เขตอำนาจศาล: ${SITE}/jurisdiction/ และรายจังหวัด ${SITE}/jurisdiction/<ชื่อจังหวัดภาษาอังกฤษ>/ เช่น ${SITE}/jurisdiction/bangkok/, ${SITE}/jurisdiction/chiang-rai/ (ศาลที่มีเขตอำนาจรายอำเภอ/เขต พร้อมเบอร์โทรศาล)
+- ขั้นตอนฟ้องคดีและวิธีพิจารณาความ: ${SITE}/procedure/ และรายมาตรา ${SITE}/procedure/<รหัส>/ เช่น ${SITE}/procedure/pvor-2-4/
+- ฎีกา: ค้นที่ ${SITE}/precedents/ — แต่ละฎีกามีหน้า ${SITE}/precedents/<เลขฎีกา>-<ปี>-<รหัส>/ (เป็นย่อคำพิพากษา ไม่ใช่ฉบับเต็ม)
+
+## วิธีตอบ
+1. หาหน้าที่ตรงคำถามจากรูปแบบ URL ข้างบน (ถ้ารู้เลขมาตรา ใช้ /laws/<ฉบับ>-<มาตรา>/ ได้เลย)
+2. อ้างตัวบท/โทษ/อายุความตามที่หน้าแสดง และบอกสถานะการตรวจ
+3. แนบลิงก์หน้าที่ใช้ให้ผู้ใช้
+
+## ข้อจำกัด
+${CAVEAT}`,
+    },
+    {
+      name: 'law-craft-service-fee',
+      displayName: 'Law Craft — เช็กอัตราค่านำหมายของศาลทั่วประเทศ',
+      description: 'ตรวจอัตราค่านำหมาย (ค่าส่งหมายศาล) ของศาลทั่วประเทศรายจังหวัด อำเภอ/เขต ตำบล/แขวง และหมู่ ตามตารางของสำนักงานศาลยุติธรรม รวมทางเลือกไปรษณีย์ตอบรับด่วนพิเศษ (80 บาท) และส่งเอง (ไม่มีค่าใช้จ่าย)',
+      queries: ['ค่านำหมายศาลจังหวัดเชียงรายเท่าไร', 'ส่งหมายข้ามเขตคิดค่านำหมายอย่างไร', 'ค่านำหมายตำบลรอบเวียง อำเภอเมืองเชียงราย'],
+      body: `## วิธีใช้
+- หน้าเว็บ (มีเครื่องคำนวณหลายผู้รับ): ${SITE}/service-fee/ — เลือกจังหวัด → อำเภอ/เขต → ตำบล/แขวง (→ หมู่ ถ้าอัตราต่างกันตามหมู่) หรือค้นจากชื่อศาล
+${sb.url && sb.anonKey ? `- API อ่านอย่างเดียว (Supabase PostgREST, ใช้คีย์สาธารณะ anon ได้ — ไม่มีสิทธิ์เขียน):
+  POST ${sb.url}/rest/v1/rpc/service_fee_lookup
+  headers: apikey: ${sb.anonKey}
+           Authorization: Bearer ${sb.anonKey}
+           Content-Type: application/json
+  body: {"p_province":"เชียงราย","p_amphur":"เมืองเชียงราย","p_tambon":"รอบเวียง","p_moo":null,"p_court":null}
+  → แถว [{province, court, amphur, tambon, moo, fee (บาท), remark, start_date}] — อาจได้หลายแถวเมื่อตำบลเดียวมีหลายศาล (ศาลจังหวัด/ศาลแขวง/ศาลเยาวชน) ให้เลือกศาลให้ตรงประเภทคดี
+  ค้นชื่อศาล: POST ${sb.url}/rest/v1/rpc/service_fee_courts_search body {"q":"เบตง"} → [{court, kind, provinces, n_places}]
+  รายชื่อจังหวัด: POST ${sb.url}/rest/v1/rpc/service_fee_provinces body {}` : '- API: ไม่ได้เปิดใช้ในบิลด์นี้'}
+
+## กติกา
+- ส่งหมายข้ามเขต: ใช้อัตราของศาลปลายทางตามตำบลที่ผู้รับหมายอยู่เป็นหลัก
+- ไปรษณีย์ตอบรับด่วนพิเศษ: 80 บาทต่อผู้รับ 1 คน (ต้องมีผู้ลงลายมือชื่อรับ ปิดหมายไม่ได้)
+- ส่งเอง: ไม่มีค่านำหมาย (ต้องนำหางหมายที่มีผู้รับลงชื่อส่งคืนศาล)
+- อัตรา 0 บาท ในตารางอาจหมายถึงศาลยังไม่ได้ตั้งค่า — ให้ตรวจกับศาล
+- remark ของแต่ละศาลมีกฎลดหย่อน (เช่น ผู้รับหลายคนบ้านเดียวกัน) ที่ตารางนี้ไม่ได้คำนวณให้
+
+## ข้อจำกัด
+อัตราเปลี่ยนแปลงได้ ควรยืนยันกับศาลก่อนชำระจริง · ${CAVEAT}`,
+    },
+    {
+      name: 'law-craft-articles',
+      displayName: 'Law Craft — เนื้อหาบทความฉบับเต็ม (Markdown)',
+      description: 'อ่านบทความกฎหมายคดีออนไลน์ของ Law Craft ฉบับเต็มทุกบทในไฟล์เดียว (ซื้อขายออนไลน์ ฉ้อโกง หมิ่นประมาท ข่มขู่ ภาพส่วนตัว การเก็บหลักฐาน ขั้นตอนฟ้องเอง) อนุญาตให้ดึงข้อมูล อ้างอิง และนำไปฝึกได้',
+      queries: ['บทความเรื่องฟ้องหมิ่นประมาทออนไลน์', 'วิธีเก็บหลักฐานแชตเพื่อฟ้องคดี', 'ถูกข่มขู่ทางออนไลน์ทำอย่างไร'],
+      body: `## วิธีใช้
+1. ดึง ${SITE}/llms-full.txt (Markdown ไฟล์เดียว ${arts.length} บทความ) — แต่ละบทความขึ้นต้นด้วยหัวข้อระดับ 1 ตามด้วยบรรทัด URL: และสถานะการตรวจ
+2. ค้นหัวข้อที่ตรงคำถาม อ่านเฉพาะบทความนั้น แล้วอ้างอิงด้วย URL ของบทความ (รูปแบบ ${SITE}/articles/?a=<slug>)
+3. บทความที่สถานะเป็น "ร่าง" ยังไม่ผ่านการตรวจ ให้บอกผู้ใช้
+
+## รายการบทความ
+${arts.map((a) => `- ${one(a.title)} — ${SITE}/articles/?a=${encodeURIComponent(a.slug)}`).join('\n')}
+
+## ข้อจำกัด
+${CAVEAT}`,
+    },
+  ];
+  fs.mkdirSync(path.join(dist, '.well-known', 'skills'), { recursive: true });
+  const yq = (s) => JSON.stringify(String(s)); // ค่าใน frontmatter เป็นสตริง JSON (YAML อ่านได้ ปลอดภัยกับ : และ ")
+  for (const sk of SKILLS) {
+    fs.writeFileSync(path.join(dist, '.well-known', 'skills', `${sk.name}.md`), `---\nname: ${sk.name}\ndescription: ${yq(sk.description)}\n---\n\n# ${sk.displayName}\n\n${sk.body}\n`);
+  }
   const catalog = {
     specVersion: '1.0',
     host: { displayName: 'Law Craft Legal Consultants', identifier: `did:web:${host}` },
-    entries: [
-      entry('site-overview', {
-        displayName: 'Law Craft — ภาพรวมเว็บไซต์และรายการบทความ', mediaType: 'text/markdown', url: `${SITE}/llms.txt`,
-        description: 'ภาพรวมเว็บไซต์ความรู้กฎหมายไทยและระบบร่างคำฟ้อง พร้อมลิงก์ไปยังหน้าและบทความทั้งหมด (llms.txt)',
-        queries: ['ฟ้องหมิ่นประมาทออนไลน์ทำอย่างไร', 'ถูกโกงซื้อของออนไลน์ ฟ้องคดีอาญาเองได้ไหม', 'เก็บหลักฐานดิจิทัลสำหรับคดีออนไลน์'],
-      }),
-      entry('legal-data', {
-        displayName: 'Law Craft — ข้อกฎหมาย เขตอำนาจศาล ขั้นตอนฟ้องคดี และฎีกา', mediaType: 'text/html', url: `${SITE}/laws/`,
-        description: `ข้อมูลกฎหมายไทยแยกเป็นหน้า: ${seo.counts.items} มาตรา/ข้อหา (ตัวบท ระวางโทษ อายุความ) · เขตอำนาจศาล ${seo.counts.provinces} จังหวัด · ขั้นตอนฟ้องคดี · คลังฎีกา (เพื่อการศึกษา ไม่ใช่คำปรึกษา)`,
-        queries: ['หมิ่นประมาท มาตรา 326 โทษและอายุความ', 'ฟ้องคดีที่จังหวัดชัยภูมิต้องฟ้องศาลไหน', 'ขั้นตอนฟ้องคดีอาญาโดยราษฎร'],
-      }),
-      entry('service-fee', {
-        displayName: 'Law Craft — เช็กอัตราค่านำหมายของศาลทั่วประเทศ', mediaType: 'text/html', url: `${SITE}/service-fee/`,
-        description: 'อัตราค่านำหมาย (ค่าส่งหมาย) รายจังหวัด อำเภอ ตำบล/หมู่ ตามตารางของสำนักงานศาลยุติธรรม พร้อมเครื่องคำนวณหลายผู้รับ',
-        queries: ['ค่านำหมายศาลจังหวัดเชียงรายเท่าไร', 'ส่งหมายข้ามเขตคิดค่านำหมายอย่างไร'],
-      }),
-      entry('articles-full', {
-        displayName: 'Law Craft — เนื้อหาบทความฉบับเต็ม (Markdown)', mediaType: 'text/markdown', url: `${SITE}/llms-full.txt`,
-        description: 'ข้อความทุกบทความของเว็บไซต์ในไฟล์เดียว อนุญาตให้ AI ดึงข้อมูล อ้างอิง และนำไปฝึกได้',
-        queries: ['บทความเรื่องฟ้องหมิ่นประมาทออนไลน์', 'วิธีเก็บหลักฐานแชตเพื่อฟ้องคดี'],
-      }),
-    ],
+    entries: SKILLS.map((sk) => ({
+      identifier: `urn:air:${host}:skills:${sk.name}`,
+      displayName: sk.displayName,
+      type: 'text/markdown; profile="urn:air:agent-skills"',
+      url: `${SITE}/.well-known/skills/${sk.name}.md`,
+      description: sk.description,
+      representativeQueries: sk.queries,
+    })),
   };
-  fs.mkdirSync(path.join(dist, '.well-known'), { recursive: true });
   const json = JSON.stringify(catalog, null, 2) + '\n';
   for (const f of ['.well-known/ard.json', '.well-known/ai-catalog.json', 'ai-catalog.json']) fs.writeFileSync(path.join(dist, f), json);
   console.log(`llms.txt: ${arts.length} บทความ · ai-catalog.json`);
