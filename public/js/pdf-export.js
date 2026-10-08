@@ -125,9 +125,13 @@ function createRenderer({ doc, d, ascentOf, emblem, stats }) {
     useFont(bold, fpx).fillColor(color);
     if (extra && clusters) {
       // ข้อความจัดชิดสองข้างแบบ text-justify:inter-character → เบราว์เซอร์เพิ่มช่องไฟเท่ากันหลังอักขระทุกกลุ่ม (cluster)
-      // ใช้ wordSpacing ของ PDFKit: ใส่ช่องว่างคั่นทุกกลุ่ม (แต่ละกลุ่มถูกจัดรูปแยกกัน สระ/วรรณยุกต์ยังอยู่ที่เดิมกับตัวฐาน) ให้ระยะเพิ่มต่อกลุ่ม = extra พอดี
-      const spaceW = doc.widthOfString(' ');
-      doc.text(clusters.join(' '), X(left), Y(baseline), { baseline: 'alphabetic', lineBreak: false, wordSpacing: extra * PT - spaceW });
+      // วางทีละกลุ่มที่ตำแหน่ง x คำนวณเอง (สระ/วรรณยุกต์ยังอยู่กับตัวฐานในกลุ่มเดียวกัน) — ไม่ใช้ตัวดำเนินการ Tw/Tc ของ PDF
+      // เพราะกับฟอนต์ฝังแบบ 2 ไบต์ (Identity-H) ตัวอ่านของ Apple (Safari/iOS) ตีความ Tw ต่างจาก pdf.js/MuPDF ทำให้ตัวอักษรกระจายและซ้อนกัน
+      let x = left;
+      for (const c of clusters) {
+        doc.text(c, X(x), Y(baseline), { baseline: 'alphabetic', lineBreak: false });
+        x += widthPx(c, bold, fpx) + extra;
+      }
     } else doc.text(str, X(left), Y(baseline), { baseline: 'alphabetic', lineBreak: false });
     stats.strings++;
   }

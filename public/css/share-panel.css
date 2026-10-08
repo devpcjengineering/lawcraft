@@ -1,6 +1,14 @@
 /* แผง “PDF ชุดเอกสาร & แชร์” (js/share.js) — จัดวางปุ่มเป็นกล่องเท่ากัน: แถวเต็มความกว้าง หรือสองกล่องคนละครึ่งแถว
    โหลดโดย share.js ตอนวาดแผงครั้งแรก (ต่อท้าย <head> จึงอยู่หลัง app.css และ admin-*.css) — ใช้ .panel.share-panel นำหน้าเพื่อชนะกฎของหน้าอื่น
    แถวปุ่ม = .share-grid : สองคอลัมน์เท่ากัน ; ปุ่มที่ใส่ .share-full ยาวเต็มแถว (ปุ่มเดี่ยวในแถวก็ยาวเต็มแถวเอง) */
+/* สถานะกำลังสร้าง PDF: วงหมุนบนปุ่ม + แถบวิ่งใต้ปุ่ม (เคารพ prefers-reduced-motion) */
+.panel.share-panel .share-spin { width: 16px; height: 16px; flex: none; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .45); border-top-color: #fff; animation: share-spin .8s linear infinite; }
+.panel.share-panel .btn.is-busy { cursor: progress; }
+.panel.share-panel .share-bar { position: relative; height: 4px; margin: 10px 0 0; border-radius: 4px; background: rgba(0, 113, 227, .15); overflow: hidden; }
+.panel.share-panel .share-bar > i { position: absolute; top: 0; bottom: 0; width: 38%; border-radius: 4px; background: #0071e3; animation: share-run 1.1s ease-in-out infinite; }
+@keyframes share-spin { to { transform: rotate(360deg); } }
+@keyframes share-run { 0% { transform: translateX(-100%); } 100% { transform: translateX(270%); } }
+@media (prefers-reduced-motion: reduce) { .panel.share-panel .share-spin { animation-duration: 2.4s; } .panel.share-panel .share-bar > i { animation: none; width: 100%; opacity: .5; } }
 .panel.share-panel .share-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

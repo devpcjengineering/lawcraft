@@ -98,8 +98,9 @@ export function panelHtml() {
     ${s.err ? `<div class="share-err" role="alert">${icon('alertCircle', { size: 16 })}<span>${esc(s.err)}</span></div>` : ''}
     <ul class="rows"><li>${s.loading && !s.loaded ? `<span class="r-main">กำลังโหลด…</span>` : status}
       <span class="r-act"></span></li></ul>
-    <div class="btn-group share-btns share-grid"><button class="btn primary share-full" data-act="shareUpload"${dis}>${icon('upload', { size: 16 })}<span>${pdf ? 'สร้าง PDF แล้วอัปโหลดทับไฟล์เดิม' : 'สร้าง PDF แล้วอัปโหลด'}</span></button>
+    <div class="btn-group share-btns share-grid"><button class="btn primary share-full${b ? ' is-busy' : ''}" data-act="shareUpload"${dis}${b ? ' aria-busy="true"' : ''}>${b ? '<span class="share-spin" aria-hidden="true"></span>' : icon('upload', { size: 16 })}<span>${b ? 'กำลังสร้าง…' : pdf ? 'สร้าง PDF แล้วอัปโหลดทับไฟล์เดิม' : 'สร้าง PDF แล้วอัปโหลด'}</span></button>
       ${pdf ? `<button class="btn outline share-full" data-act="shareOpenPdf"${dis}>${icon('eye', { size: 16 })}<span>เปิดดูไฟล์ที่อัปโหลดไว้</span></button>` : ''}</div>
+    ${b ? '<div class="share-bar" aria-hidden="true"><i></i></div>' : ''}
     <div class="hint share-prog" id="share-prog" role="status" aria-live="polite">${esc(s.busy)}</div>
     <div class="dl-sub share-sub">ลิงก์ดู PDF (ไม่ต้องล็อกอิน)</div>
     ${pdf ? shareBox : '<p class="hint">อัปโหลด PDF ก่อน จึงเปิดลิงก์ดูได้</p>'}
@@ -121,6 +122,7 @@ actions.shareUpload = () => guarded('อัปโหลด PDF ไม่สำ�
   if (!(await ctx.guard())) return;
   const docs = ctx.docs();
   if (!docs.length) return alertBox('ยังไม่ได้เลือกเอกสารในชุด — เลือกเอกสารที่ต้องการด้านบนก่อน', { title: 'ยังไม่มีเอกสาร', tone: 'warn' });
+  const t0 = Date.now();
   setBusy('กำลังจัดหน้าเอกสาร…');
   await ctx.flush();
   await documentFontsReady();
@@ -130,6 +132,9 @@ actions.shareUpload = () => guarded('อัปโหลด PDF ไม่สำ�
   setBusy(`กำลังอัปโหลด… (${fmtSize(blob.size)})`);
   s.pdf = await ctx.backend().uploadCasePdf(S.c.id, blob, { pages: countSheets(html) });
   s.err = '';
+  // ให้เห็นสถานะกำลังทำงานอย่างน้อยครู่หนึ่ง (เอกสารสั้นๆ เสร็จเร็วจนปุ่มดูเหมือนไม่ตอบสนอง)
+  const left = 900 - (Date.now() - t0);
+  if (left > 0) await new Promise((r) => setTimeout(r, left));
   hooks.toast(`อัปโหลด PDF แล้ว (${s.pdf.pages || '-'} แผ่น · ${fmtSize(s.pdf.sizeBytes || blob.size)}) — ทับไฟล์เดิมเรียบร้อย`, { type: 'success' });
 });
 
