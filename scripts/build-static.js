@@ -48,6 +48,8 @@ const seo = await (await import('./build-seo-pages.js')).buildSeoPages({ root, d
   fs.writeFileSync(rp, `${rb}\n\nSitemap: ${SITE}/sitemap.xml\n`);
   console.log(`sitemap.xml: ${urls.length} หน้า`);
 }
+// ย่อ CSS ด้วย csso (ไม่มีไลบรารี = ใช้ไฟล์เดิม) — ใช้ทั้งไฟล์รวมของหน้าสาธารณะและ bundle-seo.css
+const minifyCss = await (async () => { try { const { minify } = await import('csso'); return (s) => minify(s).css; } catch { console.warn('csso ไม่พร้อม — ใช้ CSS ไม่ย่อ'); return (s) => s; } })();
 // เร่งความเร็วหน้าสาธารณะ: รวมไฟล์ CSS หลายไฟล์ที่ <head> เป็นไฟล์เดียวต่อหน้า (ลดคำขอที่บล็อกการแสดงผล)
 {
   const crypto = await import('node:crypto');
@@ -57,7 +59,8 @@ const seo = await (await import('./build-seo-pages.js')).buildSeoPages({ root, d
     const re = /<link rel="stylesheet" href="(\/[^"?#]+\.css)">\r?\n?/g;
     const hrefs = [...html.matchAll(re)].map((m) => m[1]);
     if (hrefs.length < 2) continue;
-    const css = hrefs.map((h) => fs.readFileSync(path.join(dist, h), 'utf8').replace(/^\uFEFF/, '').replace(/\/\*# sourceMappingURL=.*?\*\//g, '')).join('\n');
+    const raw = hrefs.map((h) => fs.readFileSync(path.join(dist, h), 'utf8').replace(/^\uFEFF/, '').replace(/\/\*# sourceMappingURL=.*?\*\//g, '')).join('\n');
+    const css = minifyCss(raw); // \u0E22\u0E48\u0E2D CSS (\u0E15\u0E31\u0E14\u0E04\u0E2D\u0E21\u0E40\u0E21\u0E19\u0E15\u0E4C/\u0E0A\u0E48\u0E2D\u0E07\u0E27\u0E48\u0E32\u0E07 \u0E23\u0E27\u0E21\u0E01\u0E0E\u0E0B\u0E49\u0E33) \u2014 \u0E44\u0E1F\u0E25\u0E4C\u0E40\u0E25\u0E47\u0E01\u0E25\u0E07 ~20% \u0E0A\u0E48\u0E27\u0E22 FCP/LCP
     const name = `css/bundle-${page.replace(/\/?index\.html$/, '') || 'home'}.css`.replace('//', '/');
     fs.writeFileSync(path.join(dist, name), css);
     let first = true;
@@ -124,36 +127,53 @@ ${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/?a=${encodeURIComponent(
     }
     fs.writeFileSync(path.join(dist, 'llms-full.txt'), md.join(''));
   }
+  // ai-catalog.json ตามร่างข้อกำหนด Agentic Resource Discovery (ARD): host = did:web · entries = ทรัพยากรที่เอเจนต์ใช้ได้ (identifier เป็น URN ผูกโดเมน, mediaType, url สัมบูรณ์, representativeQueries)
+  // ร่างล่าสุด (v0.91) ย้ายพาธหลักเป็น /.well-known/ard.json และคง ai-catalog.json ไว้เป็นชื่อสำรอง → เขียนทั้งสองชื่อเนื้อหาเดียวกัน
   const host = new URL(SITE).hostname;
+  const today = new Date().toISOString().slice(0, 10);
+  const entry = (name, o) => ({
+    identifier: `urn:ard:${host}:knowledge:${name}`,
+    displayName: o.displayName,
+    description: o.description,
+    mediaType: o.mediaType,
+    type: o.mediaType, // ชื่อฟิลด์แบบเก่าของ AI Catalog (บางตัวอ่านยังใช้)
+    url: o.url,
+    version: today,
+    language: 'th',
+    license: 'ใช้เพื่อการศึกษาและอ้างอิงได้ โดยระบุที่มา www.law-craft.co — ไม่ใช่คำปรึกษาทางกฎหมาย',
+    capabilities: ['read', 'cite'],
+    representativeQueries: o.queries,
+  });
   const catalog = {
     specVersion: '1.0',
-    host: { displayName: 'Law Craft Legal Consultants', identifier: `did:web:${host}` },
-    entries: [{
-      identifier: `urn:air:${host}:knowledge:site-overview`,
-      displayName: 'Law Craft — ภาพรวมเว็บไซต์และรายการบทความ',
-      type: 'text/markdown',
-      url: `${SITE}/llms.txt`,
-      description: 'ภาพรวมเว็บไซต์ความรู้กฎหมายไทยและระบบร่างคำฟ้อง พร้อมลิงก์ไปยังหน้าและบทความทั้งหมด (llms.txt)',
-      representativeQueries: ['ฟ้องหมิ่นประมาทออนไลน์ทำอย่างไร', 'ถูกโกงซื้อของออนไลน์ ฟ้องคดีอาญาเองได้ไหม', 'เก็บหลักฐานดิจิทัลสำหรับคดีออนไลน์'],
-    }, {
-      identifier: `urn:air:${host}:knowledge:legal-data`,
-      displayName: 'Law Craft — ข้อกฎหมาย เขตอำนาจศาล ขั้นตอนฟ้องคดี และฎีกา',
-      type: 'text/html',
-      url: `${SITE}/laws/`,
-      description: `ข้อมูลกฎหมายไทยแยกเป็นหน้า: ${seo.counts.items} มาตรา/ข้อหา (ตัวบท ระวางโทษ อายุความ) · เขตอำนาจศาล ${seo.counts.provinces} จังหวัด · ขั้นตอนฟ้องคดี · คลังฎีกา (เพื่อการศึกษา ไม่ใช่คำปรึกษา)`,
-      representativeQueries: ['หมิ่นประมาท มาตรา 326 โทษและอายุความ', 'ฟ้องคดีที่จังหวัดชัยภูมิต้องฟ้องศาลไหน', 'ขั้นตอนฟ้องคดีอาญาโดยราษฎร'],
-    }, {
-      identifier: `urn:air:${host}:knowledge:articles-full`,
-      displayName: 'Law Craft — เนื้อหาบทความฉบับเต็ม (Markdown)',
-      type: 'text/markdown',
-      url: `/llms-full.txt`,
-      description: 'ข้อความทุกบทความของเว็บไซต์ในไฟล์เดียว อนุญาตให้ AI ดึงข้อมูล อ้างอิง และนำไปฝึกได้',
-    }],
+    host: { displayName: 'Law Craft Legal Consultants', identifier: `did:web:${host}`, url: `${SITE}/`, contact: `${SITE}/contact/` },
+    entries: [
+      entry('site-overview', {
+        displayName: 'Law Craft — ภาพรวมเว็บไซต์และรายการบทความ', mediaType: 'text/markdown', url: `${SITE}/llms.txt`,
+        description: 'ภาพรวมเว็บไซต์ความรู้กฎหมายไทยและระบบร่างคำฟ้อง พร้อมลิงก์ไปยังหน้าและบทความทั้งหมด (llms.txt)',
+        queries: ['ฟ้องหมิ่นประมาทออนไลน์ทำอย่างไร', 'ถูกโกงซื้อของออนไลน์ ฟ้องคดีอาญาเองได้ไหม', 'เก็บหลักฐานดิจิทัลสำหรับคดีออนไลน์'],
+      }),
+      entry('legal-data', {
+        displayName: 'Law Craft — ข้อกฎหมาย เขตอำนาจศาล ขั้นตอนฟ้องคดี และฎีกา', mediaType: 'text/html', url: `${SITE}/laws/`,
+        description: `ข้อมูลกฎหมายไทยแยกเป็นหน้า: ${seo.counts.items} มาตรา/ข้อหา (ตัวบท ระวางโทษ อายุความ) · เขตอำนาจศาล ${seo.counts.provinces} จังหวัด · ขั้นตอนฟ้องคดี · คลังฎีกา (เพื่อการศึกษา ไม่ใช่คำปรึกษา)`,
+        queries: ['หมิ่นประมาท มาตรา 326 โทษและอายุความ', 'ฟ้องคดีที่จังหวัดชัยภูมิต้องฟ้องศาลไหน', 'ขั้นตอนฟ้องคดีอาญาโดยราษฎร'],
+      }),
+      entry('service-fee', {
+        displayName: 'Law Craft — เช็กอัตราค่านำหมายของศาลทั่วประเทศ', mediaType: 'text/html', url: `${SITE}/service-fee/`,
+        description: 'อัตราค่านำหมาย (ค่าส่งหมาย) รายจังหวัด อำเภอ ตำบล/หมู่ ตามตารางของสำนักงานศาลยุติธรรม พร้อมเครื่องคำนวณหลายผู้รับ',
+        queries: ['ค่านำหมายศาลจังหวัดเชียงรายเท่าไร', 'ส่งหมายข้ามเขตคิดค่านำหมายอย่างไร'],
+      }),
+      entry('articles-full', {
+        displayName: 'Law Craft — เนื้อหาบทความฉบับเต็ม (Markdown)', mediaType: 'text/markdown', url: `${SITE}/llms-full.txt`,
+        description: 'ข้อความทุกบทความของเว็บไซต์ในไฟล์เดียว อนุญาตให้ AI ดึงข้อมูล อ้างอิง และนำไปฝึกได้',
+        queries: ['บทความเรื่องฟ้องหมิ่นประมาทออนไลน์', 'วิธีเก็บหลักฐานแชตเพื่อฟ้องคดี'],
+      }),
+    ],
+    collections: [],
   };
   fs.mkdirSync(path.join(dist, '.well-known'), { recursive: true });
   const json = JSON.stringify(catalog, null, 2) + '\n';
-  fs.writeFileSync(path.join(dist, '.well-known', 'ai-catalog.json'), json);
-  fs.writeFileSync(path.join(dist, 'ai-catalog.json'), json);
+  for (const f of ['.well-known/ard.json', '.well-known/ai-catalog.json', 'ai-catalog.json']) fs.writeFileSync(path.join(dist, f), json);
   console.log(`llms.txt: ${arts.length} บทความ · ai-catalog.json`);
 }
 // ตรวจก่อนปล่อย: ต้องตั้ง Supabase ใน config.js ไม่เช่นนั้นเว็บจะพยายามเรียก /api (ซึ่งไม่มีในโหมดสถิต)

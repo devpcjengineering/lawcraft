@@ -75,7 +75,9 @@ export async function buildSeoPages({ root, dist, site }) {
   {
     const rd = (f) => fs.readFileSync(path.join(dist, f), 'utf8').replace(/^﻿/, '').replace(/\/\*# sourceMappingURL=.*?\*\//g, '');
     fs.mkdirSync(path.join(dist, 'css'), { recursive: true });
-    fs.writeFileSync(path.join(dist, 'css', 'bundle-seo.css'), ['site/site.css', 'css/smooth.css', 'site/seo.css'].map(rd).join('\n'));
+    const raw = ['site/site.css', 'css/smooth.css', 'site/seo.css'].map(rd).join('\n');
+    const min = await (async () => { try { return (await import('csso')).minify(raw).css; } catch { return raw; } })(); // ย่อ CSS (ไม่มี csso = ใช้ไฟล์เดิม)
+    fs.writeFileSync(path.join(dist, 'css', 'bundle-seo.css'), min);
   }
 
   // ---------- ข้อมูลพื้นฐาน ----------

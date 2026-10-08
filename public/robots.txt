@@ -1,5 +1,5 @@
 # Law Craft Legal Consultants — เนื้อหาสาธารณะทั้งหมดของเว็บไซต์อนุญาตให้เสิร์ชเอนจินและ AI อ่าน ดึงข้อมูล อ้างอิง และนำไปฝึกโมเดลได้
-# (ยกเว้นหลังบ้าน /workspace/ ที่ต้องเข้าสู่ระบบ) — ภาพรวมสำหรับ AI: /llms.txt · เนื้อหาเต็มรูปแบบ Markdown: /llms-full.txt · /.well-known/ai-catalog.json
+# (ยกเว้นหลังบ้าน /workspace/ ที่ต้องเข้าสู่ระบบ) — ภาพรวมสำหรับ AI: /llms.txt · เนื้อหาเต็มรูปแบบ Markdown: /llms-full.txt · /.well-known/ard.json (สำเนา: /.well-known/ai-catalog.json)
 
 User-agent: *
 Content-Signal: search=yes, ai-input=yes, ai-train=yes

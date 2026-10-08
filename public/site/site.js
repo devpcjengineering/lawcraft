@@ -43,16 +43,19 @@ if (heroScales && !reduceMotion.matches) {
   let queued = false;
   const MAX_AMP = 6; // องศา
   let lastP = -1;
+  // จำความสูงจอไว้ (อ่าน innerHeight ทุกเฟรมหลังแก้สไตล์ = บังคับให้เบราว์เซอร์จัดเลย์เอาต์ใหม่) — อัปเดตเมื่อหมุนจอ/ย่อขยาย
+  let vh = window.innerHeight || 1;
+  addEventListener('resize', () => { vh = window.innerHeight || 1; lastP = -1; }, { passive: true });
   const update = () => {
     queued = false;
-    const p = Math.min(1, Math.max(0, window.scrollY / (window.innerHeight * 0.7)));
+    const p = Math.min(1, Math.max(0, window.scrollY / (vh * 0.7)));
     if (p === lastP) return; // เลื่อนพ้นหัวหน้าแล้ว (p=1) ไม่ต้องเขียนสไตล์ซ้ำทุกเฟรม — ประหยัดแบตบนมือถือ
     lastP = p;
     heroScales.style.setProperty('--p', p.toFixed(3));
     heroScales.style.setProperty('--amp-live', `${(MAX_AMP * (1 - p) * (1 - p)).toFixed(2)}deg`);
   };
   addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
-  update();
+  requestAnimationFrame(update); // รอบแรกทำในเฟรมถัดไป ไม่ขวางการวาดครั้งแรก
   // พ้นจอแล้วหยุดแอนิเมชันโยกของตราชั่ง (ประหยัด CPU/แบตบนมือถือ) — ดู .scales-wrap.off ใน site.css
   if ('IntersectionObserver' in window) new IntersectionObserver((es) => heroScales.classList.toggle('off', !es[0].isIntersecting)).observe(heroScales);
 }

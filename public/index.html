@@ -73,14 +73,15 @@
         <circle class="d" style="--d:2.78s" pathLength="1" fill="none" cx="200" cy="45" r="4"/>
       </svg>
     </div>
-    <p class="eyebrow reveal" data-live="home.heroEyebrow">กฎหมายไทย · ฐานความรู้ และระบบร่างคำฟ้อง</p>
-    <h1 class="reveal"><span data-live="home.heroTitle">กฎหมายที่ชัดเจน.</span><br><span class="grad" data-live="home.heroAccent">คำฟ้องที่พร้อมยื่น.</span></h1>
-    <p class="lead reveal" data-live="home.heroLead">ค้นหามาตรา ตรวจเขตอำนาจศาล และจัดทำเอกสารยื่นศาลตามแบบพิมพ์ของศาลยุติธรรม ในที่เดียว</p>
-    <div class="actions reveal">
+    <!-- ส่วนหัว (เหนือพับ) ใส่ .in มาแต่แรก: แสดงทันทีตั้งแต่เฟรมแรกโดยไม่รอ JS (LCP) — ส่วนล่างค่อยเผยเมื่อเลื่อนถึง -->
+    <p class="eyebrow reveal in" data-live="home.heroEyebrow">กฎหมายไทย · ฐานความรู้ และระบบร่างคำฟ้อง</p>
+    <h1 class="reveal in"><span data-live="home.heroTitle">กฎหมายที่ชัดเจน.</span><br><span class="grad" data-live="home.heroAccent">คำฟ้องที่พร้อมยื่น.</span></h1>
+    <p class="lead reveal in" data-live="home.heroLead">ค้นหามาตรา ตรวจเขตอำนาจศาล และจัดทำเอกสารยื่นศาลตามแบบพิมพ์ของศาลยุติธรรม ในที่เดียว</p>
+    <div class="actions reveal in">
       <a class="btn-pill primary" href="#library" data-live="home.ctaPrimary">ค้นหาข้อกฎหมาย</a>
       <a class="link-arrow" href="#drafting" data-live="home.ctaSecondary">ดูระบบร่างคำฟ้อง</a>
     </div>
-    <div class="stats reveal" id="stats" aria-label="สถิติข้อมูล"></div>
+    <div class="stats reveal in" id="stats" aria-label="สถิติข้อมูล"></div>
   </section>
 
   <!-- Articles -->
