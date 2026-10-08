@@ -153,7 +153,7 @@ export function makeTemplate({ site, chrome }) {
 <meta property="og:image" content="${site}/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Law Craft — ร่างคำฟ้องและเอกสารศาลตามแบบพิมพ์ศาลยุติธรรม">
+<meta property="og:image:alt" content="สำนักงานกฎหมาย ลอว์คราฟต์ — ให้คำปรึกษากฎหมาย ฟ้องคดี รับว่าความ">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${t}">
 <meta name="twitter:description" content="${d}">
