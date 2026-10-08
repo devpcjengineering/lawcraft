@@ -102,6 +102,7 @@ export function panelHtml() {
       ${pdf ? `<button class="btn outline share-full" data-act="shareOpenPdf"${dis}>${icon('eye', { size: 16 })}<span>เปิดดูไฟล์ที่อัปโหลดไว้</span></button>` : ''}</div>
     ${b ? '<div class="share-bar" aria-hidden="true"><i></i></div>' : ''}
     <div class="hint share-prog" id="share-prog" role="status" aria-live="polite">${esc(s.busy)}</div>
+    ${s.diag && !b ? `<p class="hint share-diag">${esc(s.diag)}</p>` : ''}
     <div class="dl-sub share-sub">ลิงก์ดู PDF (ไม่ต้องล็อกอิน)</div>
     ${pdf ? shareBox : '<p class="hint">อัปโหลด PDF ก่อน จึงเปิดลิงก์ดูได้</p>'}
     <div class="dl-sub share-sub">ผู้ร่วมแก้ไขคดี</div>
@@ -128,7 +129,11 @@ actions.shareUpload = () => guarded('อัปโหลด PDF ไม่สำ�
   await documentFontsReady();
   const html = docs.map((d) => paginateHtml(docHtml(d, S.data.layout))).join('');
   const { buildPdf } = await import('./pdf-export.js');
-  const blob = await buildPdf(html, { title: S.c.title || 'ชุดเอกสาร', onProgress: (n, t) => setBusy(`กำลังสร้าง PDF… ${n}/${t} แผ่น`) });
+  const pstats = {};
+  const blob = await buildPdf(html, { title: S.c.title || 'ชุดเอกสาร', stats: pstats, onProgress: (n, t) => setBusy(`กำลังสร้าง PDF… ${n}/${t} แผ่น`) });
+  // ข้อมูลวินิจฉัยการสร้างไฟล์ (แสดงใต้ปุ่ม): ฟอนต์ที่ใช้วัดตำแหน่งตรงกับฟอนต์ใน PDF หรือไม่
+  const pr = pstats.probe;
+  s.diag = pr ? `ตรวจการสร้างไฟล์: ฟอนต์วัด${pr.fontOk ? 'พร้อม' : 'ไม่พร้อม'} · ความกว้างข้อความทดสอบ เบราว์เซอร์ ${pr.browser}px / PDF ${pr.pdf}px${Math.abs(pr.browser - pr.pdf) > 3 ? ' (ต่างกัน)' : ' (ตรงกัน)'} · วางทีละตัวอักษร ${pstats.spread || 0} ข้อความ` : '';
   setBusy(`กำลังอัปโหลด… (${fmtSize(blob.size)})`);
   s.pdf = await ctx.backend().uploadCasePdf(S.c.id, blob, { pages: countSheets(html) });
   s.err = '';
