@@ -56,12 +56,13 @@
 /* ค้นหาฎีกา (public/site/precedent-search.js — เรียก /api/precedents) */
 .sp .px { margin: 26px 0 8px; padding: 22px; background: var(--bg-alt); border-radius: 20px; }
 .sp .px h2 { margin: 0 0 6px; font-size: clamp(19px, 2.4vw, 24px); }
-.sp .px-form { display: grid; grid-template-columns: 1fr auto; gap: 12px 10px; margin: 14px 0 0; }
+/* minmax(0,1fr) + min-width:0 — ไม่ให้คอลัมน์ขยายตามความกว้างขั้นต่ำของช่องเลือกกฎหมาย (ตัวเลือกยาว ๆ ทำให้ทั้งฟอร์มล้นกล่องบนมือถือ) */
+.sp .px-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 10px; margin: 14px 0 0; min-width: 0; }
 .sp .px-form input[type=search] { grid-column: 1; min-width: 0; padding: 12px 18px; font: inherit; font-size: 17px; border: 1px solid var(--line); border-radius: 99px; background: var(--card); color: var(--ink); }
 .sp .px-form input[type=search]:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; border-color: transparent; }
 .sp .px-form .btn-pill { grid-column: 2; }
-.sp .px-filters { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; }
-.sp .px-filters select { max-width: 100%; min-width: 0; text-overflow: ellipsis; padding: 8px 14px; font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 99px; background: var(--card); color: var(--ink); }
+.sp .px-filters { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; min-width: 0; max-width: 100%; }
+.sp .px-filters select { max-width: 100%; min-width: 0; width: 0; text-overflow: ellipsis; padding: 8px 14px; font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 99px; background: var(--card); color: var(--ink); }
 .sp .px-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 18px 0 0; font-size: 14px; color: var(--ink-3); }
 .sp .px-chip { border: 0; cursor: pointer; padding: 4px 14px; border-radius: 99px; font: inherit; font-size: 14px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
 .sp .px-chip:hover { background: color-mix(in srgb, var(--ink) 14%, transparent); }
@@ -96,7 +97,7 @@
 @media (max-width: 560px) { .sp .px-filters select, .sp .px-filters select[name=type] { flex: 1 1 8em; width: auto; } .sp .px-filters select[name=law] { flex: 1 1 100%; width: auto; } }
 @media (prefers-reduced-motion: reduce) { .sp .px-skel i { animation: none; } .sp .px-count, .sp .px-item, .sp .px-pager, .sp .px-note { animation: none; } }
 .sp .px-note { margin-top: 10px; }
-@media (max-width: 560px) { .sp .px-form input[type=search] { font-size: 16px; padding: 12px 16px; } .sp .px { padding: 16px; border-radius: 16px; } .sp .px-form { grid-template-columns: 1fr; } .sp .px-form .btn-pill { grid-column: 1; } }
+@media (max-width: 560px) { .sp .px-form input[type=search] { font-size: 16px; padding: 12px 16px; width: 100%; } .sp .px { padding: 16px; border-radius: 16px; min-width: 0; } .sp .px-form { grid-template-columns: minmax(0, 1fr); } .sp .px-form .btn-pill { grid-column: 1; width: 100%; } }
 
 /* การ์ดลิงก์ */
 .sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin: 14px 0 8px; }
