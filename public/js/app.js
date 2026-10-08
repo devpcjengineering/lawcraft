@@ -130,7 +130,7 @@ function proactive() {
 hooks.changed = () => {
   if (!S.c) return;
   if (S.bookMode) return hooks.bookChanged(); // กำลังแก้สมุดรายชื่อ ไม่ใช่คดี
-  S.c.title = caseTitle(S.c);
+  S.c.title = caseCardTitle(S.c);
   if (applyServiceAuto(S.c, S.data)) serviceAutoNote(); // ปิดหมาย / ส่งข้ามเขต ตามภูมิลำเนาจำเลยเทียบกับศาลที่ฟ้อง
   savePending = true;
   setSaveState('กำลังบันทึก…', 'busy');
@@ -206,7 +206,11 @@ actions.claimAdmin = async () => {
 // หน้าโหลด (กำลังโหลด…ชื่อหน้า) ครอบโดย dispatch() ตอนเปลี่ยนหน้า ; ตอนรีเฟรชรายการในหน้าเดิมใช้ reloadHome()
 const reloadHome = () => withLoading('รายการคดี', showHome());
 /** ป้ายสถานะบนการ์ดคดี: “ฟ้องแล้ว” (มีเลขคดีดำ/แดง) หรือ “ร่างคำฟ้อง” */
-const caseStatusPill = (x) => ((x.filed ?? !!(String(x.caseNoBlack || '').trim() || String(x.caseNoRed || '').trim())) ? '<span class="pill ok">ฟ้องแล้ว</span>' : '<span class="pill">ร่างคำฟ้อง</span>');
+const caseStatusPill = (x) => ((x.filed ?? !!(String(x.caseNoBlack || '').trim() || String(x.caseNoRed || '').trim())) ? `<span class="pill ok">${x.side === 'defendant' ? 'มีเลขคดีแล้ว' : 'ฟ้องแล้ว'}</span>` : `<span class="pill">${x.side === 'defendant' ? 'ร่างเอกสาร' : 'ร่างคำฟ้อง'}</span>`);
+/** ป้าย “ฝั่งจำเลย” บนการ์ดคดี (คดีฝั่งโจทก์ไม่ต้องมีป้าย) */
+const sidePill = (x) => (x.side === 'defendant' ? '<span class="pill info side-def">ฝั่งจำเลย</span>' : '');
+/** ชื่อการ์ด: คดีฝั่งจำเลยที่ยังไม่มีเลขคดี ไม่ควรขึ้นต้นว่า “คำฟ้อง …” (จำเลยไม่ได้ร่างคำฟ้อง) */
+const caseCardTitle = (x) => { const t = caseLabel(x); return x.side === 'defendant' && t.startsWith('คำฟ้อง ') ? 'คดีฝั่งจำเลย ' + t.slice(7) : t; };
 /** “โจทก์: ชื่อ และอีก N คน” — ชื่อยาวตัดบรรทัดเดียว (ดู .ci-line) */
 const partyLine = (label, name, more) => {
   const txt = name ? `${name}${more ? ` และอีก ${more} คน` : ''}` : '';
@@ -240,8 +244,8 @@ async function showHome() {
     </div></section>
     <section class="home-sec" aria-labelledby="hs-cases"><div class="sec-bar"><h2 class="section-title" id="hs-cases">คดีที่บันทึกไว้ <span class="sec-count">${list.length}</span></h2><div class="sec-tools">${authUi.caseToolbar()}<label class="btn sm import-btn" title="เลือกไฟล์ที่ส่งออกจากระบบนี้ เพื่อเปิดต่อหรือย้ายข้อมูลคดีมาไว้ที่นี่">${ico2('upload')}นำเข้าข้อมูลคดี (.json)<input type="file" id="importFile" accept=".json,application/json" class="vh"></label></div></div>
     ${list.length ? `<div class="cards">${list.map((x) => `<div class="card case-item">
-        <div class="ci-top"><span class="pill ${x.type === 'civil' ? 'civil' : 'crim'}">${x.type === 'civil' ? 'แพ่ง' : 'อาญา'}</span>${caseStatusPill(x)}${authUi.ownerLine(x)}</div>
-        <h3>${esc(caseLabel(x))}</h3>
+        <div class="ci-top"><span class="pill ${x.type === 'civil' ? 'civil' : 'crim'}">${x.type === 'civil' ? 'แพ่ง' : 'อาญา'}</span>${sidePill(x)}${caseStatusPill(x)}${authUi.ownerLine(x)}</div>
+        <h3>${esc(caseCardTitle(x))}</h3>
         <div class="ci-parties">${partyLine('โจทก์', x.plName, x.plMore)}${partyLine('จำเลย', x.dfName, x.dfMore)}</div>
         <div class="meta"><span class="m-court">${ico2('building')}<span>${esc(x.court || 'ยังไม่ได้เลือกศาล')}</span></span><span class="m-time">${ico2('clock')}<span>แก้ไขล่าสุด ${new Date(x.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}</span></span></div>
         <div class="row"><a class="btn primary sm" href="${urls.caseTab(x.id)}" data-act="openCase" data-id="${esc(x.id)}">เปิด</a>
@@ -285,6 +289,7 @@ const ADMIN_ONLY_MSG = 'หน้านี้สำหรับผู้ดู�
 function resolveTab(tab) {
   tab = TAB_ALIAS[tab] || tab;
   if (!TABS.some((t) => t.key === tab)) tab = 'case';
+  if (sideOf(S.c) === 'defendant' && DEF_HIDDEN_STEPS.has(tab)) tab = 'case'; // คดีฝั่งจำเลยไม่มีหน้าคำฟ้อง/คำขอท้ายฟ้อง/ค่านำหมาย/หมายเรียกจำเลย — เปิดผ่าน URL ตรงให้กลับข้อมูลคดี
   if (authUi.tabBlocked(tab)) return { tab: 'case', adminOnly: true };
   const blk = firstBlocked(tab, S.c);
   return blk ? { tab: blk.key, blk } : { tab };
@@ -393,7 +398,7 @@ function syncPreviewDoc() {
 function showWorkspace() {
   app.innerHTML = `
   <header class="topbar"><button type="button" class="nav-toggle" id="nav-toggle" data-act="toggleNav" aria-label="เมนูคดี" title="เมนูคดี" aria-controls="steps" aria-expanded="false" aria-haspopup="dialog">${ico2('menu4', { size: 24 })}</button>${brandHtml('ระบบร่างคำฟ้อง')}
-    <span class="case-name">${esc(S.c.title || caseTitle(S.c))}</span><span class="filed-chip" id="filed-chip" title="คดีนี้ยื่นฟ้องแล้ว — มีเลขคดีที่ศาลให้" ${isFiled(S.c) ? '' : 'hidden'}>${esc(filedBadge(S.c))}</span><span class="grow"></span>
+    <span class="case-name">${esc(caseCardTitle(S.c))}</span><span class="filed-chip" id="filed-chip" title="${sideOf(S.c) === 'defendant' ? 'คดีนี้มีเลขคดีที่ศาลให้แล้ว' : 'คดีนี้ยื่นฟ้องแล้ว — มีเลขคดีที่ศาลให้'}" ${isFiled(S.c) ? '' : 'hidden'}>${esc(filedBadge(S.c))}</span><span class="grow"></span>
     <button class="ready-chip" id="ready-chip" data-act="showReadiness" type="button"></button>
     <span class="save-state" id="save-state" data-tone="">${esc(saveState)}</span>
     ${tbBtn({ ico: 'eye', text: 'ตัวอย่างเอกสาร', act: 'togglePreview' })}
@@ -417,7 +422,7 @@ function renderSteps() {
   // คดีที่ฟ้องแล้ว: กลุ่ม “เพิ่มเติม” (คำร้อง/คำแถลง) ขึ้นก่อนชุดคำฟ้อง + ป้ายสถานะบนสุดของเมนู
   const navGroups = NAV.filter(authUi.navGroupVisible);
   if (filed) { const i = navGroups.findIndex((g) => g.group === 'เพิ่มเติม'), j = navGroups.findIndex((g) => g.group === 'เอกสารในชุดฟ้อง'); if (i > j && j >= 0) navGroups.splice(j, 0, ...navGroups.splice(i, 1)); }
-  const filedNav = filed ? `<div class="nav-filed" title="คดีนี้ยื่นฟ้องแล้ว — เลขคดีพิมพ์บนหัวเอกสารทุกฉบับ">${ico2('gavel', { size: 15 })}<span>${esc(filedBadge(S.c))}</span></div>` : '';
+  const filedNav = filed ? `<div class="nav-filed" title="${sideOf(S.c) === 'defendant' ? 'คดีนี้มีเลขคดีแล้ว' : 'คดีนี้ยื่นฟ้องแล้ว'} — เลขคดีพิมพ์บนหัวเอกสารทุกฉบับ">${ico2('gavel', { size: 15 })}<span>${esc(filedBadge(S.c))}</span></div>` : '';
   // หัวลิ้นชักเมนูบนมือถือ (จอใหญ่ซ่อนด้วย CSS) — อยู่ในรายการที่ morph ได้ จึงคงอยู่ตอนวาดเมนูใหม่
   const drawerHead = `<div class="steps-head"><b id="steps-title">เมนูคดี</b><button type="button" class="steps-x" data-act="closeNav" aria-label="ปิดเมนูคดี">${ico2('x', { size: 22 })}</button></div>`;
   const side = sideOf(S.c), isDef = side === 'defendant';
@@ -425,7 +430,7 @@ function renderSteps() {
   const sideNav = isDef ? '<div class="side-note"><b>คดีฝั่งจำเลย</b> · ชุดเอกสาร: บัญชีพยาน · คำร้อง/คำแถลง · คำให้การ · หมายเรียกพยาน</div>' : '';
   const stepsHtml = drawerHead + filedNav + sideNav + navGroups.map((g) => {
     const items = g.items.filter((t) => authUi.navItemVisible(t) && !(isDef && DEF_HIDDEN_STEPS.has(t.key)) && (!t.only || t.only === S.c.type || (t.only === 'criminal' && crim)));
-    const hint = filed && g.group === 'เพิ่มเติม' ? 'หลังยื่นฟ้อง' : g.hint;
+    const hint = filed && g.group === 'เพิ่มเติม' ? (sideOf(S.c) === 'defendant' ? 'หลังรับฟ้อง' : 'หลังยื่นฟ้อง') : g.hint;
     return `<div class="nav-group"><div class="nav-head">${esc(sideOf(S.c) === 'defendant' && g.group === 'เอกสารในชุดฟ้อง' ? 'เอกสารฝั่งจำเลย' : g.group)}${hint ? `<small>${esc(hint)}</small>` : ''}</div>${items.map((t) => {
       const st = t.status ? t.status() : null;
       const cnt = t.count ? t.count() : 0;
@@ -668,7 +673,7 @@ function renderDocList() {
       <button class="btn sm outline" data-act="printDoc" data-id="${esc(d.id)}">${ico2('print')}<span>ดู PDF</span></button></div>`).join('') : `<div class="empty">${ico2('file', { size: 22 })}<span>${emptyMsg}</span></div>`;
   };
   if (filed) {
-    fill($('#doclist-post'), all.filter(isPostFilingDoc), 'ยังไม่มีเอกสารหลังยื่นฟ้อง — เพิ่มพยาน คำร้อง หรือคำแถลง');
+    fill($('#doclist-post'), all.filter(isPostFilingDoc), `ยังไม่มีเอกสารหลัง${sideOf(S.c) === 'defendant' ? 'รับฟ้อง' : 'ยื่นฟ้อง'} — เพิ่มพยาน คำร้อง หรือคำแถลง`);
     fill(box, all.filter((d) => !isPostFilingDoc(d)), 'ยังไม่ได้เลือกเอกสาร');
   } else fill(box, all, 'ยังไม่ได้เลือกเอกสาร');
 }

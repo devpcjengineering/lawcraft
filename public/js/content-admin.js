@@ -39,10 +39,23 @@ const ctx = () => ({
   save: async (key, obj) => { await hooks.api.saveContent(key, obj); try { sessionStorage.removeItem('lawcraft:content:' + key); } catch { /* ข้าม */ } },
 });
 
+/** แถบแท็บเลื่อนแนวนอนบนมือถือ: เลื่อนแท็บที่เลือกให้อยู่ในมุมมอง + ตั้ง data-edge (start|end|mid) ให้ CSS ทำเงาจางบอกว่ายังเลื่อนต่อได้ */
+function tabsEdge(scrollToActive = false) {
+  const t = $('.ct-tabs');
+  if (!t) return;
+  if (scrollToActive) {
+    const on = t.querySelector('.ct-tab.on');
+    if (on && t.scrollWidth > t.clientWidth) t.scrollTo({ left: on.offsetLeft - (t.clientWidth - on.offsetWidth) / 2, behavior: 'auto' });
+  }
+  const max = t.scrollWidth - t.clientWidth;
+  t.dataset.edge = max <= 2 ? 'none' : t.scrollLeft <= 2 ? 'start' : t.scrollLeft >= max - 2 ? 'end' : 'mid';
+}
+
 async function openTab(i, slug = '') {
   if (cur?.unmount) { try { await cur.unmount(); } catch { /* ข้าม */ } }
   curIdx = i; cur = mods[i];
   document.querySelectorAll('.ct-tab').forEach((b, j) => { b.setAttribute('aria-selected', String(j === i)); b.classList.toggle('on', j === i); });
+  tabsEdge(true);
   const box = $('#ct-body');
   box.innerHTML = inlineLoading(cur.label); // หน้าโหลดทั้งจอ (router) ครอบอยู่แล้วถ้าช้า — ตัวนี้กันกล่องว่างระหว่างโหลดเนื้อหาแท็บ
   setState('');
@@ -77,6 +90,8 @@ export async function showContentAdmin(root, { tab = 'articles', slug = '' } = {
   // แท็บเป็นลิงก์จริง (เปิดแท็บใหม่/คัดลอกลิงก์ได้) — router.js ดักคลิกแล้วเรียก contentGoto
   $('.ct-tabs').innerHTML = mods.map((m) => `<a class="ct-tab" role="tab" href="${urls.content(m.id)}" title="${esc(m.hint || '')}">${esc(m.label)}</a>`).join('');
   curIdx = -1; cur = null;
+  $('.ct-tabs').addEventListener('scroll', () => tabsEdge(), { passive: true });
+  addEventListener('resize', () => tabsEdge());
   await openTab(Math.max(0, mods.findIndex((m) => m.id === tab)), slug);
 }
 

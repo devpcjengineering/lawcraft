@@ -39,7 +39,7 @@ async function liveArticles() {
 
 export default async function handler(req, res) {
   const today = new Date().toISOString().slice(0, 10);
-  const urls = [['/', today, 'weekly', '1.0'], ['/articles/', today, 'weekly', '0.8'], ['/contact/', today, 'monthly', '0.6'], ['/privacy/', today, 'yearly', '0.3']];
+  const urls = [['/', today, 'weekly', '1.0'], ['/articles/', today, 'weekly', '0.8'], ['/contact/', today, 'monthly', '0.6'], ['/privacy/', today, 'yearly', '0.3'], ['/service-fee/', today, 'monthly', '0.7']];
   try {
     const host = String(req?.headers?.['x-forwarded-host'] || req?.headers?.host || '').split(',')[0].trim();
     const [idx, live, seo] = await Promise.all([staticIndex(host), liveArticles(), seoUrls(host).catch(() => [])]);

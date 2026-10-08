@@ -64,6 +64,23 @@ assert.ok(v.some((i) => i.level === 'error' && i.msg === 'ยังไม่ไ�
 assert.ok(v.some((i) => i.level === 'warn' && /เลขคดีดำ/.test(i.msg)));
 c.caseNoBlack = 'อ.123'; c.court = plCourt;
 
+// ---- จำเลยหลายคน: ฝั่งจำเลยไม่มีเอกสารแนบท้ายคำฟ้อง จึงต้องไม่อ้างถึงในคำร้อง/คำให้การ/บัญชีพยาน; ฝั่งโจทก์ที่เปิดเอกสารแนบยังอ้างตามเดิม ----
+{
+  const two = [...c.parties, Object.assign(newParty('defendant'), { prefix: 'นาง', first: 'สมใจ', last: 'จำเลยสอง' })];
+  const keep = c.parties; c.parties = two;
+  for (const d of buildDocuments(c, data)) assert.ok(!J(d.blocks).includes('แนบท้ายคำฟ้อง'), `ฝั่งจำเลยหลายคน: ${d.id} ไม่ควรอ้างเอกสารแนบท้ายคำฟ้อง`);
+  c.parties = keep;
+}
+{
+  const pc = newCase('criminal'); pc.court = plCourt;
+  pc.parties = [Object.assign(newParty('plaintiff'), { first: 'ก' }), Object.assign(newParty('plaintiff'), { first: 'ง' }), Object.assign(newParty('defendant'), { first: 'ข' })];
+  pc.motions = [{ id: 'm1', title: 'ขอเลื่อนคดี', kind: 'คำร้อง', ids: [], text: 'ขอเลื่อน' }];
+  const mdoc = () => buildDocuments(pc, data, ['motions'])[0];
+  assert.ok(J(mdoc().blocks).includes('แนบท้ายคำฟ้อง'), 'ฝั่งโจทก์ยังอ้างเอกสารแนบเมื่อเปิดไว้');
+  pc.docs.attachment = false;
+  assert.ok(!J(mdoc().blocks).includes('แนบท้ายคำฟ้อง'), 'ปิดเอกสารแนบ → ไม่อ้างถึง');
+}
+
 // ---- กลับฝั่งโจทก์: ข้อมูลเดิมครบ ----
 const defSnapshot = J({ w: c.witnesses.map((w) => w.id), p: c.parties.map((p) => p.id), n: c.caseNoBlack });
 switchSide(c, 'plaintiff');

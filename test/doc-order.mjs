@@ -43,6 +43,7 @@ assert.equal(docStage('summons-abc'), 'pre', 'หมายนัดไต่ส�
 assert.equal(docStage('motion-m1'), 'trial');
 assert.equal(docStage('witnessSummons-p-1'), 'trial');
 assert.equal(docStage({ id: 'witnessExtra' }), 'trial');
+assert.equal(docStage({ id: 'witnessExtra-2' }), 'trial');
 assert.equal(docStage('witnessRequest'), 'trial');
 assert.equal(docKey('motion-xyz'), 'motions');
 assert.equal(docKey('witnessSummons-i-9'), 'witnessSummons');

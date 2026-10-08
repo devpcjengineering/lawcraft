@@ -172,7 +172,8 @@ for (const [name, c] of Object.entries(CASES)) {
   // อัตราค่านำหมาย: ไปรษณีย์ตอบรับด่วนพิเศษ = 80 บาท/จำเลย 1 คน · เจ้าพนักงาน/โจทก์จัดการเอง = ไม่มีตัวเลข
   const nDef = c.parties.filter((p) => p.role === 'defendant').length;
   assert.equal(serviceFeeInfo(c).total, 80 * nDef);
-  c.service.deliver = 'officer'; assert.equal(serviceFeeInfo(c).total, 0);
+  c.service.deliver = 'officer'; assert.equal(serviceFeeInfo(c).total, 0); assert.equal(serviceFeeInfo(c).unknownOfficer, true);
+  { const d0 = c.parties.find((p) => p.role === 'defendant'); d0.officerFee = 750; assert.equal(serviceFeeInfo(c).total, 750 + 0 * nDef); delete d0.officerFee; }
   c.service.deliver = 'self'; assert.equal(serviceFeeInfo(c).total, 0);
   c.service.deliver = 'ems';
   // เลือกวิธีส่งรายจำเลย: จำเลยคนแรก = ไปรษณีย์ · คนอื่น = เจ้าพนักงาน/ส่งเอง → ค่านำหมายรวมเฉพาะไปรษณีย์ 80 บาท

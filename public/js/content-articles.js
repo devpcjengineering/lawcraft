@@ -272,7 +272,7 @@ function editorHtml() {
   const slug = m.slug, isStatic = sMap.has(slug), edited = !!state.items[slug];
   const order = rows().map((r) => r.slug), pos = order.indexOf(slug);
   const cats = [...new Set(rows().map((r) => r.category).filter(Boolean))];
-  const kp = m.keyPoints.map((k, i) => `<div class="cta-li">${area(`keyPoints.${i}`, k, rowsFor(k, 2, 8))}${mini('rm', 'keyPoints', i)}ลบ</button></div>`).join('');
+  const kp = m.keyPoints.map((k, i) => `<div class="cta-li">${area(`keyPoints.${i}`, k, rowsFor(k, 2, 8)).replace('<textarea ', `<textarea aria-label="ใจความสำคัญ ข้อ ${i + 1}" `)}${mini('rm', 'keyPoints', i)}ลบ</button></div>`).join('');
   const steps = m.steps.map((s, i) => `<div class="ct-block cta-li2"><div class="ct-bh"><b>ขั้นตอนที่ ${i + 1}</b><div class="ct-actions">${mini('mv', 'steps', i, 'data-d="-1"' + (i === 0 ? ' disabled' : ''))}${icon('arrowUp')}</button>${mini('mv', 'steps', i, 'data-d="1"' + (i === m.steps.length - 1 ? ' disabled' : ''))}${icon('arrowDown')}</button>${mini('rm', 'steps', i)}ลบ</button></div></div>
       ${field('หัวข้อขั้นตอน', inp(`steps.${i}.title`, s.title))}${field('รายละเอียด', area(`steps.${i}.detail`, s.detail, rowsFor(s.detail, 2, 8)))}</div>`).join('');
   const faq = m.faq.map((s, i) => `<div class="ct-block cta-li2"><div class="ct-bh"><b>คำถามที่ ${i + 1}</b><div class="ct-actions">${mini('mv', 'faq', i, 'data-d="-1"' + (i === 0 ? ' disabled' : ''))}${icon('arrowUp')}</button>${mini('mv', 'faq', i, 'data-d="1"' + (i === m.faq.length - 1 ? ' disabled' : ''))}${icon('arrowDown')}</button>${mini('rm', 'faq', i)}ลบ</button></div></div>

@@ -38,6 +38,8 @@ app.use(['/workspace', '/admin', '/api/cases', '/api/people', '/api/docx', '/api
 // ส่วนเว็บที่ deploy บน Vercel ไม่ได้รันไฟล์นี้ — ใช้ public/js/config.js (Supabase) และบังคับล็อกอินตามเดิม
 // ต้องการให้ localhost ต่อ Supabase จริง (ต้องล็อกอิน): ตั้ง CLOUD_BACKEND=1 ก่อนรัน npm start
 if (process.env.CLOUD_BACKEND !== '1') app.get('/js/config.js', (req, res) => res.type('js').send('export default { supabase: { url: "", anonKey: "" } };'));
+// ตารางค่านำหมายแบบไฟล์ (data/service-fees/ — ไม่ deploy) เสิร์ฟเฉพาะโหมด local ; เว็บจริงอ่านจาก Supabase (RPC service_fee_*)
+if (process.env.CLOUD_BACKEND !== '1') app.use('/data/service-fees', express.static(path.join(ROOT, 'data', 'service-fees'), { maxAge: '5m' }));
 app.use('/shared', express.static(path.join(ROOT, 'shared')));
 app.use('/templates', express.static(path.join(ROOT, 'templates')));
 app.use(express.static(path.join(ROOT, 'public')));
@@ -83,7 +85,7 @@ app.get('/api/cases', (req, res) => {
   const list = fs.readdirSync(CASES_DIR).filter((f) => f.endsWith('.json') && !f.startsWith('_')).map((f) => {
     try {
       const c = JSON.parse(fs.readFileSync(path.join(CASES_DIR, f), 'utf8'));
-      return { id: c.id, title: caseTitle(c), ...caseListInfo(c), type: c.type, court: c.court, updatedAt: c.updatedAt };
+      return { id: c.id, title: caseTitle(c), ...caseListInfo(c), type: c.type, side: c.side === 'defendant' ? 'defendant' : 'plaintiff', court: c.court, updatedAt: c.updatedAt };
     } catch { return null; }
   }).filter(Boolean).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
   res.json(list);

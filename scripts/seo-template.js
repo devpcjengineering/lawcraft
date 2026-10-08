@@ -35,6 +35,7 @@ export const NAV = [
   ['laws', '/laws/', 'ข้อกฎหมาย'],
   ['jurisdiction', '/jurisdiction/', 'เขตอำนาจศาล'],
   ['procedure', '/procedure/', 'ขั้นตอนฟ้องคดี'],
+  ['service-fee', '/service-fee/', 'ค่านำหมาย'],
   ['precedents', '/precedents/', 'ฎีกา'],
   ['articles', '/articles/', 'บทความ'],
   ['contact', '/contact/', 'ติดต่อ'],

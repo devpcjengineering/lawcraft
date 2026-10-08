@@ -1,5 +1,5 @@
 :root {
-  --bg: #ffffff; --bg-alt: #f5f5f7; --ink: #1d1d1f; --ink-2: #6e6e73; --ink-3: #86868b; --line: #d2d2d7;
+  --bg: #ffffff; --bg-alt: #f5f5f7; --ink: #1d1d1f; --ink-2: #636366; --ink-3: #636366; --line: #d2d2d7;
   --blue: #0071e3; --blue-hover: #0077ed; --link: #0066cc; --card: #ffffff;
   --crim: #bf4800; --civil: #0a6cbc; --ok: #248a3d; --err: #d70015;
   --nav: rgba(255,255,255,.72);
@@ -8,9 +8,9 @@
   --font: 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme=light]) { --bg: #000; --bg-alt: #111113; --ink: #f5f5f7; --ink-2: #a1a1a6; --ink-3: #86868b; --line: #3a3a3c; --card: #1c1c1e; --link: #2997ff; --nav: rgba(22,22,23,.72); --crim: #ff9f0a; --civil: #64d2ff; --ok: #30d158; --err: #ff453a; }
+  :root:not([data-theme=light]) { --bg: #000; --bg-alt: #111113; --ink: #f5f5f7; --ink-2: #a1a1a6; --ink-3: #98989d; --line: #3a3a3c; --card: #1c1c1e; --link: #2997ff; --nav: rgba(22,22,23,.72); --crim: #ff9f0a; --civil: #64d2ff; --ok: #30d158; --err: #ff453a; }
 }
-:root[data-theme=dark] { --bg: #000; --bg-alt: #111113; --ink: #f5f5f7; --ink-2: #a1a1a6; --ink-3: #86868b; --line: #3a3a3c; --card: #1c1c1e; --link: #2997ff; --nav: rgba(22,22,23,.72); --crim: #ff9f0a; --civil: #64d2ff; --ok: #30d158; --err: #ff453a; }
+:root[data-theme=dark] { --bg: #000; --bg-alt: #111113; --ink: #f5f5f7; --ink-2: #a1a1a6; --ink-3: #98989d; --line: #3a3a3c; --card: #1c1c1e; --link: #2997ff; --nav: rgba(22,22,23,.72); --crim: #ff9f0a; --civil: #64d2ff; --ok: #30d158; --err: #ff453a; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 64px; -webkit-text-size-adjust: 100%; }
 body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--ink); line-height: 1.6; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
@@ -108,6 +108,8 @@ h2 { font-size: clamp(32px, 5.2vw, 56px); font-weight: 700; }
 .search svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
 .search input { width: 100%; border: 0; background: var(--card); border-radius: 14px; padding: 15px 18px 15px 46px; font-size: 17px; box-shadow: 0 0 0 1px var(--line) inset; transition: box-shadow .2s; }
 .search input::placeholder { color: var(--ink-3); }
+/* QA: placeholder ทุกช่องอ่านได้ทั้งโหมดสว่าง/มืด (เดิมสีเริ่มต้นของเบราว์เซอร์ใน dark = 3.7:1) */
+input::placeholder, textarea::placeholder { color: var(--ink-3); opacity: 1; }
 .search input:focus { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 55%, transparent); }
 .chips { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-bottom: 26px; }
 .kindseg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
@@ -120,7 +122,7 @@ h2 { font-size: clamp(32px, 5.2vw, 56px); font-weight: 700; }
 .chip:hover { box-shadow: 0 0 0 1px var(--ink-3) inset; }
 .chip:focus-visible { outline-offset: 3px; border-radius: 99px; }
 .chip[aria-pressed=true] { background: var(--ink); color: var(--bg); box-shadow: none; }
-.chip small { opacity: .55; margin-left: 5px; font-size: 12.5px; }
+.chip small { opacity: .72; margin-left: 5px; font-size: 12.5px; }
 .pillsel { position: relative; display: inline-block; }
 .pillsel select { appearance: none; -webkit-appearance: none; border: 0; cursor: pointer; font-size: 14.5px; max-width: min(300px, 78vw); padding: 6px 34px 6px 15px; border-radius: 99px; color: var(--ink); background: var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%2386868b' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='m1 1 4 4 4-4'/%3E%3C/svg%3E") no-repeat right 14px center; box-shadow: 0 0 0 1px var(--line) inset; text-overflow: ellipsis; }
 .pillsel select:hover { box-shadow: 0 0 0 1px var(--ink-3) inset; }
@@ -177,8 +179,8 @@ h2 { font-size: clamp(32px, 5.2vw, 56px); font-weight: 700; }
 .zip { align-self: center; background: color-mix(in srgb, var(--ink) 7%, transparent); border-radius: 99px; padding: 4px 14px; font-size: 13.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .zip b { color: var(--ink); font-weight: 650; letter-spacing: .02em; }
 .jsec { margin-top: 22px; animation: rise .55s var(--ease) both; animation-delay: calc(min(var(--i, 0), 10) * 45ms); }
-.jsec h4 { margin: 0 0 10px; font-size: 15.5px; font-weight: 650; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; letter-spacing: -.005em; }
-.jsec.minor h4 { font-size: 13.5px; color: var(--ink-2); font-weight: 600; }
+.jsec h4, section.jsec > h3 { margin: 0 0 10px; font-size: 15.5px; font-weight: 650; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; letter-spacing: -.005em; }
+.jsec.minor h4, section.jsec.minor > h3 { font-size: 13.5px; color: var(--ink-2); font-weight: 600; }
 .court-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
 .court { background: var(--bg-alt); border-radius: 14px; padding: 11px 14px 12px; font-size: 15px; line-height: 1.45; display: flex; flex-direction: column; gap: 3px; align-items: flex-start; animation: rise .5s var(--ease) both; animation-delay: calc(min(var(--i, 0), 14) * 35ms + 80ms); }
 .court .cn { font-weight: 550; }
@@ -494,6 +496,14 @@ a, button, select, input, textarea, label, summary { touch-action: manipulation;
   .nav-links { gap: 14px; }
   .logo-text .lt-th { font-size: 13.5px; }
   .logo { gap: 7px; }
+}
+/* 761–840px: 7 เมนู + ปุ่มเข้าสู่ระบบ ยังล้นขอบ → ลดช่องไฟ/ขนาดตัวอักษรอีกขั้น (ไม่ซ่อนเมนู ไม่ตัดบรรทัด) */
+@media (min-width: 761px) and (max-width: 840px) {
+  .nav-in { gap: 10px; padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  .nav-links { gap: 9px; }
+  .nav-links a { font-size: 12.5px; }
+  .nav-cta { padding-left: 11px; padding-right: 11px; }
+  .logo-text .lt-th { font-size: 13px; }
 }
 
 /* ตราชั่งหัวหน้า: พ้นจอแล้วหยุดโยก (site.js สลับคลาส .off) */

@@ -108,6 +108,13 @@ function curPath() {
   const p = edits.path || {};
   return { title: p.title ?? bp.title ?? '', note: p.note ?? bp.note ?? '' };
 }
+const REVERT_PATH_BTN = '<button type="button" class="btn sm outline" data-pr-act="revert-path">ย้อนกลับเป็นค่าเดิม</button>';
+/** ป้าย "แก้ไขแล้ว" + ปุ่มย้อนกลับของหัวหน้าขั้นตอน ต้องตามสถานะล่าสุดทุกครั้งที่แก้ (ไม่ใช่แค่ตอนวาดหน้า) */
+function syncPathHead() {
+  const changed = hasKeys(edits.path), b = $('#pr-badge'), r = $('#pr-revert');
+  if (b) b.innerHTML = changed ? '<span class="ct-badge">แก้ไขแล้ว</span>' : '';
+  if (r) r.innerHTML = changed ? REVERT_PATH_BTN : '';
+}
 function loadSteps() {
   const src = Array.isArray(edits.path?.steps) ? edits.path.steps : baseSteps();
   st.steps = src.filter(isObj).map((s) => ({ title: '', detail: '', ref: '', ...cleanStep(s), verified: s.verified === true }));
@@ -129,8 +136,8 @@ function stepsView() {
   loadSteps();
   const p = curPath(), changed = hasKeys(edits.path);
   $('#ctl-main').innerHTML = `<div class="ct-editor ctl-editor">
-    <div class="ct-bh"><div><h3 class="ctl-h">ขั้นตอนฟ้องคดีอาญาโดยราษฎร</h3><div class="ctl-id">${changed ? '<span class="ct-badge">แก้ไขแล้ว</span>' : ''}</div></div>
-      <div class="ct-actions">${changed ? '<button type="button" class="btn sm outline" data-pr-act="revert-path">ย้อนกลับเป็นค่าเดิม</button>' : ''}<button type="button" class="btn sm primary" data-pr-act="add-step">${icon('plus')}เพิ่มขั้นตอน</button></div></div>
+    <div class="ct-bh"><div><h3 class="ctl-h">ขั้นตอนฟ้องคดีอาญาโดยราษฎร</h3><div class="ctl-id" id="pr-badge">${changed ? '<span class="ct-badge">แก้ไขแล้ว</span>' : ''}</div></div>
+      <div class="ct-actions"><span id="pr-revert">${changed ? REVERT_PATH_BTN : ''}</span><button type="button" class="btn sm primary" data-pr-act="add-step">${icon('plus')}เพิ่มขั้นตอน</button></div></div>
     <label class="f"><span>ชื่อหัวข้อ</span><input type="text" data-pf="title" value="${E(p.title)}"></label>
     <label class="f"><span>หมายเหตุใต้หัวข้อ</span><textarea data-pf="note" rows="2">${E(p.note)}</textarea></label>
     <div id="pr-steps">${st.steps.map(stepCard).join('') || '<p class="empty">ยังไม่มีขั้นตอน</p>'}</div></div>`;
@@ -144,7 +151,7 @@ function commitPath() {
   edits.path = p;
   for (const k of ['title', 'note']) if (p[k] !== undefined && p[k] === (bp[k] ?? '')) delete p[k];
   if (!Object.keys(p).length) delete edits.path;
-  scheduleSave();
+  syncPathHead(); scheduleSave();
 }
 function rerenderSteps() { const box = $('#pr-steps'); if (box) box.innerHTML = st.steps.map(stepCard).join('') || '<p class="empty">ยังไม่มีขั้นตอน</p>'; }
 

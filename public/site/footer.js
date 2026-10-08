@@ -12,6 +12,7 @@ const QUICK = [
   ['/laws/', 'ข้อกฎหมายและมาตรา'],
   ['/jurisdiction/', 'เขตอำนาจศาล'],
   ['/procedure/', 'ขั้นตอนฟ้องคดี'],
+  ['/service-fee/', 'เช็กค่านำหมาย'],
   ['/precedents/', 'ฎีกา'],
   ['/articles/', 'บทความ'],
   ['/#drafting', 'ร่างคำฟ้อง'],

@@ -109,7 +109,7 @@ export const supabaseBackend = {
 
   async listCases() {
     // meta = data->listMeta : ชื่อโจทก์/จำเลยแบบย่อที่ saveCase เก็บไว้ในตัวคดี (ไม่ต้องดึงรายชื่อคู่ความทั้งก้อนมาแสดงรายการ)
-    const cols = 'id,title,type,court,updated_at,caseNoBlack:data->>caseNoBlack,caseYearBlack:data->>caseYearBlack,caseNoRed:data->>caseNoRed,caseYearRed:data->>caseYearRed,caseYear:data->>caseYear,meta:data->listMeta';
+    const cols = 'id,title,type,court,updated_at,caseNoBlack:data->>caseNoBlack,caseYearBlack:data->>caseYearBlack,caseNoRed:data->>caseNoRed,caseYearRed:data->>caseYearRed,caseYear:data->>caseYear,side:data->>side,meta:data->listMeta';
     let res = await sb.from('cases').select(`${cols},user_id,owner_email`).order('updated_at', { ascending: false });
     // ฐานข้อมูลที่ยังไม่ได้รัน migration 20261005000000_user_cases.sql ยังไม่มีคอลัมน์เจ้าของ → ถอยไปอ่านแบบเดิม
     if (res.error && (res.error.code === '42703' || /user_id|owner_email/.test(res.error.message || ''))) {
@@ -130,7 +130,7 @@ export const supabaseBackend = {
       return {
         id: r.id, title: r.title, caseNoBlack: black, caseYearBlack: r.caseYearBlack || '', caseNoRed: red, caseYearRed: r.caseYearRed || '', caseYear: r.caseYear || '' /* ข้อมูลเก่า: ปีช่องเดียว — caseLabel ใช้เป็นปีของเลขที่มีอยู่ */, filed: !!(black.trim() || red.trim()),
         plName: m.plName || '', plMore: m.plMore || 0, dfName: m.dfName || '', dfMore: m.dfMore || 0,
-        type: r.type, court: r.court, updatedAt: r.updated_at, userId: r.user_id || '', ownerEmail: r.owner_email || '',
+        type: r.type, side: r.side === 'defendant' ? 'defendant' : 'plaintiff', court: r.court, updatedAt: r.updated_at, userId: r.user_id || '', ownerEmail: r.owner_email || '',
       };
     });
   },

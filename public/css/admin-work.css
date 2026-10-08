@@ -7,7 +7,7 @@
 /* ค่าพื้นฐานที่ย้ายมาจาก app.css (ส่วนที่ไม่มีใน “ชุดเดิม” ซึ่งลบออกแล้ว) */
 .steps .nav-item { display: flex; width: 100%; align-items: center; text-align: left; border: 0; background: transparent; cursor: pointer; line-height: 1.3; transition: background-color .12s, color .12s; }
 .nav-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
-.nav-head small { white-space: nowrap; font-weight: 500; border-radius: 99px; padding: 0 8px; color: var(--blue); }
+.nav-head small { white-space: nowrap; font-weight: 500; border-radius: 99px; padding: 0 8px; color: #0a5bb5; }
 .nav-ico { display: grid; place-items: center; flex: none; }
 .nav-count { border-radius: 99px; font-weight: 700; }
 .steps .badge { background: var(--err); color: #fff; border-radius: 99px; font-weight: 700; }
@@ -36,7 +36,7 @@
 .nav-count { font-size: 13px; background: var(--surface-3); color: var(--ink-2); padding: 0 8px; min-width: 22px; text-align: center; }
 .nav-item.on .nav-count { background: #fff; color: #0a5bb5; }
 .steps .badge { font-size: 13px; padding: 0 7px; }
-.nav-item.locked { opacity: 1; color: #8a909c; }
+.nav-item.locked { opacity: 1; color: #6b7280; }
 .nav-item.locked .nav-ico { color: #b1b6c1; }
 .nav-item .lock { margin-left: auto; display: inline-flex; color: #a4a9b4; }
 .dot { display: inline-grid; place-items: center; flex: none; box-sizing: border-box; margin-left: auto; }
@@ -253,7 +253,7 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
   details.more > summary { min-height: 44px; }
   details.more > summary .hint { display: none; }
   .toolbar > .btn { flex: 1 1 auto; }
-  .wiz-nav { position: sticky; bottom: 0; margin: 24px calc(var(--gutter, 16px) * -1) 0; padding: 10px var(--gutter, 16px) calc(10px + env(safe-area-inset-bottom, 0px)); border-width: 1px 0 0; border-radius: 0; box-shadow: 0 -4px 16px rgba(16, 24, 40, .06); background: rgba(255, 255, 255, .94); }
+  .wiz-nav { position: sticky; bottom: 0; margin: 24px calc(var(--gutter, 16px) * -1) 0; padding: 10px var(--gutter, 16px) calc(10px + env(safe-area-inset-bottom, 0px)); border-width: 1px 0 0; border-radius: 0; box-shadow: 0 -4px 16px rgba(16, 24, 40, .06); background: #fff; /* ทึบ — กันตัวหนังสือด้านหลังโผล่ทะลุแถบบน Safari */ }
   .wiz-btns { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
   .wiz-prog { grid-column: 1 / -1; grid-row: 1; min-width: 0; }
   .wiz-prog-t { display: none; }
@@ -263,6 +263,13 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
   .wiz-btns .btn .wiz-t { flex: 0 1 auto; }
   .wiz-miss { max-height: 108px; overflow-y: auto; scrollbar-width: thin; font-size: 13.5px; padding: 8px 12px; margin-bottom: 8px; }
   .wiz-miss ul { max-height: none; }
+  /* มือถือ: รายการที่ยังขาดเรียงต่อกันเป็นแถว (ประหยัดที่ — แถบล่างเคยกินราวหนึ่งในสามของจอ) */
+  .wiz-miss { font-size: 13px; padding: 6px 12px; }
+  .wiz-miss-h { font-size: 13px; }
+  .wiz-miss ul { display: flex; flex-wrap: wrap; gap: 0 14px; list-style: none; padding-left: 0; margin-top: 2px; max-height: 3.2em; overflow-y: auto; }
+  .wiz-miss li { margin: 0; }
+  .wiz-miss li + li { margin-top: 0; }
+  .wiz-miss li::before { content: '• '; }
 }
 @media (prefers-reduced-motion: reduce) {
   .wiz-prog-bar i { transition: none; }
@@ -370,6 +377,10 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
   .topbar:has(.nav-toggle) .brand-text > span { overflow: hidden; text-overflow: ellipsis; }
 }
 .f.wit-kind > .seg label { padding: 0 6px; white-space: nowrap; }
+/* QA: วิธีส่งหมายเรียก — 3 ตัวเลือกกว้างเท่ากันเต็มความกว้าง (ไม่ตกบรรทัด) */
+.f.wit-deliver > .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; align-self: stretch; }
+.f.wit-deliver > .seg label { width: 100%; min-width: 0; padding: 0 4px; text-align: center; white-space: normal; }
+@media (max-width: 760px) { .f.wit-deliver > .seg label { font-size: 14px; } }
 
 /* มือถือ: แถบบนของคดี (มีปุ่มเมนู 4 ขีด) — ลดขนาดตัวอักษรชื่อสำนักงานให้เห็นฉบับเต็ม ไม่ตัดด้วย … */
 @media (max-width: 760px) {
@@ -426,3 +437,28 @@ input[type=date]::-webkit-datetime-edit, input[type=time]::-webkit-datetime-edit
 /* หน้าตำแหน่งตัวหนังสือ & ตราครุฑ: กลุ่ม (หน้ากระดาษ · ตัวอักษร · ตราครุฑ …) เรียงแนวตั้ง แถวละหนึ่งกลุ่ม เต็มความกว้าง */
 .fit .gtabs { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 6px; overflow: visible; margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
 .fit .gtabs button { width: 100%; justify-content: flex-start; border-radius: 10px; padding: 0 16px; }
+
+/* ===== QA ฝั่งโจทก์ (case editor): แถววิธีส่งหมายรายจำเลย · ปุ่มถัดไปที่ถูกล็อก · ป้ายปุ่มขั้นตอนบนมือถือ ===== */
+/* แถววิธีส่งหมายรายจำเลย: ชื่อ / ตัวเลือก / หมายเหตุ เรียงเป็นแถวเดียวบนจอกว้าง และซ้อนเป็นคอลัมน์เมื่อแคบ (ชื่อยาวไม่บีบช่องเลือก) */
+.fee-list li.fee-row { flex-wrap: wrap; align-items: center; row-gap: 6px; }
+.fee-row .fee-who { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.fee-row select { flex: 0 1 260px; min-width: 0; max-width: 100%; }
+.fee-row .hint { flex: 1 1 100%; margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .fee-row .fee-who, .fee-row select { flex: 1 1 100%; }
+  .fee-row select { min-height: 44px; font-size: 16px; }
+}
+/* ค่านำหมายเจ้าพนักงาน: ปุ่มคำนวณจากที่อยู่ + ช่องตัวเลข + หมายเหตุศาล */
+.fee-off { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; }
+.fee-off .fee-amt { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.fee-off .fee-amt input { width: 130px; max-width: 100%; }
+.fee-off .hint { flex: 1 1 100%; margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 760px) { .fee-off .btn, .fee-off .fee-amt input { min-height: 44px; font-size: 16px; } .fee-off .fee-amt { flex: 1 1 140px; } }
+/* ปุ่ม “ถัดไป” ที่ยังไปต่อไม่ได้ (กรอกไม่ครบ): ตัวหนังสือต้องอ่านออก (เดิมขาวบนฟ้าอ่อน ตัดกันเพียง 1.8:1) */
+.wiz-btns .btn.primary.is-locked, .wiz-btns .btn.primary.is-locked:hover { background: #e3edf9; border-color: #bcd2ee; color: #3d5f8c; }
+/* ลิงก์แหล่งอ้างอิงในหน้าคำฟ้อง: น้ำเงินเข้มขึ้นเล็กน้อยให้ตัดกับพื้นเทาได้ ≥ 4.5:1 */
+.src-line a { color: #0063c9; }
+/* มือถือ: ป้ายปุ่มขั้นตอนยาว (เช่น “คำให้การ & สัญญา”) ขึ้นบรรทัดใหม่ได้แทนที่จะถูกตัดเป็น … */
+@media (max-width: 760px) {
+  .wiz-btns .btn .wiz-t { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+}

@@ -20,7 +20,7 @@ input[list]::-webkit-calendar-picker-indicator, input[data-combo]::-webkit-calen
 /* ช่องค้นหา (รายการยาว) */
 .dd-searchbox { flex: none; padding: 2px 2px 6px; }
 .dd .dd-search { display: block; width: 100%; min-height: 38px; padding: 0 12px 0 38px; border: 1px solid transparent; border-radius: 9px; background: var(--surface-2) var(--ah-mag) no-repeat 12px center; box-shadow: none; color: var(--ink); font: inherit; font-size: 15px; line-height: 1.4; }
-.dd .dd-search::placeholder { color: #8e94a1; }
+.dd .dd-search::placeholder { color: #6b7280; }
 .dd .dd-search:focus, .dd .dd-search:focus-visible { outline: none; background-color: #fff; border-color: var(--blue); box-shadow: var(--ring); }
 
 /* รายการ */

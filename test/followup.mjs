@@ -150,6 +150,10 @@ for (const type of ['criminal', 'civil']) {
   c.caseNoBlack = 'อ.1'; c.caseYearBlack = '2569'; c.caseNoRed = 'ผ.2'; c.caseYearRed = '2570';
   const i = caseListInfo(c);
   assert.deepEqual(i, { caseNoBlack: 'อ.1', caseYearBlack: '2569', caseNoRed: 'ผ.2', caseYearRed: '2570', filed: true, plName: 'นายสมมติ โจทก์ทดสอบ', plMore: 1, dfName: 'นายสมมุติ จำเลยทดสอบ', dfMore: 2 });
+  // ยังไม่กรอกชื่อ (มีแต่คำนำหน้า “นาย”) → ไม่แสดงเป็นชื่อ
+  const e = newCase('criminal');
+  assert.equal(caseListInfo(e).plName, '');
+  assert.equal(caseListInfo(e).dfName, '');
 }
 
 { // เลย์เอาต์: บัญชีพยานเพิ่มเติมใช้ค่าของบัญชีพยานถ้ายังไม่ตั้งเฉพาะแบบ

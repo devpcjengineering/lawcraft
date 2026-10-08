@@ -3,7 +3,7 @@
    หลัก: พื้นหลังต่างระดับแทนเส้นขอบ · กริด 8px · หัวข้อสม่ำเสมอ · พับส่วนที่ไม่จำเป็น
    (toast / banner / popup แจ้งเตือน อยู่ใน notify.css)
    ============================================================ */
-:root { /* สีหลัก (ชื่อเดิมคงไว้เพราะไฟล์อื่นอ้างอิง) */ --navy: #1d1d1f; --navy-2: #0071e3; --gold: #0071e3; --gold-soft: #eaf3fe; --bg: #f5f5f7; --card: #ffffff; --ink: #1d2433; --muted: #667085; --line: #d5d7de; --ok: #1a7a49; --warn: #94560a; --err: #b42318; --info: #1d5fa8; --r: 12px; --shadow: none; /* ชั้นพื้นผิว */ --surface-2: #f7f7f9; --surface-3: #efeff3; --hair: #ececf0; --blue: #0071e3; --blue-soft: #eaf3fe; --ok-bg: #e6f4ec; --warn-bg: #fdf1dc; --err-bg: #fdeae7; --info-bg: #e8f1fb; --focus: 0 0 0 3px rgba(0, 113, 227, .22); --nav-w: 224px; }
+:root { /* สีหลัก (ชื่อเดิมคงไว้เพราะไฟล์อื่นอ้างอิง) */ --navy: #1d1d1f; --navy-2: #0071e3; --gold: #0071e3; --gold-soft: #eaf3fe; --bg: #f5f5f7; --card: #ffffff; --ink: #1d2433; --muted: #5a6477; --line: #d5d7de; --ok: #1a7a49; --warn: #94560a; --err: #b42318; --info: #1d5fa8; --r: 12px; --shadow: none; /* ชั้นพื้นผิว */ --surface-2: #f7f7f9; --surface-3: #efeff3; --hair: #ececf0; --blue: #0071e3; --blue-soft: #eaf3fe; --ok-bg: #e6f4ec; --warn-bg: #fdf1dc; --err-bg: #fdeae7; --info-bg: #e8f1fb; --focus: 0 0 0 3px rgba(0, 113, 227, .22); --nav-w: 224px; }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 html { overflow-y: scroll; scrollbar-gutter: stable; }
@@ -86,7 +86,7 @@ details.item>.d-body { border-top: 1px solid var(--hair); padding: 24px 24px 24p
 .sum-main { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; } /* ยาวเกินจอ = ขึ้นบรรทัดใหม่ ไม่ตัดด้วย … */
 .sum-title { font-weight: 600; white-space: nowrap; flex: none; }
 .sum-name { font-weight: 500; min-width: 0; white-space: normal; overflow-wrap: anywhere; flex: 1 1 12em; }
-.sum-name em { font-style: normal; color: #8a909c; font-weight: 400; }
+.sum-name em { font-style: normal; color: #6b7280; font-weight: 400; }
 .sum-meta { color: var(--muted); font-size: 13.5px; min-width: 0; white-space: normal; overflow-wrap: anywhere; flex: 0 1 auto; }
 .sum-badges { flex: none; }
 .sum-main.wrap { flex-wrap: wrap; }
@@ -438,5 +438,5 @@ a, button, select, input, textarea, label, summary { touch-action: manipulation;
 @media (hover: hover) { .side-switch button:hover { color: var(--ink); } }
 .side-switch button.on, .side-switch button[aria-pressed=true] { background: #fff; color: var(--ink); font-weight: 700; box-shadow: 0 1px 3px rgba(16, 24, 40, .14); }
 .side-switch button:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
-.side-note { margin: -2px 0 8px; padding: 0 4px; color: var(--muted, #6b7280); font-size: 12.5px; line-height: 1.4; }
+.side-note { margin: -2px 0 8px; padding: 0 12px; color: var(--muted, #6b7280); font-size: 12.5px; line-height: 1.4; }
 @media (max-width: 760px) { .side-switch button { min-height: 44px; } }

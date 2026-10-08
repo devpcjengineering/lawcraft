@@ -198,8 +198,37 @@ export function witnessList(c, which = 'all') {
   const selfW = c.options?.selfWitness === false ? [] : (sideOf(c) === 'defendant' ? defendants(c) : plaintiffs(c))  // ฝ่ายผู้ยื่น: ฝั่งโจทก์ = โจทก์อ้างตนเอง · ฝั่งจำเลย = จำเลยอ้างตนเอง
     .filter((x) => partyName(x) && !own.some((w) => w.name === partyName(x)))
     .map((x) => ({ id: `self-${x.id}`, kind: 'person', name: partyName(x), addr: x.address, address: '', phone: x.phone || '', note: 'นำ', self: true }));
-  const all = [...selfW, ...own.filter((w) => !w.extra), ...own.filter((w) => w.extra)].map((w, i) => ({ no: i + 1, w, self: !!w.self }));
+  // พยานเพิ่มเติมเรียงตามครั้งที่ (ว่าง = ครั้งเริ่มต้น มาก่อน · เลขน้อยไปมาก) แล้วตามลำดับที่เพิ่ม — เลข no ต่อเนื่องข้ามทุกครั้ง
+  const extras = own.filter((w) => w.extra).map((w, i) => ({ w, i, label: witnessRoundLabel(c, w) }))
+    .sort((a, b) => cmpRound(a.label, b.label) || a.i - b.i).map((x) => x.w);
+  const all = [...selfW, ...own.filter((w) => !w.extra), ...extras].map((w, i) => ({ no: i + 1, w, self: !!w.self, ...(w.extra ? { round: witnessRoundLabel(c, w) } : {}) }));
   return which === 'base' ? all.filter((r) => !r.w.extra) : which === 'extra' ? all.filter((r) => r.w.extra) : all;
+}
+
+/** ป้ายครั้งที่ของพยานเพิ่มเติม: w.round (ถ้ากรอก) ไม่เช่นนั้น c.witnessExtraRound (ครั้งเริ่มต้น) ; ว่าง = จุดไข่ปลาในเอกสาร */
+export const witnessRoundLabel = (c, w) => String(w.round ?? '').trim() || String(c.witnessExtraRound ?? '').trim();
+function cmpRound(a, b) {
+  if (a === b) return 0;
+  if (!a) return -1;
+  if (!b) return 1;
+  const na = Number(a), nb = Number(b), fa = Number.isFinite(na), fb = Number.isFinite(nb);
+  if (fa && fb) return na - nb;
+  if (fa) return -1;
+  if (fb) return 1;
+  return a < b ? -1 : 1;
+}
+/**
+ * บัญชีพยานเพิ่มเติมแยกตามครั้ง: [{label, id, rows:[{no,w,round}]}] — ครั้งแรกใช้ id 'witnessExtra' (เข้ากับข้อมูลเดิม) ครั้งถัดไป 'witnessExtra-<ครั้งที่>'
+ */
+export function witnessRounds(c) {
+  const groups = [];
+  for (const r of witnessList(c, 'extra')) {
+    let g = groups.find((x) => x.label === r.round);
+    if (!g) groups.push(g = { label: r.round, id: '', rows: [] });
+    g.rows.push(r);
+  }
+  groups.forEach((g, i) => { g.id = i === 0 ? 'witnessExtra' : `witnessExtra-${g.label.replace(/[^0-9A-Za-z฀-๿]/g, '_') || i + 1}`; });
+  return groups;
 }
 
 /**
@@ -494,7 +523,7 @@ export function filedNoText(c) {
 export function filedBadge(c) {
   const n = filedNoText(c);
   if (!n) return '';
-  const s = `ฟ้องแล้ว · ${n}`;
+  const s = `${sideOf(c) === 'defendant' ? 'มีเลขคดี' : 'ฟ้องแล้ว'} · ${n}`; // ฝั่งจำเลยไม่ได้เป็นผู้ฟ้อง
   return c?.options?.thaiDigits === false ? s : toThaiDigits(s);
 }
 
@@ -505,7 +534,9 @@ export function filedBadge(c) {
 export function caseListInfo(c) {
   const side = (role) => {
     const list = (c?.parties || []).filter((p) => p.role === role);
-    return { name: list.map(partyName).find(Boolean) || '', more: Math.max(0, list.length - 1) };
+    // ต้องมีชื่อจริง (ไม่นับคำนำหน้าอย่างเดียว เช่น “นาย”)
+    const named = (p) => (p.kind === 'juristic' ? !!(p.name || '').trim() : !!((p.first || '').trim() || (p.last || '').trim()));
+    return { name: list.filter(named).map(partyName).find(Boolean) || '', more: Math.max(0, list.length - 1) };
   };
   const pl = side('plaintiff'), df = side('defendant');
   const no = caseNoParts(c);
@@ -522,12 +553,31 @@ export const DELIVER_LABEL = { ems: 'ไปรษณีย์ตอบรับ�
 const validDeliver = (v) => (v === 'officer' || v === 'self' ? v : v === 'ems' ? 'ems' : '');
 /** วิธีส่งหมายของจำเลยแต่ละคน (party.deliver) — ไม่ได้เลือกเฉพาะคนให้ใช้ค่ารวมเดิม service.deliver (ไม่มี = ไปรษณีย์) ; ไปรษณีย์/ส่งเอง = ต้องมีผู้ลงชื่อรับ ปิดหมายไม่ได้ (ส่งเองต้องนำหางหมายคืนศาล) · เจ้าพนักงานศาล = ถ้าไม่มีผู้รับโดยชอบขอปิดหมายได้ */
 export const partyDeliver = (c, d) => validDeliver(d?.deliver) || validDeliver(c?.service?.deliver) || 'ems';
+/** ค่านำหมายเจ้าพนักงาน (อัตราศาลปลายทาง) ที่บันทึกไว้ในคู่ความ/พยาน (officerFee) — ตัวเลขจำกัดและไม่ติดลบ = ทราบอัตรา · ว่าง/ไม่ใช่ตัวเลข = null */
+export const officerFeeOf = (x) => {
+  const v = x?.officerFee;
+  if (v === '' || v == null || typeof v === 'boolean') return null;
+  const n = Number(String(v).replace(/,/g, ''));
+  return Number.isFinite(n) && n >= 0 ? n : null;
+};
 export function serviceFeeInfo(c) {
   const df = defendants(c), n = Math.max(1, df.length);
-  const per = (df.length ? df : [null]).map((d) => ({ party: d, method: partyDeliver(c, d), fee: partyDeliver(c, d) === 'ems' ? EMS_FEE : 0 }));
+  const per = (df.length ? df : [null]).map((d) => {
+    const method = partyDeliver(c, d);
+    const of = method === 'officer' ? officerFeeOf(d) : null;
+    return { party: d, method, fee: method === 'ems' ? EMS_FEE : of ?? 0, known: method !== 'officer' || of !== null, unknown: method === 'officer' && of === null, court: method === 'officer' ? String(d?.officerCourt || '') : '' };
+  });
   const total = per.reduce((a, r) => a + r.fee, 0);
   const kinds = [...new Set(per.map((r) => r.method))];
-  return { n, unit: EMS_FEE, total, multi: n > 1, deliver: kinds.length === 1 ? kinds[0] : 'mixed', per, nEms: per.filter((r) => r.method === 'ems').length };
+  const offs = per.filter((r) => r.method === 'officer');
+  return { n, unit: EMS_FEE, total, multi: n > 1, deliver: kinds.length === 1 ? kinds[0] : 'mixed', per, nEms: per.filter((r) => r.method === 'ems').length, nOfficer: offs.length, officerTotal: offs.reduce((a, r) => a + r.fee, 0), emsTotal: per.filter((r) => r.method === 'ems').length * EMS_FEE, unknownOfficer: offs.some((r) => r.unknown) };
+}
+/** วิธีส่งหมายที่แนะนำของจำเลย — ส่งข้ามเขต (service.mode มี 'cross') และจำเลยอยู่นอกเขตศาล (จาก serviceAdvice) = 'officer' (อัตราศาลปลายทาง) ไม่งั้น 'ems' ; ใช้แนะนำเท่านั้น ไม่เขียนทับค่าที่ผู้ใช้เลือก */
+export function suggestDeliver(c, d, adv) {
+  const mode = c?.service?.mode || '';
+  if (!mode.includes('cross')) return 'ems';
+  const row = (adv?.rows || []).find((r) => r.party === d);
+  return row && row.known && !row.inside ? 'officer' : 'ems';
 }
 
 export function caseTitle(c) {

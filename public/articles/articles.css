@@ -49,6 +49,11 @@
 .ar-toc { position: sticky; top: 64px; font-size: 14px; max-height: calc(100vh - 84px); overflow: auto; }
 .ar-toc summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; list-style: none; }
 .ar-toc summary::-webkit-details-marker { display: none; }
+@media (max-width: 900px) { /* สารบัญพับได้บนมือถือ — ใส่ลูกศรให้รู้ว่ากดเปิดได้ */
+  .ar-toc summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .ar-toc summary::after { content: ''; flex: none; width: 9px; height: 9px; border: solid var(--ink-3); border-width: 0 2px 2px 0; transform: rotate(45deg) translate(-2px, -2px); transition: transform .2s var(--ease); }
+  .ar-toc details[open] > summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
+}
 .ar-toc ol { margin: 0; padding: 0; list-style: none; border-left: 2px solid var(--line); }
 .ar-toc a { display: block; padding: 5px 0 5px 14px; margin-left: -2px; border-left: 2px solid transparent; color: var(--ink-2); line-height: 1.4; transition: color .2s, border-color .2s; }
 .ar-toc a:hover { color: var(--ink); }

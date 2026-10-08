@@ -79,7 +79,7 @@ function courtCard(c, i, W) {
 function section(title, list, W, ctx) {
   if (!list.length) return '';
   const i = ctx.n++;
-  return `<section class="jsec${ctx.minor ? ' minor' : ''}" style="--i:${i}"><h4>${esc(title)}</h4><div class="court-list">${list.map((c, k) => courtCard(c, k, W)).join('')}</div></section>`;
+  return `<section class="jsec${ctx.minor ? ' minor' : ''}" style="--i:${i}"><h3>${esc(title)}</h3><div class="court-list">${list.map((c, k) => courtCard(c, k, W)).join('')}</div></section>`;
 }
 function buildBody({ jur, allCourts, jt }, p, d) {
   const W = wording(p), where = p.kind === 'bkk' ? p.name : `จังหวัด${p.name}`;

@@ -82,7 +82,7 @@ async function showList() {
       <p class="lead">ซื้อขายออนไลน์ ฉ้อโกง หมิ่นประมาท ข่มขู่ และภาพส่วนตัว — ทางเลือก ขั้นตอน หลักฐาน และกำหนดเวลา สำหรับผู้เสียหายที่ต้องการดำเนินคดีด้วยตนเอง</p>
     </header>
     <div class="search ar-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="arq" type="search" placeholder="ค้นหา เช่น ฉ้อโกง, แคปหน้าจอ, รีวิว, deepfake" aria-label="ค้นหาบทความ" autocomplete="off"></div>
+      <input id="arq" type="search" placeholder="ค้นหา เช่น ฉ้อโกง, แคปหน้าจอ, รีวิว" aria-label="ค้นหาบทความ" autocomplete="off"></div>
     <div class="chips" id="arcats" role="group" aria-label="กรองตามหมวด"></div>
     <p class="count" id="arcount" role="status" aria-live="polite"></p>
     <div class="ar-grid" id="argrid"></div>

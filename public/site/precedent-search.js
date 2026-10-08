@@ -32,7 +32,7 @@ function init() {
     if (!r.ok) throw Object.assign(new Error(body.error || `ผิดพลาด (${r.status})`), { status: r.status });
     return body;
   }
-  const fail = (e) => { out.removeAttribute('aria-busy'); out.innerHTML =`<div class="note warn" role="alert"><p>${esc(e.message || 'ค้นหาไม่สำเร็จ')}</p></div>`; };
+  const fail = (e) => { out.removeAttribute('aria-busy'); out.style.minHeight = '0'; out.innerHTML =`<div class="note warn" role="alert"><p>${esc(e.status ? (e.message || 'ค้นหาไม่สำเร็จ') : 'เชื่อมต่อไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่')}</p></div>`; };
 
   async function search(s) {
     const my = ++seq;
@@ -81,7 +81,7 @@ function init() {
       const fact = (k, v) => (v && (!Array.isArray(v) || v.length) ? `<dt>${k}</dt><dd>${Array.isArray(v) ? v.map(esc).join('<br>') : esc(v)}</dd>` : '');
       const laws = (it.laws || []).map((l) => `${l.name || l.abbr || ''}${l.sections?.length ? ` — ${l.sections.join(', ')}` : ''}`); // ข้อความล้วน — fact() เป็นผู้ escape
       box.innerHTML = `
-        ${it.headnote ? `<h4>คำพิพากษาย่อ (ย่อสั้น)</h4><div class="px-text">${tokens.length ? `<p>${hl(it.headnote, tokens).replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>')}</p>` : para(it.headnote)}</div>` : ''}
+        ${it.headnote ? `<h3>คำพิพากษาย่อ (ย่อสั้น)</h3><div class="px-text">${tokens.length ? `<p>${hl(it.headnote, tokens).replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>')}</p>` : para(it.headnote)}</div>` : ''}
         ${it.fullText ? `<details class="px-full"><summary>อ่านย่อยาว (${num(it.fullText.length)} ตัวอักษร)</summary><div class="px-text">${para(it.fullText)}</div></details>` : ''}
         <dl class="facts">${fact('คู่ความ', it.litigants)}${fact('กฎหมายที่อ้าง', laws)}${fact('องค์คณะ', it.judges)}${fact('ศาลชั้นต้น/อุทธรณ์', it.lowerCourts)}${fact('หมายเลขคดี', it.primaryCourtNos)}${fact('แผนก', it.departments)}</dl>
         <p class="px-own"><a class="link-arrow" href="${esc(it.path)}">เปิดหน้าของฎีกานี้</a> <span class="fine">(ลิงก์ตรงสำหรับแชร์/อ้างอิง)</span></p>

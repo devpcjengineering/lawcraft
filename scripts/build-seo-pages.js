@@ -413,7 +413,7 @@ ${fees.items.map((f) => `<tr><th scope="row">${esc(f.title)}${f.verified === fal
       <h2 id="pxT">ค้นหาฎีกาจากคลังคำพิพากษาศาลฎีกา</h2>
       <p class="fine">ค้นจากคำพิพากษาย่อที่ศาลเผยแพร่ ด้วยคำสำคัญ เลขฎีกา (เช่น 10029/2560) หรือกรองตามปี ประเภทคดี และกฎหมายที่อ้าง</p>
       <form class="px-form" role="search" action="/precedents/" method="get">
-        <input type="search" name="q" maxlength="200" autocomplete="off" placeholder="เช่น มรดก ที่ดิน · ฉ้อโกง · เช็ค · 10029/2560" aria-label="คำค้นฎีกา">
+        <input type="search" name="q" maxlength="200" autocomplete="off" placeholder="เช่น มรดก · ฉ้อโกง · เช็ค · 10029/2560" aria-label="คำค้นฎีกา">
         <button class="btn-pill primary" type="submit">ค้นหา</button>
         <div class="px-filters">
           <select name="year" aria-label="ปี พ.ศ."><option value="">ทุกปี</option></select>

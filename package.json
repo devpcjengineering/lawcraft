@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server/index.js",
     "build": "node scripts/build-static.js",
-    "test": "node test/smoke.mjs && node test/followup.mjs && node test/digits.mjs && node test/frontfit.mjs && node test/seo.mjs && node test/deka-map.mjs && node test/precedents-api.mjs && node test/precedent-page.mjs && node test/witness-note.mjs && node test/procedure-merge.mjs && node test/defendant-side.mjs && node test/witness-request.mjs && node test/doc-order.mjs && node test/tablecut.mjs",
+    "test": "node test/smoke.mjs && node test/followup.mjs && node test/digits.mjs && node test/frontfit.mjs && node test/seo.mjs && node test/deka-map.mjs && node test/precedents-api.mjs && node test/precedent-page.mjs && node test/witness-note.mjs && node test/procedure-merge.mjs && node test/defendant-side.mjs && node test/witness-request.mjs && node test/doc-order.mjs && node test/service-fee.mjs && node test/witness-rounds.mjs && node test/tablecut.mjs",
     "build:edge": "node server/build-edge.js"
   },
   "dependencies": {

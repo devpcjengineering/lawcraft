@@ -36,7 +36,7 @@ const seo = await (await import('./build-seo-pages.js')).buildSeoPages({ root, d
   const { packArticles } = await import('../server/articles-pack.js');
   const today = new Date().toISOString().slice(0, 10);
   const urls = [
-    ['/', today, 'weekly', '1.0'], ['/articles/', today, 'weekly', '0.8'], ['/contact/', today, 'monthly', '0.6'], ['/privacy/', today, 'yearly', '0.3'],
+    ['/', today, 'weekly', '1.0'], ['/articles/', today, 'weekly', '0.8'], ['/contact/', today, 'monthly', '0.6'], ['/privacy/', today, 'yearly', '0.3'], ['/service-fee/', today, 'monthly', '0.7'],
     ...packArticles().index.map((a) => [`/articles/?a=${encodeURIComponent(a.slug)}`, /^\d{4}-\d{2}-\d{2}$/.test(a.updated || '') ? a.updated : today, 'monthly', '0.7']),
     ...seo.urls.map((u) => [u.path, u.lastmod, 'monthly', u.priority]),
   ];
@@ -51,7 +51,7 @@ const seo = await (await import('./build-seo-pages.js')).buildSeoPages({ root, d
 // เร่งความเร็วหน้าสาธารณะ: รวมไฟล์ CSS หลายไฟล์ที่ <head> เป็นไฟล์เดียวต่อหน้า (ลดคำขอที่บล็อกการแสดงผล)
 {
   const crypto = await import('node:crypto');
-  for (const page of ['index.html', 'articles/index.html', 'contact/index.html', 'privacy/index.html']) {
+  for (const page of ['index.html', 'articles/index.html', 'contact/index.html', 'privacy/index.html', 'service-fee/index.html']) {
     const hp = path.join(dist, page);
     let html = fs.readFileSync(hp, 'utf8');
     const re = /<link rel="stylesheet" href="(\/[^"?#]+\.css)">\r?\n?/g;

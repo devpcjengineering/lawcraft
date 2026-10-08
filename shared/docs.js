@@ -6,8 +6,8 @@ import {
 } from './thai.js';
 import {
   indexLaw, plaintiffs, defendants, partyLabel, partyName, groupName, chargeSectionsText, chargeNamesText,
-  resolveRuns, runsToText, chargeItem, reservedValue, tailFacts, serviceFeeInfo,
-  witnessList, witnessSummonsPlan, witnessAddr, witnessHasAddr, witnessAddrText, witnessWantsSummons, witnessKind, isItemWitness, witnessWho, witnessDeliver,
+  resolveRuns, runsToText, chargeItem, reservedValue, tailFacts, serviceFeeInfo, officerFeeOf,
+  witnessList, witnessRounds, witnessSummonsPlan, witnessAddr, witnessHasAddr, witnessAddrText, witnessWantsSummons, witnessKind, isItemWitness, witnessWho, witnessDeliver,
   caseNoParts, isFiled,
 } from './model.js';
 
@@ -192,7 +192,8 @@ function sideIntro(c, role, afterId = false) {
   const lead = role === filerRole(c) ? 'ข้าพเจ้า ' : 'ขอยื่นฟ้อง ';
   const suffix = list.length > 1 ? `ที่ 1 กับพวกรวม ${list.length} คน` : '';
   const out = [p([t(lead), ...personRuns(list[0], word, { afterId, suffix })], { indent: 1.5, justify: true })];
-  if (list.length > 1) out.push(p([t(`(รายละเอียดของ${word}ทั้งหมดปรากฏตามเอกสารแนบท้ายคำฟ้อง)`)], { indent: 1.5, small: true }));
+  // อ้างเอกสารแนบท้ายคำฟ้องได้ก็ต่อเมื่อชุดเอกสารมีเอกสารนั้น (ฝั่งจำเลยไม่มีคำฟ้อง/เอกสารแนบ → ไม่ต้องอ้างถึง)
+  if (list.length > 1 && c.docs?.attachment !== false) out.push(p([t(`(รายละเอียดของ${word}ทั้งหมดปรากฏตามเอกสารแนบท้ายคำฟ้อง)`)], { indent: 1.5, small: true }));
   return out;
 }
 
@@ -324,7 +325,8 @@ function witnessRequestItemRuns(c, w) {
   }
   const recv = kind === 'person' ? 'พยาน' : 'ผู้ครอบครอง';
   if (witnessDeliver(w) === 'officer') {
-    runs.push(t(` โดยขอให้เจ้าพนักงานศาลเป็นผู้นำหมายไปส่ง หากไม่มีผู้รับหมายโดยชอบ ขอให้ศาลมีคำสั่งให้ส่งโดยวิธีปิดหมาย ณ ภูมิลำเนาหรือสถานที่ทำการของ${recv}ดังกล่าว`));
+    const wf = officerFeeOf(w), wc = String(w.officerCourt || '').trim();
+    runs.push(t(` โดยขอให้เจ้าพนักงานศาลเป็นผู้นำหมายไปส่ง${wf !== null ? ` ตามอัตราของศาลปลายทาง${wc ? ` (${wc.startsWith('ศาล') ? wc : 'ศาล' + wc})` : ''} อัตราค่านำหมาย ${wf.toLocaleString('en-US')} บาท` : ''} หากไม่มีผู้รับหมายโดยชอบ ขอให้ศาลมีคำสั่งให้ส่งโดยวิธีปิดหมาย ณ ภูมิลำเนาหรือสถานที่ทำการของ${recv}ดังกล่าว`));
   } else if (witnessDeliver(w) === 'self') {
     runs.push(t(` โดย${filerWord(c)}ขอรับหมายไปส่งให้${recv}เอง ซึ่งต้องมีผู้ลงลายมือชื่อรับหมายไว้ และ${filerWord(c)}จะนำหางหมายที่มีผู้รับลงชื่อแล้วส่งคืนต่อศาล`));
   } else runs.push(t(' โดยขอให้ส่งหมายทางไปรษณีย์ตอบรับด่วนพิเศษ ซึ่งต้องมีผู้ลงลายมือชื่อรับหมายไว้เป็นหลักฐาน'));
@@ -402,13 +404,15 @@ function witnessDoc(c, idx) {
  * บัญชีพยาน (เพิ่มเติม) ครั้งที่ … — ใช้แบบฟอร์มบัญชีพยาน (แบบ ๑๕) เดียวกับบัญชีเดิม ; ยื่นหลังฟ้องแล้ว มีเลขคดีดำ/แดงที่หัวเอกสาร
  * ลำดับอันดับนับต่อจากบัญชีเดิม (บัญชีเดิม 4 อันดับ → เพิ่มเติมเริ่มที่ ๕) ; null เมื่อไม่มีพยานที่ติดธง extra
  */
-function witnessExtraDoc(c, idx) {
-  const list = witnessList(c, 'extra');
-  if (!list.length) return null;
+function witnessExtraDocs(c, idx) {
+  return witnessRounds(c).map((g) => witnessExtraDoc(c, idx, g));
+}
+function witnessExtraDoc(c, idx, g) {
+  const list = g.rows;
   const pl = filers(c);
   const rows = witnessTableRows(c, list);
   const first = list[0].no, last = list[list.length - 1].no;
-  const round = String(c.witnessExtraRound ?? '').trim(); // เลขครั้งที่ยื่นเพิ่มเติม (ว่าง = จุดไข่ปลาให้เขียนเติม)
+  const round = g.label; // เลขครั้งที่ยื่นเพิ่มเติม (ว่าง = จุดไข่ปลาให้เขียนเติม)
   const title = ft('witnessExtra.title', { round: round || '......' });
   const blocks = [
     top(c, '๑๕', title, { courtUse: true }), // ใช้แบบฟอร์มบัญชีพยาน (แบบ ๑๕) เดียวกับบัญชีเดิม
@@ -421,7 +425,7 @@ function witnessExtraDoc(c, idx) {
     { t: 'rule' },
     p([{ text: 'หมายเหตุ', u: true }, t(' ' + ft('witness.child'))], { indent: 0, small: true }),
   ];
-  return { id: 'witnessExtra', title, blocks };
+  return { id: g.id, title, blocks };
 }
 
 function attorneyDoc(c, idx) {
@@ -741,7 +745,11 @@ export function serviceMotionText(c, data) {
       out.push(`โจทก์ขอให้ศาลส่งสำเนาคำฟ้องและหมายทางไปรษณีย์ตอบรับด่วนพิเศษ${who(ems)} มี${feePhrase} โดยต้องมีผู้ลงลายมือชื่อรับหมายไว้เป็นหลักฐาน โจทก์จะเป็นผู้ชำระแก่ศาลตามระเบียบต่อไป`);
     }
     if (officer.length) {
-      out.push(`โจทก์ขอให้ศาลส่งสำเนาคำฟ้องและหมายโดยเจ้าพนักงานศาล${who(officer)} ตามอัตราของศาลปลายทาง โจทก์จะเป็นผู้ชำระแก่ศาลตามระเบียบต่อไป หากเจ้าพนักงานเดินหมายไปส่งแล้วไม่พบ${officer.length > 1 ? 'จำเลยดังกล่าว' : dfWord} หรือไม่มีผู้รับหมายโดยชอบ โจทก์ขอให้ศาลอนุญาตให้ส่งโดยวิธีปิดหมาย ณ ภูมิลำเนาของ${officer.length > 1 ? 'จำเลยดังกล่าว' : dfWord} ตาม${base}`);
+      const known = officer.filter((r) => r.known);
+      let rate = ' ตามอัตราของศาลปลายทาง';
+      if (known.length && officer.length === 1) rate = ` ตามอัตราของศาลปลายทาง${officer[0].court ? ` (${String(officer[0].court).startsWith('ศาล') ? officer[0].court : 'ศาล' + officer[0].court})` : ''} อัตราค่านำหมาย ${money(known[0].fee)} บาท`;
+      else if (known.length) rate = ` ตามอัตราของศาลปลายทาง ได้แก่ ${known.map((r) => `${partyLabel(c, r.party)} ${r.court ? `(${String(r.court).startsWith('ศาล') ? r.court : 'ศาล' + r.court}) ` : ''}${money(r.fee)} บาท`).join(' ')} รวม ${money(known.reduce((a, r) => a + r.fee, 0))} บาท`;
+      out.push(`โจทก์ขอให้ศาลส่งสำเนาคำฟ้องและหมายโดยเจ้าพนักงานศาล${who(officer)}${rate} โจทก์จะเป็นผู้ชำระแก่ศาลตามระเบียบต่อไป หากเจ้าพนักงานเดินหมายไปส่งแล้วไม่พบ${officer.length > 1 ? 'จำเลยดังกล่าว' : dfWord} หรือไม่มีผู้รับหมายโดยชอบ โจทก์ขอให้ศาลอนุญาตให้ส่งโดยวิธีปิดหมาย ณ ภูมิลำเนาของ${officer.length > 1 ? 'จำเลยดังกล่าว' : dfWord} ตาม${base}`);
     }
     if (self.length) {
       out.push(`โจทก์ขอรับหมายและสำเนาคำฟ้องไปส่งเอง${who(self)} โดยต้องมีผู้ลงลายมือชื่อรับหมายไว้ และโจทก์จะนำหางหมายที่มีผู้รับลงชื่อแล้วส่งคืนต่อศาลภายในกำหนด (ไม่มีค่านำหมายในส่วนนี้)`);
@@ -770,7 +778,7 @@ export const DOC_TYPES = [
 
 /** เอกสารหลังยื่นฟ้อง = หมายเรียกพยาน · บัญชีพยานเพิ่มเติม · คำร้อง/คำแถลง (ไม่รวมคำร้องส่งหมายซึ่งเป็นของชุดคำฟ้อง) */
 export const POST_FILING_KEYS = ['motions', 'witnessExtra', 'witnessRequest', 'witnessSummons'];
-export const isPostFilingDoc = (d) => /^(witnessSummons-|motion-)/.test(d.id) || d.id === 'witnessExtra' || d.id === 'witnessRequest';
+export const isPostFilingDoc = (d) => /^(witnessSummons-|motion-)/.test(d.id) || /^witnessExtra(-|$)/.test(d.id) || d.id === 'witnessRequest';
 
 /**
  * ลำดับเอกสารและการแบ่งชั้น (ตามที่ผู้ใช้กำหนด)
@@ -791,6 +799,7 @@ export function docKey(idOrDoc) {
   if (id.startsWith('motion-')) return 'motions';
   if (id.startsWith('witnessSummons-')) return 'witnessSummons';
   if (id.startsWith('summons-')) return 'summons';
+  if (id.startsWith('witnessExtra-')) return 'witnessExtra';
   return id;
 }
 /** ชั้นของเอกสาร: 'pre' (ก่อนฟ้อง/ไต่สวนมูลฟ้อง) | 'trial' (พิจารณา) — ไม่รู้จัก = 'pre' */
@@ -821,7 +830,7 @@ export function buildDocuments(c, data, only) {
   if (want('motions')) c.motions.forEach((m, i) => docs.push(motionDoc(c, idx, m, i)));
   if (want('witness')) docs.push(witnessDoc(c, idx));
   // บัญชีพยาน (เพิ่มเติม) ครั้งที่ … (แบบ ๑๕): สร้างเองเมื่อมีพยานที่ติดธง extra (ปิดได้ด้วย docs.witnessExtra = false)
-  if (only ? only.includes('witnessExtra') : c.docs.witnessExtra !== false) { const wx = witnessExtraDoc(c, idx); if (wx) docs.push(wx); }
+  if (only ? only.includes('witnessExtra') : c.docs.witnessExtra !== false) docs.push(...witnessExtraDocs(c, idx));
   if (only ? only.includes('witnessRequest') : c.docs.witnessRequest !== false) { const wr = witnessRequestDoc(c, idx); if (wr) docs.push(wr); }
   // หมายเรียกพยาน: เปิดโดยปริยายเมื่อมีพยานที่ต้องเรียก (ปิดได้ด้วย docs.witnessSummons = false)
   if (only ? only.includes('witnessSummons') : c.docs.witnessSummons !== false) witnessSummonsPlan(c, !!only).forEach((g) => docs.push(witnessSummonsDoc(c, data, g)));

@@ -12,7 +12,7 @@
 .cp-fb { display: flex; gap: 8px 14px; align-items: center; flex-wrap: wrap; min-height: 0; }
 .cp-fb .grow { flex: 1; }
 .cp-fb:not(:has(*:not([hidden]))) { display: none; }
-.cp-f textarea::placeholder { color: #8a909b; opacity: 1; }
+.cp-f textarea::placeholder { color: #6b7280; opacity: 1; }
 .cp-secs { display: grid; gap: 12px; }
 .cp-secs .cp-group { margin-bottom: 0; }
 #cp-secs { display: grid; gap: 12px; }
