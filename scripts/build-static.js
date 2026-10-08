@@ -127,26 +127,22 @@ ${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/?a=${encodeURIComponent(
     }
     fs.writeFileSync(path.join(dist, 'llms-full.txt'), md.join(''));
   }
-  // ai-catalog.json ตามร่างข้อกำหนด Agentic Resource Discovery (ARD): host = did:web · entries = ทรัพยากรที่เอเจนต์ใช้ได้ (identifier เป็น URN ผูกโดเมน, mediaType, url สัมบูรณ์, representativeQueries)
-  // ร่างล่าสุด (v0.91) ย้ายพาธหลักเป็น /.well-known/ard.json และคง ai-catalog.json ไว้เป็นชื่อสำรอง → เขียนทั้งสองชื่อเนื้อหาเดียวกัน
+  // ai-catalog.json ตามข้อกำหนด Agentic Resource Discovery (ARD) — ตรวจด้วยตัวตรวจสอบของ ARD แล้ว กฎที่ต้องตาม:
+  //   root มีได้เฉพาะ specVersion / host / entries (ห้ามฟิลด์อื่น; collections ถูกยกเลิกตาม ADR-0003)
+  //   identifier ต้องเป็น urn:air:<publisher>:<namespace>:<name> · url ต้องเป็น URL สัมบูรณ์ · ฟิลด์ของ entry: identifier displayName type url description representativeQueries
+  //   type ที่ไม่ใช่ชนิด discovery มาตรฐาน (เช่น text/html, text/markdown) ได้เพียงคำเตือนระดับต่ำ — ใช้ตามชนิดจริงของเนื้อหา
   const host = new URL(SITE).hostname;
-  const today = new Date().toISOString().slice(0, 10);
   const entry = (name, o) => ({
-    identifier: `urn:ard:${host}:knowledge:${name}`,
+    identifier: `urn:air:${host}:knowledge:${name}`,
     displayName: o.displayName,
-    description: o.description,
-    mediaType: o.mediaType,
-    type: o.mediaType, // ชื่อฟิลด์แบบเก่าของ AI Catalog (บางตัวอ่านยังใช้)
+    type: o.mediaType,
     url: o.url,
-    version: today,
-    language: 'th',
-    license: 'ใช้เพื่อการศึกษาและอ้างอิงได้ โดยระบุที่มา www.law-craft.co — ไม่ใช่คำปรึกษาทางกฎหมาย',
-    capabilities: ['read', 'cite'],
+    description: o.description,
     representativeQueries: o.queries,
   });
   const catalog = {
     specVersion: '1.0',
-    host: { displayName: 'Law Craft Legal Consultants', identifier: `did:web:${host}`, url: `${SITE}/`, contact: `${SITE}/contact/` },
+    host: { displayName: 'Law Craft Legal Consultants', identifier: `did:web:${host}` },
     entries: [
       entry('site-overview', {
         displayName: 'Law Craft — ภาพรวมเว็บไซต์และรายการบทความ', mediaType: 'text/markdown', url: `${SITE}/llms.txt`,
@@ -169,7 +165,6 @@ ${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/?a=${encodeURIComponent(
         queries: ['บทความเรื่องฟ้องหมิ่นประมาทออนไลน์', 'วิธีเก็บหลักฐานแชตเพื่อฟ้องคดี'],
       }),
     ],
-    collections: [],
   };
   fs.mkdirSync(path.join(dist, '.well-known'), { recursive: true });
   const json = JSON.stringify(catalog, null, 2) + '\n';
