@@ -148,9 +148,19 @@ function createRenderer({ doc, d, ascentOf, emblem, stats }) {
     const left = Math.min(...qs.map((r) => r.left)), width = Math.max(...qs.map((r) => r.right)) - left;
     const str = node.nodeValue.slice(i0, i1), base = Math.round(q.top + S.asc); // เส้นฐานปัดเป็นพิกเซลเต็มเหมือนที่ Chrome วางตัวอักษรบนหน้าจอ (วัดจากภาพจริง)
     const nat = widthPx(str, S.bold, S.fpx), diff = width - nat;
-    if (diff > JUSTIFY_TOL) {
+    if (Math.abs(diff) > JUSTIFY_TOL) { // ความกว้างต่างจากฟอนต์ที่ฝัง (จัดชิดสองข้าง หรือเบราว์เซอร์วัดต่าง) → วางทีละกลุ่มตามตำแหน่งจริงของเบราว์เซอร์
       const cl = [...seg.segment(str)].map((s) => s.index);
       if (cl.length > 1) {
+        // ตำแหน่งจริงของแต่ละกลุ่มอักขระตามที่เบราว์เซอร์วาง — ไม่สมมติว่าการจัดชิดสองข้างเพิ่มช่องไฟเท่ากันทุกตัว
+        // (Safari บน iPhone เพิ่มช่องไฟไม่สม่ำเสมอ เช่นกระจุกที่รอยต่อคำ ทำให้วิธีเฉลี่ยเดิมกระจายตัวอักษรผิดและซ้อนกัน)
+        const parts = cl.map((c, k) => str.slice(c, cl[k + 1]));
+        const lefts = cl.map((c, k) => { const r0 = rectsOf(node, i0 + c, i0 + (cl[k + 1] ?? str.length))[0]; return r0 ? r0.left : null; });
+        if (lefts.every((v) => v !== null)) {
+          useFont(S.bold, S.fpx).fillColor(S.color);
+          parts.forEach((part, k) => { if (part.trim()) doc.text(part, X(lefts[k]), Y(base), { baseline: 'alphabetic', lineBreak: false }); });
+          stats.strings++; stats.spread++;
+          return;
+        }
         const last = cl[cl.length - 1], ql = rectsOf(node, i0 + last, i1)[0];
         const extra = ql ? (ql.left - left - widthPx(str.slice(0, last), S.bold, S.fpx)) / (cl.length - 1) : 0;
         if (extra > 0.005) { drawStr(str, left, base, S.fpx, S.bold, S.color, extra, cl.map((c, k) => str.slice(c, cl[k + 1]))); stats.spread++; return; }
@@ -163,7 +173,9 @@ function createRenderer({ doc, d, ascentOf, emblem, stats }) {
   function drawToken(node, a, b, S) {
     const rects = rectsOf(node, a, b);
     if (!rects.length) return;
-    const tops = [...new Set(rects.map((q) => q.top.toFixed(1)))].map(Number);
+    // จัดกลุ่มค่า top เป็นบรรทัดโดยยอมให้เหลื่อมได้ (Safari ให้ top ต่างกันเศษพิกเซลในบรรทัดเดียวกัน โดยเฉพาะข้อความไทยที่มีสระ/วรรณยุกต์) — บรรทัดใหม่ต้องห่างอย่างน้อยครึ่งหนึ่งของขนาดตัวอักษร
+    const sortedTops = rects.map((q) => q.top).sort((p, q) => p - q), tops = [];
+    for (const t of sortedTops) if (!tops.length || t - tops[tops.length - 1] > S.fpx * 0.5) tops.push(t);
     if (tops.length === 1) { placeRun(node, a, b, S); return; }
     // คำที่ถูกตัดขึ้นบรรทัดใหม่กลางคำ (ภาษาไทยไม่มีช่องว่าง): แยกเป็นกลุ่มอักขระตามบรรทัด แล้ววางทีละบรรทัด
     tops.sort((p, q) => p - q);
