@@ -1,5 +1,6 @@
 // แชร์คดี & PDF ชุดเอกสาร — แผงในหน้า “ออกเอกสาร” (ใช้ได้เมื่อหลังบ้านเป็น Supabase เท่านั้น)
-//   1) สร้าง PDF รวมทุกฉบับในชุดจากหน้าที่จัดแล้ว (js/pdf-export.js — ตัวอักษรเป็นเวกเตอร์ ไฟล์เล็ก) แล้วอัปโหลดทับไฟล์เดิมของคดี (ไฟล์เดียวต่อคดี)
+//   1) สร้าง PDF รวมทุกฉบับในชุดบนเซิร์ฟเวอร์ด้วย Chrome (POST /api/pdf → api/_pdf-render.js ใช้ขั้นตอนเดียวกับหน้าตัวอย่าง) แล้วอัปโหลดทับไฟล์เดิมของคดี (ไฟล์เดียวต่อคดี)
+//      (js/pdf-export.js ตัวสร้างฝั่งเบราว์เซอร์ยังอยู่สำหรับทดสอบ/สำรอง — ไม่ใช้กับการอัปโหลด เพราะ Safari บน iPhone ให้ผลไม่ตรงตัวอย่าง)
 //   2) ลิงก์ดู PDF (ไม่ต้องล็อกอิน) เปิด/ปิด/ออกใหม่ได้ — ชี้ไฟล์ล่าสุดเสมอ
 //   3) เชิญผู้อื่นด้วยอีเมลให้เข้ามาแก้ไขคดี (เจ้าของ/แอดมินเชิญ ถอน หรือผู้ถูกเชิญออกเอง)
 // สิทธิ์จริงบังคับที่ฐานข้อมูล (supabase/migrations/20261006000000_case_sharing.sql) — หน้านี้เป็นเพียงตัวควบคุม
@@ -8,7 +9,7 @@ import { icon } from './icons.js';
 import { confirmBox, alertBox } from './modal.js';
 import { go, urls } from './router.js';
 import { docHtml } from './render-html.js';
-import { paginateHtml, countSheets, documentFontsReady } from './paginate.js';
+import { paginateHtml, countSheets } from './paginate.js';
 
 let ctx = null;
 /** app.js ส่งตัวช่วยของตัวเองเข้ามา: backend() · docs() = เอกสารในชุดที่เลือก · guard() = ตรวจก่อนออกเอกสาร · flush() = บันทึกคดีที่ค้างให้เสร็จ */
@@ -94,7 +95,7 @@ export function panelHtml() {
       <p class="hint">เชิญแล้วระบบส่งอีเมลแจ้งให้อัตโนมัติ (ผู้ส่ง alert@law-craft.co) · ผู้ที่ถูกเชิญเข้าสู่ระบบด้วย Google ด้วยอีเมลนี้ แล้วเปิดลิงก์คดี (หรือเลือกคดีนี้จากรายการ) จะเห็นและแก้คดีนี้ได้ · ลบคดี/เชิญคนอื่นไม่ได้ · ถ้ามีคนแก้พร้อมกัน ระบบจะเตือนก่อนเขียนทับ</p>`
     : '<p class="hint">เฉพาะเจ้าของคดีหรือผู้ดูแลระบบเท่านั้นที่เชิญหรือถอนผู้ร่วมแก้ไขได้</p>';
   return `<div class="panel share-panel"><h3>PDF ชุดเอกสาร &amp; แชร์</h3>
-    <p class="hint panel-note">อัปโหลด PDF รวมทั้งชุดขึ้น Supabase (ตัวอักษรเป็นเวกเตอร์ คมชัด ไฟล์เล็ก) ทับไฟล์เดิมของคดีนี้ แล้วแชร์ลิงก์ดู หรือเชิญคนอื่นเข้ามาช่วยแก้คดี</p>
+    <p class="hint panel-note">สร้าง PDF รวมทั้งชุดบนเซิร์ฟเวอร์ (หน้าตาตรงกับตัวอย่าง ไม่ขึ้นกับเครื่องที่ใช้) แล้วอัปโหลดขึ้น Supabase ทับไฟล์เดิมของคดีนี้ จากนั้นแชร์ลิงก์ดู หรือเชิญคนอื่นเข้ามาช่วยแก้คดี</p>
     ${s.err ? `<div class="share-err" role="alert">${icon('alertCircle', { size: 16 })}<span>${esc(s.err)}</span></div>` : ''}
     <ul class="rows"><li>${s.loading && !s.loaded ? `<span class="r-main">กำลังโหลด…</span>` : status}
       <span class="r-act"></span></li></ul>
@@ -124,18 +125,28 @@ actions.shareUpload = () => guarded('อัปโหลด PDF ไม่สำ�
   const docs = ctx.docs();
   if (!docs.length) return alertBox('ยังไม่ได้เลือกเอกสารในชุด — เลือกเอกสารที่ต้องการด้านบนก่อน', { title: 'ยังไม่มีเอกสาร', tone: 'warn' });
   const t0 = Date.now();
-  setBusy('กำลังจัดหน้าเอกสาร…');
+  setBusy('กำลังบันทึกคดี…');
   await ctx.flush();
-  await documentFontsReady();
-  const html = docs.map((d) => paginateHtml(docHtml(d, S.data.layout))).join('');
-  const { buildPdf } = await import('./pdf-export.js');
-  const pstats = {};
-  const blob = await buildPdf(html, { title: S.c.title || 'ชุดเอกสาร', stats: pstats, onProgress: (n, t) => setBusy(`กำลังสร้าง PDF… ${n}/${t} แผ่น`) });
-  // ข้อมูลวินิจฉัยการสร้างไฟล์ (แสดงใต้ปุ่ม): ฟอนต์ที่ใช้วัดตำแหน่งตรงกับฟอนต์ใน PDF หรือไม่
-  const pr = pstats.probe;
-  s.diag = pr ? `ตรวจการสร้างไฟล์: ฟอนต์วัด${pr.fontOk ? 'พร้อม' : 'ไม่พร้อม'} · ความกว้างข้อความทดสอบ เบราว์เซอร์ ${pr.browser}px / PDF ${pr.pdf}px${Math.abs(pr.browser - pr.pdf) > 3 ? ' (ต่างกัน)' : ' (ตรงกัน)'} · วางทีละตัวอักษร ${pstats.spread || 0} ข้อความ` : '';
+  // สร้าง PDF บนเซิร์ฟเวอร์ด้วย Chrome (POST /api/pdf — api/_pdf-render.js) จากข้อมูลคดีชุดเดียวกับหน้าตัวอย่าง
+  // → ไฟล์ไม่ขึ้นกับเครื่อง/เบราว์เซอร์ของผู้ใช้ (Safari บน iPhone เคยสร้างไฟล์ที่ตัดคำ/ตำแหน่งตัวอักษรไม่ตรงตัวอย่าง)
+  setBusy('กำลังสร้าง PDF บนเซิร์ฟเวอร์… (ครั้งแรกอาจใช้เวลา 10–20 วินาที)');
+  const token = await ctx.backend().accessToken?.();
+  if (!token) { const e = new Error('หมดเวลาเข้าสู่ระบบ'); e.status = 401; throw e; }
+  const title = S.c.title || 'ชุดเอกสาร';
+  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 90000);
+  let res;
+  try {
+    res = await fetch('/api/pdf', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ case: S.c, title }), signal: ctl.signal });
+  } catch (e) {
+    throw new Error(e?.name === 'AbortError' ? 'เซิร์ฟเวอร์ใช้เวลานานเกินไป — ลองกดสร้างใหม่อีกครั้ง' : 'เชื่อมต่อเซิร์ฟเวอร์สร้าง PDF ไม่ได้ — ตรวจอินเทอร์เน็ตแล้วลองใหม่');
+  } finally { clearTimeout(timer); }
+  if (res.status === 401) { const e = new Error('หมดเวลาเข้าสู่ระบบ'); e.status = 401; throw e; }
+  if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || `สร้าง PDF บนเซิร์ฟเวอร์ไม่สำเร็จ (${res.status})`); }
+  const blob = await res.blob();
+  const pages = +res.headers.get('X-Pdf-Pages') || countSheets(docs.map((d) => paginateHtml(docHtml(d, S.data.layout))).join(''));
+  s.diag = `สร้างบนเซิร์ฟเวอร์ (Chrome) ${pages} แผ่น · ${fmtSize(blob.size)} · ${((+res.headers.get('X-Pdf-Ms') || (Date.now() - t0)) / 1000).toFixed(1)} วินาที`;
   setBusy(`กำลังอัปโหลด… (${fmtSize(blob.size)})`);
-  s.pdf = await ctx.backend().uploadCasePdf(S.c.id, blob, { pages: countSheets(html) });
+  s.pdf = await ctx.backend().uploadCasePdf(S.c.id, blob, { pages });
   s.err = '';
   // ให้เห็นสถานะกำลังทำงานอย่างน้อยครู่หนึ่ง (เอกสารสั้นๆ เสร็จเร็วจนปุ่มดูเหมือนไม่ตอบสนอง)
   const left = 900 - (Date.now() - t0);

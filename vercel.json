@@ -4,7 +4,7 @@
   "installCommand": "npm install --omit=dev --no-audit --no-fund",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "functions": { "api/precedents.js": { "maxDuration": 15 }, "api/precedent.js": { "maxDuration": 15 } },
+  "functions": { "api/precedents.js": { "maxDuration": 15 }, "api/precedent.js": { "maxDuration": 15 }, "api/pdf.js": { "maxDuration": 60 } },
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/precedents/:slug([0-9a-z-]+-[0-9a-z]+)", "destination": "/api/precedent?slug=:slug" },

@@ -209,6 +209,21 @@ app.post('/api/docx', async (req, res) => {
   }
 });
 
+// ----- ออกไฟล์ PDF ด้วย Chrome บนเซิร์ฟเวอร์ (เหมือน /api/pdf บน Vercel; ในเครื่องใช้ Edge/Chrome ที่ติดตั้งไว้ ไม่ต้องล็อกอิน) -----
+app.post('/api/pdf', async (req, res) => {
+  try {
+    const { case: c, title } = req.body || {};
+    if (!c || !Array.isArray(c.parties)) return res.status(400).json({ error: 'ไม่มีข้อมูลคดี' });
+    const { renderCasePdf } = await import('../api/_pdf-render.js');
+    const out = await renderCasePdf({ origin: `http://127.0.0.1:${PORT}`, caseData: c, title: title || c.title || 'ชุดเอกสาร' });
+    res.set({ 'Content-Type': 'application/pdf', 'X-Pdf-Pages': String(out.sheets), 'X-Pdf-Ms': String(out.ms) });
+    res.send(out.pdf);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 // HOST=0.0.0.0 เพื่อให้เครื่องอื่นในเครือข่ายเข้าได้ (ควรตั้ง ADMIN_PASSWORD คู่กันเสมอ)
 const HOST = process.env.HOST || '127.0.0.1';

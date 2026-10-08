@@ -99,6 +99,8 @@ export const supabaseBackend = {
   async signOut() { role = 'user'; await sb.auth.signOut(); },
   /** id ของบัญชีที่ล็อกอิน (แอดมินใช้แยก “คดีของฉัน” ออกจากคดีของคนอื่น) */
   async sessionUserId() { const { data } = await sb.auth.getSession(); return data.session?.user?.id || ''; },
+  /** โทเค็นของผู้ใช้ที่ล็อกอินอยู่ (ส่งให้ /api/pdf บน Vercel ตรวจกับ Supabase Auth) */
+  async accessToken() { const { data } = await sb.auth.getSession(); return data.session?.access_token || ''; },
 
   async loadAll() {
     const { data, geo } = await loadLaw();
