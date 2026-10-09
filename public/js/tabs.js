@@ -7,7 +7,7 @@ import {
   witnessList, witnessRounds, isFiled, filedBadge, sideOf, witnessNoteKeyword,
 } from '/shared/model.js';
 import { DEF_MOTIONS } from '/shared/def-templates.js';
-import { serviceMotionText, serviceMode, DOC_TYPES, MOTION_KINDS_ALL, POST_FILING_KEYS } from '/shared/docs.js';
+import { serviceMotionText, serviceMode, DOC_TYPES, MOTION_KINDS_ALL, POST_FILING_KEYS, buildDocuments, docKey, docOrderKeys } from '/shared/docs.js';
 import { openViewer } from './viewer.js';
 import { icon as ix } from './icons.js';
 import { FORM_TEXT, defaultFormText } from '/shared/formtext.js';
@@ -884,6 +884,37 @@ const REQUIRED = () => {
 };
 
 const ISSUE_ICON = { error: ['err', ix('alertCircle')], warn: ['warn', ix('alert')], info: ['info', ix('info')] };
+/** ชนิดเอกสารที่มีอยู่ในชุดตอนนี้ เรียงตามลำดับที่ใช้จริง (จัดเอง หรือมาตรฐานตามชั้น) พร้อมจำนวนฉบับ */
+function presentDocKinds(c) {
+  const counts = new Map();
+  for (const d of buildDocuments(c, S.data)) { const k = docKey(d); counts.set(k, (counts.get(k) || 0) + 1); }
+  return { order: docOrderKeys(c), present: docOrderKeys(c).filter((k) => counts.has(k)), counts };
+}
+/** กล่อง “ลำดับเอกสารในชุด”: เลื่อนขึ้น/ลงเป็นชุดเอกสาร (คำร้องทุกฉบับ/หมายเรียกทุกฉบับเลื่อนไปด้วยกัน) — บันทึกใน c.docOrder ใช้กับตัวอย่าง PDF ชุด และ Word */
+function docOrderPanel(c) {
+  const { present, counts } = presentDocKinds(c);
+  if (present.length < 2) return '';
+  const custom = Array.isArray(c.docOrder) && c.docOrder.length > 0;
+  const short = (k) => (DOC_TYPES.find((d) => d.key === k)?.label || k).replace(/\s*\(.*$/, '');
+  const name = (k) => (k === 'witness' && sideOf(c) === 'defendant' ? 'บัญชีพยานจำเลย' : short(k));
+  return `<div class="panel doc-order"><h3>ลำดับเอกสารในชุด<span class="grow"></span>${custom ? '<button type="button" class="btn sm outline" data-act="docOrderReset">คืนลำดับมาตรฐาน</button>' : '<span class="pill">ลำดับมาตรฐาน</span>'}</h3>
+    <p class="hint panel-note">เลื่อนขึ้น/ลงเป็นชุดเอกสาร (เช่น คำร้องทุกฉบับเลื่อนไปด้วยกัน) — มีผลกับตัวอย่าง PDF ทั้งชุด ไฟล์ที่อัปโหลด และ Word${custom ? '' : ' · ลำดับมาตรฐาน: คดีที่ฟ้องแล้ว เอกสารหลังยื่นฟ้องมาก่อน'}</p>
+    <ol class="do-list">${present.map((k, i) => `<li><span class="do-n">${i + 1}</span><span class="do-t">${esc(name(k))}${counts.get(k) > 1 ? ` <small>(${counts.get(k)} ฉบับ)</small>` : ''}</span>
+      <span class="do-act"><button type="button" class="btn sm icon outline" data-act="docOrderMove" data-key="${k}" data-dir="-1" aria-label="เลื่อน ${esc(name(k))} ขึ้น"${i === 0 ? ' disabled' : ''}>${ix('arrowUp', { size: 15 })}</button><button type="button" class="btn sm icon outline" data-act="docOrderMove" data-key="${k}" data-dir="1" aria-label="เลื่อน ${esc(name(k))} ลง"${i === present.length - 1 ? ' disabled' : ''}>${ix('arrowDown', { size: 15 })}</button></span></li>`).join('')}</ol></div>`;
+}
+actions.docOrderMove = (el) => {
+  const key = el.dataset.key, dir = Number(el.dataset.dir);
+  const { order, present } = presentDocKinds(S.c);
+  const i = present.indexOf(key), j = i + dir;
+  if (i < 0 || j < 0 || j >= present.length) return;
+  // สลับในรายการชนิดที่มีอยู่ แล้วประกอบกลับเป็นลำดับเต็ม (ชนิดที่ไม่มีในชุดคงตำแหน่งเดิม)
+  const swapped = [...present]; [swapped[i], swapped[j]] = [swapped[j], swapped[i]];
+  const set = new Set(present); let p = 0;
+  S.c.docOrder = order.map((k) => (set.has(k) ? swapped[p++] : k));
+  rerender(); hooks.changed();
+};
+actions.docOrderReset = () => { S.c.docOrder = []; rerender(); hooks.changed(); };
+
 function tabExport() {
   const c = S.c;
   const issues = validateCase(c, S.idx);
@@ -927,6 +958,7 @@ function tabExport() {
     : `<ul class="rows"><li><span class="st-ico ok" aria-hidden="true">${ix('check')}</span><span class="r-main">ข้อมูลครบถ้วน ไม่พบประเด็นที่ต้องแก้</span></li></ul>`}</div>
   <div class="panel"><h3>${sideOf(c) === 'defendant' ? 'เลือกเอกสารฝั่งจำเลย' : filed ? 'เลือกเอกสารในชุดคำฟ้อง' : 'เลือกเอกสารในชุด'}</h3>
     <div class="doc-pick">${packTypes.map((d) => check(esc(sideOf(c) === 'defendant' && d.key === 'witness' ? 'บัญชีพยานจำเลย (แบบ ๑๕)' : d.label), `docs.${d.key}`, { rerender: true })).join('')}</div></div>
+  ${docOrderPanel(c)}
   <div class="panel"><h3>ดาวน์โหลด</h3>
     <div class="dl-main"><div class="btn-group"><button class="btn primary" data-act="printAll">${ix('print')}<span>ดู PDF ทั้งชุด</span></button>
       <button class="btn outline" data-act="dlJson">${ix('download')}<span>ข้อมูลคดี (.json)</span></button></div>

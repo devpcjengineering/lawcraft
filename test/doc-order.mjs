@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import JSZip from 'jszip';
 import { newCase, newParty, newWitness, uid } from '../shared/model.js';
-import { buildDocuments, DOC_STAGE, DOC_ORDER, docStage, docKey, DOC_TYPES } from '../shared/docs.js';
+import { buildDocuments, DOC_STAGE, DOC_ORDER, docStage, docKey, DOC_TYPES, docOrderKeys, customDocOrder } from '../shared/docs.js';
 import { renderDocx } from '../server/render-docx.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -84,6 +84,26 @@ assert.equal(docKey('witnessSummons-i-9'), 'witnessSummons');
   const order = (a, b) => assert.ok(keys.indexOf(a) < keys.indexOf(b), `${a} ก่อน ${b}`);
   order('motions', 'witnessExtra'); order('witnessExtra', 'witnessRequest'); order('witnessRequest', 'witnessSummons');
   order('complaint', 'prayer'); order('prayer', 'service'); order('service', 'witness'); order('witness', 'summons'); order('summons', 'attorney'); order('attorney', 'proxy');
+}
+
+// ---------- ผู้ใช้จัดลำดับเองเป็นชุดเอกสาร (c.docOrder) ----------
+{
+  const c = base('criminal');
+  c.caseNoBlack = 'อ.123'; c.caseYearBlack = '2569';
+  assert.deepEqual(docOrderKeys(c).slice(0, 4), ['motions', 'witnessExtra', 'witnessRequest', 'witnessSummons'], 'ฟ้องแล้ว: ค่าปกติชั้นพิจารณาก่อน');
+  assert.equal(customDocOrder(c), null);
+  c.docOrder = ['witness', 'complaint', 'motions', 'ไม่รู้จัก', 'witness'];   // คีย์แปลก/ซ้ำถูกตัด ; ที่เหลือต่อท้ายตาม DOC_ORDER
+  const full = customDocOrder(c);
+  assert.deepEqual(full.slice(0, 3), ['witness', 'complaint', 'motions']);
+  assert.equal(full.length, DOC_ORDER.length);
+  assert.deepEqual(docOrderKeys(c), full);
+  const keys = stripSuffix(ids(buildDocuments(c, data)));
+  assert.deepEqual(keys.slice(0, 4), ['witness', 'complaint', 'motions', 'motions'], 'เอกสารเรียงตามที่จัด แม้ฟ้องแล้ว: ' + keys.join(','));
+  assert.ok(keys.indexOf('prayer') > keys.lastIndexOf('motions'), 'ชนิดที่ไม่ได้จัดต่อท้ายตามลำดับมาตรฐาน');
+  assert.deepEqual(ids(buildDocuments(c, data)).filter((x) => x.startsWith('motion-')), ['motion-m1', 'motion-m2'], 'ภายในชนิดเดียวกันคงลำดับเดิม');
+  c.docOrder = [];
+  assert.deepEqual(stripSuffix(ids(buildDocuments(c, data))).slice(0, 3), ['motions', 'motions', 'witnessExtra'], 'ล้างแล้วกลับเป็นค่าปกติ');
+  assert.deepEqual(newCase('criminal').docOrder, []);
 }
 
 // ---------- ป้าย “ข้อ N.”: ตัวหนา ไม่ขีดเส้นใต้ทุกข้อ (ทั้งคำฟ้อง/คำร้อง — หน้าเอกสาร + HTML + Word) ----------

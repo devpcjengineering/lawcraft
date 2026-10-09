@@ -4,15 +4,15 @@
   "installCommand": "npm install --omit=dev --no-audit --no-fund",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "functions": { "api/precedents.js": { "maxDuration": 15 }, "api/precedent.js": { "maxDuration": 15 }, "api/pdf.js": { "maxDuration": 60 } },
+  "functions": { "api/precedents.js": { "maxDuration": 15 }, "api/precedent.js": { "maxDuration": 15 }, "api/pdf.js": { "maxDuration": 60 }, "api/share-pdf.js": { "maxDuration": 20 } },
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/sitemap-pages.xml", "destination": "/api/sitemap?part=pages" },
     { "source": "/sitemap-precedents-:n(\\d+).xml", "destination": "/api/sitemap?part=precedents&n=:n" },
     { "source": "/precedents/:slug([0-9a-z-]+-[0-9a-z]+)", "destination": "/api/precedent?slug=:slug" },
     { "source": "/precedents/:slug([0-9a-z-]+-[0-9a-z]+)/", "destination": "/api/precedent?slug=:slug" },
-    { "source": "/p/:token([a-f0-9]{64})", "destination": "/p/index.html" },
-    { "source": "/p/:token([a-f0-9]{64}).pdf", "destination": "/p/index.html" },
+    { "source": "/p/:token([a-f0-9]{64})", "destination": "/api/share-pdf?t=:token" },
+    { "source": "/p/:token([a-f0-9]{64}).pdf", "destination": "/api/share-pdf?t=:token&f=pdf" },
     { "source": "/workspace/:path*", "destination": "/workspace/index.html" },
     { "source": "/admin/:path+", "destination": "/admin/index.html" }
   ],

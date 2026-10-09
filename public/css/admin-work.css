@@ -467,6 +467,17 @@ input[type=date]::-webkit-datetime-edit, input[type=time]::-webkit-datetime-edit
   .wiz-btns .btn .wiz-t { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
 }
 
+/* ---------- ลำดับเอกสารในชุด (หน้าออกเอกสาร): รายการชนิดเอกสาร + ปุ่มเลื่อนขึ้น/ลง ---------- */
+.doc-order > h3 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.do-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.do-list li { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2, #f7f7f9); }
+.do-n { flex: none; min-width: 1.6em; font-size: 13px; font-weight: 700; color: #5f6674; font-variant-numeric: tabular-nums; }
+.do-t { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.do-t small { color: var(--muted); }
+.do-act { flex: none; display: flex; gap: 4px; }
+.do-act .btn.icon { min-width: 36px; min-height: 36px; }
+@media (max-width: 760px) { .do-act .btn.icon { min-width: 44px; min-height: 44px; } }
+
 /* ===== มือถือ: ปุ่มในพื้นที่ทำงานกว้างเต็มแถว (ปุ่มละแถว ตัวหนังสือกึ่งกลาง สูง ≥ 46px) =====
    ครอบคลุมแถบปุ่ม (.toolbar / .item-toolbar / .btn-group / .row) ปุ่มไปหน้าอื่นในการ์ดเลขคดี (.pf-go) ปุ่มดาวน์โหลด (.dl-main)
    และปุ่ม “ดู PDF” ท้ายรายการเอกสาร (.docrow) — ยกเว้นกลุ่มที่จัดเป็นตารางสองคอลัมน์ไว้แล้ว (เพิ่มโจทก์/จำเลย · เพิ่มพยาน · แม่แบบคำร้อง)

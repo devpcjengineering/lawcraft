@@ -31,8 +31,7 @@ async function currentPdfPath(caseId) {
   if (error) { if (error.code === '42P01') return ''; fail(error); }
   return data?.path || '';
 }
-/** ลิงก์ดู PDF สาธารณะ (Edge Function `pdf` — ต้องรู้ token เท่านั้น ปิดลิงก์แล้วใช้ไม่ได้) */
-// ลิงก์แชร์ชี้หน้าพัก /p/<token> ของเว็บเอง (public/p/index.html มีภาพตัวอย่าง og:image ให้แอปแชต แล้วพาต่อไปไฟล์จริงที่ ${url}/functions/v1/pdf/<token>.pdf — ลิงก์ตรงแบบเดิมยังใช้ได้)
+/** ลิงก์ดู PDF สาธารณะบนโดเมนของเว็บเอง /p/<token> (api/share-pdf.js ส่งไฟล์ล่าสุดจาก Edge Function `pdf` ให้โดยตรง ไม่เห็น URL ของ Supabase) — ต้องรู้ token เท่านั้น ลิงก์คงที่แม้อัปโหลดทับ ปิดลิงก์แล้วใช้ไม่ได้ */
 const shareUrl = (token) => `${location.origin}/p/${token}`;
 
 /** ข้อมูลกฎหมายสาธารณะ (law_data อ่านได้ทุกคนรวม anon) — โหมดทดลองใช้ฟังก์ชันนี้ร่วมกัน */

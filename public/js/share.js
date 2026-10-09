@@ -80,7 +80,7 @@ export function panelHtml() {
       <div class="btn-group share-btns share-grid"><button class="btn primary" data-act="shareCopy"${dis}>${icon('copy', { size: 15 })}<span>คัดลอกลิงก์</span></button>
         <button class="btn danger" data-act="shareOff"${dis}><span>ปิดลิงก์</span></button>
         <button class="btn outline share-full" data-act="shareNewLink"${dis}>${icon('refresh', { size: 15 })}<span>ออกลิงก์ใหม่ (ลิงก์เดิมใช้ไม่ได้)</span></button></div>
-      <p class="hint">ใครมีลิงก์นี้ก็ดู PDF ได้โดยไม่ต้องล็อกอิน (ดูอย่างเดียว แก้ไม่ได้) และเห็นไฟล์ล่าสุดเสมอ — PDF มีข้อมูลส่วนบุคคลของคู่ความ ส่งให้เฉพาะคนที่ไว้ใจ</p>`
+      <p class="hint">ลิงก์บนโดเมน law-craft.co ใครมีลิงก์นี้ก็ดู PDF ได้โดยไม่ต้องล็อกอิน (ดูอย่างเดียว แก้ไม่ได้) · ลิงก์คงที่ — อัปโหลดทับแล้วลิงก์เดิมยังเปิดได้และเห็นไฟล์ล่าสุดเสมอ — PDF มีข้อมูลส่วนบุคคลของคู่ความ ส่งให้เฉพาะคนที่ไว้ใจ</p>`
     : `<div class="btn-group share-btns share-grid"><button class="btn outline share-full" data-act="shareOn"${dis}>${icon('link', { size: 16 })}<span>เปิดลิงก์ดู PDF</span></button></div>
       <p class="hint">เปิดแล้วจะได้ลิงก์ที่ส่งให้ใครก็ได้ดู PDF โดยไม่ต้องล็อกอิน (ดูอย่างเดียว) — ปิดหรือออกลิงก์ใหม่ได้ทุกเมื่อ</p>`;
   const notified = (m) => (m.notified_at ? `ส่งอีเมลแจ้งเมื่อ ${fmtTime(m.notified_at)}` : 'ยังไม่ได้ส่งอีเมลแจ้ง');

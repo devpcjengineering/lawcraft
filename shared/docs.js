@@ -836,6 +836,18 @@ export function docKey(idOrDoc) {
 /** ชั้นของเอกสาร: 'pre' (ก่อนฟ้อง/ไต่สวนมูลฟ้อง) | 'trial' (พิจารณา) — เอกสารกำหนดเองได้ด้วย d.stage (คำร้องขอหมายเรียกพยานชั้นไต่สวนมูลฟ้อง) ; ไม่รู้จัก = 'pre' */
 export const docStage = (idOrDoc) => (idOrDoc && idOrDoc.stage) || DOC_STAGE[docKey(idOrDoc)] || 'pre';
 const docRank = (d) => { const i = DOC_ORDER.indexOf(docKey(d)); return i < 0 ? DOC_ORDER.length : i; };
+/** ลำดับที่ผู้ใช้จัดเอง (c.docOrder) ครบทุกชนิด: ชนิดที่จัดไว้มาก่อนตามลำดับ ชนิดที่ไม่ได้จัดต่อท้ายตาม DOC_ORDER — null เมื่อไม่ได้จัด */
+export function customDocOrder(c) {
+  const set = Array.isArray(c?.docOrder) ? c.docOrder.filter((k, i, a) => DOC_ORDER.includes(k) && a.indexOf(k) === i) : [];
+  return set.length ? [...set, ...DOC_ORDER.filter((k) => !set.includes(k))] : null;
+}
+/** ลำดับชนิดเอกสารที่ใช้จริงในชุด (คีย์ครบทุกชนิด) สำหรับหน้าจัดลำดับ: จัดเอง หรือค่าปกติตามชั้น (คดีที่ฟ้องแล้ว ชั้นพิจารณาก่อน) */
+export function docOrderKeys(c) {
+  const custom = customDocOrder(c);
+  if (custom) return custom;
+  const trial = DOC_ORDER.filter((k) => DOC_STAGE[k] === 'trial'), pre = DOC_ORDER.filter((k) => DOC_STAGE[k] !== 'trial');
+  return isFiled(c) ? [...trial, ...pre] : [...pre, ...trial];
+}
 
 /** เลขไทยบังคับในเอกสารทุกชนิด (แบบพิมพ์ศาลใช้เลขไทย) : แปลงข้อความที่มองเห็นทั้งหมดที่จุดเดียวนี้ — เว้นอีเมล/ที่อยู่เว็บ ; ข้อมูลคดีที่เก็บไว้ไม่ถูกแก้ */
 function deepDigits(o) {
@@ -876,9 +888,13 @@ export function buildDocuments(c, data, only) {
   if (want('answer')) { const a = answerDoc(c, idx); if (a) docs.push(a); }
   if (want('settlement')) docs.push(settlementDoc(c, idx));
   // เรียงตาม DOC_ORDER (คงลำดับเดิมของเอกสารชนิดเดียวกัน เช่น คำร้องหลายฉบับ/หมายเรียกหลายฉบับ) ;
-  // คดีที่ฟ้องแล้ว: ชั้นพิจารณา (เอกสารหลังยื่นฟ้อง) มาก่อนชั้นก่อนฟ้อง ตามกลุ่มบนหน้าออกเอกสาร
+  // คดีที่ฟ้องแล้ว: ชั้นพิจารณา (เอกสารหลังยื่นฟ้อง) มาก่อนชั้นก่อนฟ้อง ตามกลุ่มบนหน้าออกเอกสาร ;
+  // ผู้ใช้จัดลำดับเองได้เป็นชุดเอกสาร (c.docOrder = รายการคีย์ชนิดเอกสาร) → ใช้ลำดับนั้นทั้งชุดแทนกติกาชั้น
   const trialFirst = !only && isFiled(c);
-  const rank = (d) => (docStage(d) === 'trial' ? (trialFirst ? 0 : 1) : (trialFirst ? 1 : 0)) * 100 + docRank(d);
+  const custom = customDocOrder(c);
+  const rank = custom
+    ? (d) => custom.indexOf(docKey(d))
+    : (d) => (docStage(d) === 'trial' ? (trialFirst ? 0 : 1) : (trialFirst ? 1 : 0)) * 100 + docRank(d);
   docs.sort((a, b) => rank(a) - rank(b));
   const clean = docs.map((d) => ({ ...d, blocks: d.blocks.map((b) => (b.runs ? { ...b, runs: b.runs.filter(Boolean) } : b)) }));
   return clean.map(deepDigits);

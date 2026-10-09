@@ -46,6 +46,7 @@ export function newCase(type = 'criminal') {
     answer: { defendantId: '', templateId: '', text: '' },               // คำให้การจำเลย (แบบ ๑๑)
     settlement: { templateId: '', subject: '', clauses: [] },            // สัญญาประนีประนอมยอมความ (แบบ ๒๙)
     docs: { complaint: true, prayer: true, attachment: true, service: true, witness: true, witnessExtra: true, witnessRequest: true, witnessSummons: true, summons: true, attorney: true, proxy: false, motions: true, answer: false, settlement: false },   // attorney: ออกใบแต่งทนายความเมื่อเปิด “มีทนายความ” (counsel.enabled) — ทั้งฝั่งโจทก์และฝั่งจำเลย
+    docOrder: [],                                 // ลำดับชนิดเอกสารในชุดที่ผู้ใช้จัดเอง (คีย์ใน DOC_ORDER) — ว่าง = ลำดับมาตรฐานตามชั้น (ดู docs.js docOrderKeys)
     options: { thaiDigits: true, autoFill: true, selfWitness: true },
     closing: { mode: 'self' },                    // ข้อท้ายคำฟ้อง: self = ไม่ได้ร้องทุกข์ ประสงค์ดำเนินคดีเอง | police = ร้องทุกข์ต่อพนักงานสอบสวนแล้ว
   };
@@ -54,7 +55,7 @@ export function newCase(type = 'criminal') {
 // ---------- ฝั่งโจทก์ / ฝั่งจำเลย ในคดีเดียวกัน ----------
 // ช่องข้อมูลที่แยกตามฝั่ง: ฝั่งที่เปิดอยู่ (c.side) อยู่ในช่องปกติของคดี (c.court, c.parties, c.witnesses …) ทำให้แท็บ/เอกสารเดิมทำงานได้ทุกอย่างโดยไม่ต้องแก้
 // ส่วนอีกฝั่งเก็บพักไว้ที่ c.stash แล้วสลับกันด้วย switchSide — ฝั่งจำเลยมีข้อมูลคดี คู่ความ ทนาย พยาน คำร้อง คำให้การ ชุดเอกสารของตัวเอง
-export const SIDE_KEYS = ['court', 'caseNoBlack', 'caseYearBlack', 'caseNoRed', 'caseYearRed', 'date', 'receivedDate', 'parties', 'counsel', 'witnesses', 'witnessExtraRound', 'motions', 'answer', 'docs', 'options', 'vars', 'copies', 'proxy', 'powers'];
+export const SIDE_KEYS = ['court', 'caseNoBlack', 'caseYearBlack', 'caseNoRed', 'caseYearRed', 'date', 'receivedDate', 'parties', 'counsel', 'witnesses', 'witnessExtraRound', 'motions', 'answer', 'docs', 'docOrder', 'options', 'vars', 'copies', 'proxy', 'powers'];
 export const SIDE_LABEL = { plaintiff: 'ฝั่งโจทก์', defendant: 'ฝั่งจำเลย' };
 export const sideOf = (c) => (c?.side === 'defendant' ? 'defendant' : 'plaintiff');
 /** ชุดเอกสารเริ่มต้นของฝั่งจำเลย: บัญชีพยานจำเลย · คำร้อง/คำแถลง · หมายเรียกพยาน · คำให้การ (ไม่มีคำฟ้อง/คำขอท้ายฟ้อง/หมายนัดไต่สวน) */
@@ -69,7 +70,7 @@ export function defaultDefendantSlots(c) {
     date: fresh.date, receivedDate: '',
     parties: copy(c.parties || fresh.parties).map((p) => ({ ...p, id: uid() })),
     counsel: fresh.counsel, witnesses: [], witnessExtraRound: '', motions: [], answer: { defendantId: '', templateId: '', text: '' },
-    docs: { ...fresh.docs, ...DEF_DOCS }, options: { ...fresh.options, ...(c.options || {}), selfWitness: true }, vars: {}, copies: '', proxy: fresh.proxy, powers: '',
+    docs: { ...fresh.docs, ...DEF_DOCS }, docOrder: [], options: { ...fresh.options, ...(c.options || {}), selfWitness: true }, vars: {}, copies: '', proxy: fresh.proxy, powers: '',
   };
 }
 
