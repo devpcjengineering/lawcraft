@@ -36,7 +36,7 @@ c.witnesses = [
   { ...newWitness('person'), name: 'พยานหนึ่ง', position: 'ร.ต.อ.', addr },
   { ...newWitness('person'), name: 'พยานสอง', addr, deliver: 'officer' },
   { ...newWitness('person'), name: 'พยานเพิ่มเติม', addr, extra: true },
-  { ...newWitness('person'), name: 'พยานนำมา', note: 'นำ' },
+  { ...newWitness('person'), name: 'พยานนำมา', note: 'นำ', summons: false },   // หน้าจอปิดสวิตช์ให้เมื่อพิมพ์ นำ (syncWitnessSummons)
 ];
 let d = find(c);
 assert.ok(d, 'มีคำร้อง');

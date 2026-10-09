@@ -735,9 +735,10 @@ function witnessFields(x, i) {
     ${(x.address || '').trim() ? `<section class="grp"><div class="grid">${field('ที่อยู่แบบข้อความรวม (ข้อมูลเดิม — ใช้เมื่อไม่ได้กรอกช่องที่อยู่ด้านบน)', `${base}.address`, { cls: 's12' })}</div></section>` : ''}
     <section class="grp"><div class="grid">
       ${person ? field('ประเด็นที่จะให้พยานเบิกความ (ไม่บังคับ — พิมพ์ลงช่องว่างด้านหลังหมายเรียก)', `${base}.purpose`, { cls: 's12', type: 'textarea', rows: 2 }) : ''}
-      ${field('หมายเหตุ (ลงในบัญชีพยาน)', `${base}.note`, { cls: 's6', list: 'dl-wnote', ph: 'นำ / หมายเรียก', hint: `หมายเหตุเป็นหลัก: พิมพ์ “หมายเรียก” = ขอให้ศาลออกหมาย · “นำ” = ${sideOf(S.c) === 'defendant' ? 'จำเลย' : 'โจทก์'}นำมาเอง (ไม่ออกหมาย) · เว้นว่างหรือข้อความอื่น = ตามสวิตช์ด้านขวา (ระบบเติม “หมายเรียก”/“นำ” ลงบัญชีพยานให้)${person ? ' · พยานเป็นเด็กอายุไม่เกิน ๑๘ ปี ให้ระบุในช่องนี้' : ''}` })}
-      <div class="f s6"><span>หมายเรียก</span>${check('ขอให้ศาลออกหมายเรียกพยานรายนี้', `${base}.summons`, { sw: true, rerender: true })}</div>
-      ${x.summons !== false && witnessNoteKeyword(x) !== 'นำ' ? `<div class="f s12 wit-deliver" role="group" aria-label="วิธีส่งหมายเรียก"><span>วิธีส่งหมายเรียก (ใช้ในคำร้องขอให้ศาลออกหมายเรียก)</span>${seg(`${base}.deliver`, [['ems', 'ไปรษณีย์ตอบรับด่วนพิเศษ'], ['officer', 'เจ้าพนักงานศาล'], ['self', 'ส่งเอง']], { rerender: true, label: 'วิธีส่งหมายเรียก' })}
+      ${field('หมายเหตุ (ลงในบัญชีพยาน)', `${base}.note`, { cls: 's6', list: 'dl-wnote', ph: 'นำ / หมายเรียก', hint: `ข้อความที่พิมพ์ลงช่องหมายเหตุของบัญชีพยาน: พิมพ์ “หมายเรียก” จะเปิดสวิตช์ด้านขวาให้ · “นำ” = ${sideOf(S.c) === 'defendant' ? 'จำเลย' : 'โจทก์'}นำมาเอง (ปิดสวิตช์) · เว้นว่าง = ระบบเติม “หมายเรียก”/“นำ” ให้ตามสวิตช์${person ? ' · พยานเป็นเด็กอายุไม่เกิน ๑๘ ปี ให้ระบุในช่องนี้' : ''}` })}
+      <div class="f s6"><span>หมายเรียก</span>${check('ขอให้ศาลออกหมายเรียกพยานรายนี้', `${base}.summons`, { sw: true, rerender: true })}
+        ${witnessNoteKeyword(x) === 'หมายเรียก' && !witnessWantsSummons(x) ? '<small class="hint">ปิดอยู่ — หมายเหตุในบัญชียังเป็น “หมายเรียก” แต่ระบบจะไม่ออกหมายเรียกและไม่ใส่พยานรายนี้ในคำร้องขอหมายเรียก</small>' : '<small class="hint">ปิดได้โดยหมายเหตุในบัญชีคงเดิม — ใช้เมื่อยังไม่ขอให้ศาลออกหมายรายนี้ตอนนี้</small>'}</div>
+      ${witnessWantsSummons(x) ? `<div class="f s12 wit-deliver" role="group" aria-label="วิธีส่งหมายเรียก"><span>วิธีส่งหมายเรียก (ใช้ในคำร้องขอให้ศาลออกหมายเรียก)</span>${seg(`${base}.deliver`, [['ems', 'ไปรษณีย์ตอบรับด่วนพิเศษ'], ['officer', 'เจ้าพนักงานศาล'], ['self', 'ส่งเอง']], { rerender: true, label: 'วิธีส่งหมายเรียก' })}
         <small class="hint">${x.deliver === 'officer' ? 'ถ้าเจ้าพนักงานส่งไม่ได้เพราะไม่มีผู้รับหมายโดยชอบ คำร้องจะขอให้ศาลสั่งส่งโดยวิธีปิดหมาย' : x.deliver === 'self' ? 'ส่งเอง: ต้องมีผู้ลงลายมือชื่อรับหมาย และนำหางหมายส่งคืนศาล (ปิดหมายไม่ได้)' : 'ไปรษณีย์ตอบรับด่วนพิเศษ: ต้องมีผู้ลงลายมือชื่อรับหมาย (ปิดหมายไม่ได้)'}</small>${x.deliver === 'officer' ? officerFeeHtml(x, x.addr, base, 'calcWitnessFee', `data-i="${i}"`) : ''}</div>
       <div class="f s12">${check('พยาน/ผู้ครอบครองอยู่นอกเขตอำนาจของศาล — ขอส่งหมายผ่านศาลปลายทาง', `${base}.outside`, { sw: true, rerender: true })}</div>
       ${x.outside ? field('ศาลปลายทางที่จะส่งหมาย', `${base}.destCourt`, { cls: 's12', list: 'dl-court-w', ph: 'เช่น ศาลจังหวัดเชียงใหม่' }) : ''}` : ''}
@@ -748,7 +749,7 @@ function witnessFields(x, i) {
 
 function tabWitness() {
   const w = S.c.witnesses;
-  for (const x of w) { if (x.summons === undefined) x.summons = true; if (x.deliver !== 'officer' && x.deliver !== 'self') x.deliver = 'ems'; if (x.outside === undefined) x.outside = false; x.addr = { ...emptyAddress(), ...x.addr }; } // ข้อมูลเดิมไม่มีช่องใหม่ → เติมค่าเริ่มต้น
+  for (const x of w) { if (x.summons === undefined) x.summons = witnessNoteKeyword(x) !== 'นำ'; if (x.deliver !== 'officer' && x.deliver !== 'self') x.deliver = 'ems'; if (x.outside === undefined) x.outside = false; x.addr = { ...emptyAddress(), ...x.addr }; } // ข้อมูลเดิมไม่มีช่องใหม่ → เติมค่าเริ่มต้น
   const nPerson = w.filter((x) => witnessKind(x) === 'person').length;
   const unnamed = w.filter((x) => !(x.name || '').trim()).length;
   const filed = isFiled(S.c), nExtra = w.filter((x) => x.extra).length;
