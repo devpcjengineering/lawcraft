@@ -5,29 +5,36 @@ import pg from 'pg';
 import CA from './_aiven-ca.js';
 
 let pool;
-const CONN_ERR = new Set(['57P01', '57P02', '57P03', '08000', '08001', '08003', '08004', '08006', 'ECONNRESET', 'ETIMEDOUT', 'EPIPE']);
+// 57P05 = idle_session_timeout (เซิร์ฟเวอร์ตัด session ว่าง — ตั้งไว้ที่บทบาท lawcraft_reader 20 วิ เพราะ instance ของ Vercel ถูกพักจึงไม่ปิด connection เอง)
+const CONN_ERR = new Set(['57P01', '57P02', '57P03', '57P05', '08000', '08001', '08003', '08004', '08006', 'ECONNRESET', 'ETIMEDOUT', 'EPIPE']);
 const isConnErr = (e) => CONN_ERR.has(e?.code) || /terminat|Connection (terminated|ended)|timeout exceeded when trying to connect/i.test(e?.message || '');
+const TOO_MANY = '53300'; // too_many_connections — โควตาของบทบาทเต็ม (instance อื่นถือ connection อยู่) → รอให้เซิร์ฟเวอร์ตัด session ว่างแล้วลองใหม่
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function raw() {
   if (pool) return pool;
   const url = process.env.AIVEN_READER_URL;
   if (!url) return null;
   const u = new URL(url); u.searchParams.delete('sslmode');
-  pool = new pg.Pool({ connectionString: u.toString(), ssl: { ca: process.env.AIVEN_CA || CA, rejectUnauthorized: true }, max: 3, idleTimeoutMillis: 10_000, connectionTimeoutMillis: 6000, statement_timeout: 8000 });
-  pool.on('error', () => { pool = null; }); // ตัดการเชื่อมต่อ → สร้างใหม่ครั้งหน้า
+  // max 2 ต่อ instance (บทบาทมีโควตา 12 connection ร่วมกันทุก instance) · ว่าง 4 วิ ปล่อยคืน · allowExitOnIdle ไม่ค้าง event loop
+  pool = new pg.Pool({ connectionString: u.toString(), ssl: { ca: process.env.AIVEN_CA || CA, rejectUnauthorized: true }, max: 2, idleTimeoutMillis: 4000, connectionTimeoutMillis: 6000, statement_timeout: 8000, allowExitOnIdle: true, application_name: 'law-craft-web' });
+  pool.on('error', () => { /* client ว่างที่ถูกเซิร์ฟเวอร์ตัด — pg เอาออกจากพูลให้เอง พูลยังใช้ต่อได้ */ });
   return pool;
 }
 
-/** คืนตัวห่อ { query } (null = ยังไม่ได้ตั้งค่า) — ถ้าการเชื่อมต่อถูกตัดกลางคัน (เช่น Aiven บำรุงรักษา) สร้างพูลใหม่แล้วลองซ้ำ 1 ครั้ง */
+/** คืนตัวห่อ { query } (null = ยังไม่ได้ตั้งค่า) — การเชื่อมต่อถูกตัดกลางคัน → สร้างพูลใหม่แล้วลองซ้ำ ; โควตา connection เต็ม → รอ 1.5 วิ แล้วลองซ้ำ (รวมไม่เกิน 3 ครั้ง) */
 export function getPool() {
   if (!raw()) return null;
   return {
     async query(sql, params) {
-      try { return await raw().query(sql, params); } catch (e) {
-        if (!isConnErr(e)) throw e;
-        try { await pool?.end(); } catch { /* ข้าม */ }
-        pool = null;
-        return raw().query(sql, params);
+      for (let attempt = 0; ; attempt++) {
+        try { return await raw().query(sql, params); } catch (e) {
+          if (attempt >= 2) throw e;
+          if (e?.code === TOO_MANY) { await sleep(1500); continue; }
+          if (!isConnErr(e)) throw e;
+          try { await pool?.end(); } catch { /* ข้าม */ }
+          pool = null;
+        }
       }
     },
   };
