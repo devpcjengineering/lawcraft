@@ -141,24 +141,51 @@ function numbered(runsList, prefix = 'ข้อ', gap = true) {
   return runsList.map((runs, i) => p([prefix === 'ข้อ' ? itemLabel(i + 1) : bold(`${prefix} ${i + 1}.`), t(' '), ...runs], { indent: 1.5, justify: true, gap }));
 }
 
-/** บรรทัดที่เป็นข้อย่อย: ๓.๑  ๓.๑.๒  (๑)  (ก)  ก.  — ขึ้นต้นบรรทัดด้วยตัวเลขข้อย่อยแล้วเว้นวรรค */
-const SUB_RE = /^\s*(?:[0-9๐-๙]+(?:\.[0-9๐-๙]+)+\.?|\([0-9๐-๙ก-ฮ]+\)|[ก-ฮ]\.)(?=\s)/;
-/** ย่อหน้าบรรทัดแรกของข้อย่อย (ซม.): ระดับ ๓.๑ ลึกกว่า “ข้อ” (1.5 ซม.) ประมาณ 1.75 ซม., ระดับ ๓.๑.๑ ลึกอีกขั้น */
-const subIndent = (line) => ((/^\s*[0-9๐-๙]+(?:\.[0-9๐-๙]+){2,}/.test(line)) ? 4.75 : 3.25);
-const bodyLineBlock = (ln, c, idx) => p(resolveRuns(ln.trim(), c, idx), { indent: SUB_RE.test(ln) ? subIndent(ln) : 0, justify: true });
-/** “ข้อ N.” + ข้อความหลายบรรทัด: บรรทัดแรกต่อท้ายเลขข้อ บรรทัดถัดไปเป็นย่อหน้าแยก (ข้อย่อยย่อหน้าเข้า) */
+/**
+ * ย่อหน้าของเนื้อหาที่เป็นข้อ (คำฟ้อง/คำร้อง/คำให้การ/สัญญา) — ระดับย่อหน้าเข้า (ซม.) ของบรรทัดแรก ส่วนบรรทัดที่ตัดขึ้นใหม่ชิดซ้ายเสมอ :
+ *   ข้อ ๑.            1.5      (ป้ายเลขข้อ ระบบใส่ให้)
+ *     ๑.๑ / ๒.๓        3.25     (ข้อย่อยตัวเลขสองระดับ)
+ *     ๑.๑.๑            4.75
+ *     (๑) (ก) ก.       ลึกกว่าข้อย่อยตัวเลขที่อยู่ก่อนหน้าหนึ่งขั้น — อยู่ใต้ ๒.๑ = 4.75 · อยู่ใต้ “ข้อ” โดยตรง = 3.25
+ *   บรรทัดอื่น ๆ      0        (ย่อหน้าต่อของข้อเดียวกัน ชิดซ้าย)
+ */
+const SUB_NUM_RE = /^\s*[0-9๐-๙]+(?:\.[0-9๐-๙]+)+\.?(?=\s)/;   // ๓.๑  ๓.๑.๒
+const SUB_MARK_RE = /^\s*(?:\([0-9๐-๙ก-ฮ]+\)|[ก-ฮ]\.)(?=\s)/;   // (๑) (ก) ก.
+const LEVEL_CM = [0, 1.5, 3.25, 4.75, 6.25];
+const ITEM_LINE_RE = /^\s*ข้อ\s*[0-9๐-๙]+\s*[.)]?\s*/;          // “ข้อ ๒.” ที่ผู้ใช้พิมพ์ขึ้นต้นบรรทัดเอง
+/** บรรทัดที่เหลือของข้อ (หลังบรรทัดแรก) → ย่อหน้า ระดับของ (๑) ขึ้นกับข้อย่อยตัวเลขที่มาก่อน */
+function bodyLineBlocks(lines, c, idx) {
+  let numLevel = 1; // ระดับของข้อย่อยตัวเลขล่าสุด (1 = ยังอยู่ใต้ “ข้อ” โดยตรง)
+  return lines.map((ln) => {
+    let level = 0;
+    const m = SUB_NUM_RE.exec(ln);
+    if (m) { numLevel = Math.min(1 + (m[0].match(/\./g) || []).length - (/\.\s*$/.test(m[0]) ? 1 : 0), 3); level = numLevel; }
+    else if (SUB_MARK_RE.test(ln)) level = Math.min(numLevel + 1, 4);
+    return p(resolveRuns(ln.trim(), c, idx), { indent: LEVEL_CM[level], justify: true });
+  });
+}
+/** “ข้อ N.” + ข้อความหลายบรรทัด: บรรทัดแรกต่อท้ายเลขข้อ บรรทัดถัดไปเป็นย่อหน้าแยกตามระดับข้อย่อย */
 function itemParas(no, raw, c, idx) {
-  const lines = multiline(String(raw || '').replace(/^ข้อ\s*[0-9๐-๙]+[.)]?\s*/, ''));
+  const lines = multiline(String(raw || '').replace(ITEM_LINE_RE, ''));
   const first = lines.shift() || '';
-  return [p([itemLabel(no), t(' '), ...resolveRuns(first, c, idx)], { indent: 1.5, justify: true }), ...lines.map((ln) => bodyLineBlock(ln, c, idx))];
+  return [p([itemLabel(no), t(' '), ...resolveRuns(first, c, idx)], { indent: 1.5, justify: true }), ...bodyLineBlocks(lines, c, idx)];
 }
 
 function multiline(text) {
   return String(text || '').split(/\n+/).map((s) => s.trim()).filter(Boolean);
 }
 
+/** ข้อความ → รายการข้อ: แบ่งด้วยบรรทัดว่าง และบรรทัดที่ขึ้นต้นด้วย “ข้อ N.” (ผู้ใช้พิมพ์เลขข้อเองโดยไม่เว้นบรรทัด) — ระบบใส่เลขข้อใหม่ให้เรียงต่อเนื่อง */
 function textToItems(txt) {
-  return String(txt || '').split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
+  const out = [];
+  for (const chunk of String(txt || '').split(/\n\s*\n/)) {
+    for (const ln of chunk.split('\n')) {
+      if (ITEM_LINE_RE.test(ln) || !out.length || out[out.length - 1] === null) out.push(ln);
+      else out[out.length - 1] += '\n' + ln;
+    }
+    out.push(null); // คั่นก้อน (บรรทัดว่าง) → ก้อนถัดไปเป็นข้อใหม่
+  }
+  return out.filter((s) => s !== null).map((s) => s.trim()).filter(Boolean);
 }
 
 // ---------- ตัวช่วยข้อความตายตัว ----------
@@ -231,14 +258,10 @@ function complaintDoc(c, idx) {
   }
   blocks.push(...sideIntro(c, 'plaintiff', true), ...sideIntro(c, 'defendant', true));
   blocks.push(p([t('มีข้อความตามที่จะกล่าวต่อไปนี้')], { indent: 0 }));
-  const facts = [...c.facts.filter((f) => (f.text || '').trim()), ...tailFacts(c).map((text) => ({ text, tail: true }))];
+  // ข้อเท็จจริงแต่ละช่อง = หนึ่งข้อ ; ถ้าในช่องเดียวพิมพ์ “ข้อ ๒.” ขึ้นบรรทัดใหม่เอง ก็แยกเป็นข้อถัดไป เลขข้อเรียงต่อเนื่องทั้งคำฟ้อง
+  const facts = [...c.facts.filter((f) => (f.text || '').trim()).flatMap((f) => textToItems(f.text)), ...tailFacts(c)];
   if (facts.length) {
-    facts.forEach((f, i) => {
-      const lines = multiline(f.text);
-      const first = lines.shift() || '';
-      blocks.push(p([itemLabel(i + 1), t(' '), ...resolveRuns(first, c, idx)], { indent: 1.5, justify: true }));
-      lines.forEach((ln) => blocks.push(bodyLineBlock(ln, c, idx)));
-    });
+    facts.forEach((text, i) => blocks.push(...itemParas(i + 1, text, c, idx)));
   } else {
     blocks.push(p([itemLabel(1), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 12 });
   }
