@@ -466,3 +466,25 @@ input[type=date]::-webkit-datetime-edit, input[type=time]::-webkit-datetime-edit
 @media (max-width: 760px) {
   .wiz-btns .btn .wiz-t { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
 }
+
+/* ===== มือถือ: ปุ่มในพื้นที่ทำงานกว้างเต็มแถว (ปุ่มละแถว ตัวหนังสือกึ่งกลาง สูง ≥ 46px) =====
+   ครอบคลุมแถบปุ่ม (.toolbar / .item-toolbar / .btn-group / .row) ปุ่มไปหน้าอื่นในการ์ดเลขคดี (.pf-go) ปุ่มดาวน์โหลด (.dl-main)
+   และปุ่ม “ดู PDF” ท้ายรายการเอกสาร (.docrow) — ยกเว้นกลุ่มที่จัดเป็นตารางสองคอลัมน์ไว้แล้ว (เพิ่มโจทก์/จำเลย · เพิ่มพยาน · แม่แบบคำร้อง)
+   ปุ่มไอคอนล้วน (.btn.icon) ปุ่มในหัวการ์ดสรุป (.sum-act) และแถบปุ่มถัดไป/ย้อนกลับ (.wiz-btns) ซึ่งมีกฎของตัวเอง */
+@media (max-width: 760px) {
+  .main :is(.toolbar, .item-toolbar, .btn-group, .row, .pf-go, .dl-main .btn-group, .fee-off) > .btn:not(.icon),
+  .main .docrow > .btn,
+  .main .dl-main > .btn {
+    flex: 1 1 100%; width: 100%; min-width: 0; max-width: none; min-height: 46px; padding-inline: 14px; justify-content: center; text-align: center; white-space: normal; line-height: 1.3;
+  }
+  .main :is(.toolbar, .item-toolbar, .btn-group, .row) > .grow { display: none; }
+  .main .dl-main .btn-group { flex-direction: column; align-items: stretch; }
+  .main .docrow { flex-wrap: wrap; }
+  .main .docrow > .btn { margin-top: 2px; }
+  /* รายการสถานะ/ประเด็น (.rows): ปุ่ม “ไปกรอก / ดู / ไปที่ …” ลงมาเป็นแถวของตัวเองใต้ข้อความ เต็มความกว้าง */
+  .main .rows > li > .r-act, .main .rows-req > li > .r-act { grid-column: 1 / -1; width: 100%; margin: 4px 0 0; justify-self: stretch; display: flex; }
+  .main .rows > li > .r-act > .btn { flex: 1 1 100%; width: 100%; min-width: 0; min-height: 44px; justify-content: center; white-space: normal; }
+  /* กลุ่มที่เป็นตารางสองคอลัมน์: ปุ่มเต็มช่องของตัวเอง (ไม่ใช่เต็มแถว) */
+  .main :is(.toolbar:has(> [data-act="addParty"]), .toolbar.wit-add, .row.motion-add) > .btn { flex: initial; }
+  .main .toolbar.wit-add:not(.n3) > .btn { min-height: 48px; }
+}

@@ -1,5 +1,5 @@
 // โมเดลข้อมูลคดี + ตัวช่วยที่ใช้ร่วมกันทั้งหน้าเว็บและเซิร์ฟเวอร์
-import { todayParts, fullName, courtShort, sectionsJoin, validCitizenId, addressText, isBkk, toThaiDigits, toArabicDigits, toNum } from './thai.js';
+import { todayParts, fullName, courtShort, sectionsJoin, validCitizenId, addressText, isBkk, toArabicDigits, toNum } from './thai.js';
 
 export function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -520,12 +520,10 @@ export function filedNoText(c) {
   return n ? `${black ? 'ดำ' : 'แดง'} ${n}${year ? '/' + year : ''}` : '';
 }
 
-/** ป้ายสถานะ “ฟ้องแล้ว · ดำ ๑๒๓/๖๙” (เลขไทยตามตัวเลือกของคดี) — ว่าง = ยังไม่ได้ใส่เลขคดี */
+/** ป้ายสถานะ “ฟ้องแล้ว” (ฝั่งจำเลย “มีเลขคดี”) — ป้ายสั้น ไม่พ่วงเลขคดี (เลขคดีมีบนแถบบน/การ์ดเลขคดีอยู่แล้ว) ; ว่าง = ยังไม่ได้ใส่เลขคดี */
 export function filedBadge(c) {
-  const n = filedNoText(c);
-  if (!n) return '';
-  const s = `${sideOf(c) === 'defendant' ? 'มีเลขคดี' : 'ฟ้องแล้ว'} · ${n}`; // ฝั่งจำเลยไม่ได้เป็นผู้ฟ้อง
-  return c?.options?.thaiDigits === false ? s : toThaiDigits(s);
+  if (!filedNoText(c)) return '';
+  return sideOf(c) === 'defendant' ? 'มีเลขคดี' : 'ฟ้องแล้ว'; // ฝั่งจำเลยไม่ได้เป็นผู้ฟ้อง
 }
 
 /**

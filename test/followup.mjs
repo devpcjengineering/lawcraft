@@ -120,9 +120,9 @@ for (const type of ['criminal', 'civil']) {
   const c2 = base('criminal'); c2.caseNoRed = 'ผ.9'; c2.caseYearRed = '2570';
   assert.equal(isFiled(c2), true);
   c2.options.thaiDigits = false;
-  assert.equal(filedBadge(c2), 'ฟ้องแล้ว · แดง ผ.9/2570');
+  assert.equal(filedBadge(c2), 'ฟ้องแล้ว', 'ป้ายสั้น ไม่พ่วงเลขคดี');
   c2.options.thaiDigits = true;
-  assert.equal(filedBadge(c2), 'ฟ้องแล้ว · แดง ผ.๙/๒๕๗๐');
+  assert.equal(filedBadge(c2), 'ฟ้องแล้ว');
   assert.equal(caseLabel(c2), 'คดีหมายเลขแดงที่ ผ.9/2570');
   c2.caseNoBlack = 'อ.1'; c2.caseYearBlack = '2569';
   assert.equal(caseLabel(c2), 'คดีหมายเลขดำที่ อ.1/2569', 'ป้ายการ์ดใช้เลขดำ + ปีของเลขดำก่อน');
