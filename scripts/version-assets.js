@@ -45,6 +45,7 @@ export function rewrite(text, kind, v) {
   s = s.replace(/(`\/articles-data\/\$\{[^}`]+\}\.json)(`)/g, (_, a, b) => `${a}?v=${v}${b}`);
   // หน้าต่าง PDF ในหน้า (iframe srcdoc) โหลด css/doc.css
   s = s.replace(/href="css\/doc\.css"/g, `href="css/doc.css?v=${v}"`);
+  s = s.replace(/__APP_VERSION__/g, v);
   return s;
 }
 

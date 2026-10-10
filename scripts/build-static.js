@@ -260,6 +260,7 @@ if (/sbp_[a-f0-9]{20,}/.test(cfg)) throw new Error('พบโทเค็นจ�
 {
   const { versionAssets } = await import('./version-assets.js');
   const r = versionAssets(dist);
+  fs.writeFileSync(path.join(dist, 'version.json'), JSON.stringify({ version: r.version }));
   console.log(`เวอร์ชันไฟล์: ?v=${r.version} (แก้ลิงก์ใน ${r.filesChanged} ไฟล์)`);
 }
 
