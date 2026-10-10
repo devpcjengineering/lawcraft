@@ -177,7 +177,7 @@ $('#chips').addEventListener('change', (e) => {
 let qTimer;
 $('#q').addEventListener('input', (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { query = e.target.value; shown = 24; renderResults(); }, 120); });
 $('#moreBtn').addEventListener('click', () => { animFrom = shown; shown += 24; renderResults(); animFrom = 0; });
-chips(); renderResults();
+setTimeout(() => { chips(); renderResults(); }, 40);
 
 // ---- detail sheet ----
 const sheet = $('#sheet');
@@ -236,7 +236,7 @@ const FALLBACK = [
 
 // ================= เขตอำนาจศาล =================
 // ตัวเครื่องมือย่อยอยู่ใน /site/jurisdiction-tool.js (ใช้ร่วมกับหน้า SEO /jurisdiction/) — ที่นี่แค่ประกอบเข้ากับหน้าแรก
-mountJurisdictionTool($('#jurTool'), { reveal: true, rulesEl: $('#rules'), courts: data.courts, onRender: observeReveal });
+mountJurisdictionTool($('#jurTool'), { reveal: true, rulesEl: $('#rules'), courts: data.courts, onRender: observeReveal, lazy: true });
 observeReveal();
 
 // ---- คดีออนไลน์: เลือกสถานการณ์ → สิ่งที่ควรทำก่อน + บทความที่เกี่ยวข้อง ----
