@@ -168,11 +168,29 @@ async function checkUpdate() {
     if (data.version && data.version !== APP_VERSION) {
       if (document.getElementById('version-update-modal')) return;
       const vText = data.version + (data.date ? ` (${data.date})` : '');
-      document.body.insertAdjacentHTML('beforeend', `<div id="version-update-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;flex-direction:column;font-family:sans-serif;text-align:center;padding:20px;">
-        <h2 style="margin-bottom:1rem;color:#ff9800;">พบระบบเวอร์ชันใหม่ (v.${vText})</h2>
-        <p style="margin-bottom:2rem;">กรุณารีเฟรชหรือล้างแคชหน้าเว็บเพื่อเข้าใช้งาน<br>เพื่อป้องกันปัญหาการโหลดไฟล์รุ่นเก่าขัดข้อง</p>
-        <button onclick="location.reload(true)" style="padding:12px 24px;font-size:16px;cursor:pointer;background:#007bff;color:#fff;border:none;border-radius:6px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">รีเฟรชหน้าเว็บ</button>
-      </div>`);
+      document.body.insertAdjacentHTML('beforeend', `
+      <div id="version-update-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.75);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#1e293b;display:flex;align-items:center;justify-content:center;z-index:999999;padding:20px;font-family:'Noto Sans Thai',-apple-system,BlinkMacSystemFont,sans-serif;animation:vFadeIn .25s ease;">
+        <div style="background:#ffffff;border-radius:24px;padding:36px 28px;max-width:440px;width:100%;text-align:center;box-shadow:0 25px 60px -15px rgba(0,0,0,0.3);border:1px solid rgba(226,232,240,0.8);animation:vSlideUp .3s cubic-bezier(0.16,1,0.3,1);">
+          <div style="width:64px;height:64px;margin:0 auto 20px;border-radius:20px;background:linear-gradient(135deg,#eff6ff,#dbeafe);display:flex;align-items:center;justify-content:center;color:#2563eb;box-shadow:0 8px 16px -4px rgba(37,99,235,0.2);">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19"/></svg>
+          </div>
+          <h2 style="font-size:22px;font-weight:700;color:#0f172a;margin:0 0 10px;line-height:1.3;letter-spacing:-.01em;">พบระบบเวอร์ชันใหม่</h2>
+          <div style="display:inline-flex;align-items:center;gap:6px;background:#f1f5f9;border:1px solid #e2e8f0;padding:4px 12px;border-radius:99px;font-size:12.5px;color:#475569;margin-bottom:16px;font-weight:500;">
+            <span style="width:6px;height:6px;border-radius:50%;background:#3b82f6;"></span>
+            <span>v.${vText}</span>
+          </div>
+          <p style="font-size:15px;color:#475569;line-height:1.6;margin:0 0 24px;">กรุณารีเฟรชหรือล้างแคชหน้าเว็บเพื่อเข้าใช้งาน<br><span style="color:#64748b;font-size:13.5px;">เพื่อป้องกันปัญหาการระบบขัดข้อง</span></p>
+          <button type="button" onclick="location.reload(true)" style="width:100%;padding:14px 24px;font-size:16px;font-weight:600;font-family:inherit;color:#ffffff;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:14px;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,0.35);transition:all .2s ease;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            รีเฟรชหน้าเว็บ
+          </button>
+        </div>
+      </div>
+      <style>
+        @keyframes vFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes vSlideUp { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+      </style>
+      `);
     }
   } catch (e) {}
 }
@@ -276,7 +294,17 @@ async function showHome() {
           <button class="btn sm" data-act="dupCase" data-id="${esc(x.id)}" title="คัดลอกคู่ความ ทนาย และข้อมูลทั้งหมดไปเป็นคดีใหม่">ทำสำเนา</button>
           ${authUi.isSharedWithMe(x) ? `<button class="btn sm danger" data-act="leaveCase" data-id="${esc(x.id)}" title="เลิกร่วมแก้ไขคดีนี้ (ไม่ลบคดีของเจ้าของ)">ออกจากคดี</button>` : `<button class="btn sm danger" data-act="delCase" data-id="${esc(x.id)}">ลบ</button>`}</div></div>`).join('')}</div>`
       : `<div class="empty-state"><span class="es-ico">${ico2('folder')}</span><b>ยังไม่มีคดีที่บันทึกไว้</b><p>เริ่มจากกดปุ่ม “คดีอาญา” หรือ “คดีแพ่ง” ด้านบน ระบบจะบันทึกให้อัตโนมัติทุกครั้งที่แก้ไข</p></div>`}</section>
-    <p class="home-foot">${ico2('info')}<span>แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม (สำนักงานศาลยุติธรรม) · ข้อมูลกฎหมายเป็นเครื่องมือช่วยร่าง ผู้ใช้ต้องตรวจสอบความถูกต้องก่อนยื่นต่อศาลทุกครั้ง</span><span class="home-foot-ver" style="margin-left:auto;white-space:nowrap;font-size:12px;">เวอร์ชัน <b>v.${APP_VERSION}</b> · ${APP_DATE}</span></p>
+    <footer class="home-foot">
+      <div class="home-foot-note">
+        ${ico2('info')}
+        <span>แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม (สำนักงานศาลยุติธรรม) · ข้อมูลกฎหมายเป็นเครื่องมือช่วยร่าง ผู้ใช้ต้องตรวจสอบความถูกต้องก่อนยื่นต่อศาลทุกครั้ง</span>
+      </div>
+      <div class="home-foot-ver">
+        <span class="hfv-dot"></span>
+        <span>เวอร์ชัน <b>v.${APP_VERSION}</b></span>
+        <span class="hfv-date">(${APP_DATE})</span>
+      </div>
+    </footer>
   </main>`;
   mountBanners($('.topbar'));
   authUi.afterHome(app);
