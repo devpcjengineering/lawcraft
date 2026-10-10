@@ -339,6 +339,8 @@ actions.stampAttachment = async (el) => {
 
 // ------ Google Drive API ------
 let gTokenClient;
+const GOOGLE_API_KEY = window.GOOGLE_API_KEY || 'AIzaSyBIRxZF7obWCoLR4Nd7xUUjAGFxiyHHXe8';
+
 function uploadToGoogleDrive(blob, filename) {
   if (!window.google) {
     hooks.toast('กำลังโหลด Google API...');
@@ -377,7 +379,8 @@ async function executeDriveUpload(accessToken, blob, filename) {
   form.append('file', blob);
 
   try {
-    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    const uploadUrl = `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart${GOOGLE_API_KEY ? `&key=${GOOGLE_API_KEY}` : ''}`;
+    const res = await fetch(uploadUrl, {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + accessToken },
       body: form
