@@ -21,6 +21,7 @@ import { loadPlaceRows, lookupServiceFee, setServiceFeeBackend } from '/shared/s
 import feeAppConfig from './config.js';
 setServiceFeeBackend(feeAppConfig?.supabase);   // ตั้ง Supabase ไว้ = ค้นค่านำหมายจากฐานข้อมูล ; ไม่ตั้ง (โหมด local) = ไฟล์ static /data/service-fees/
 import { officerFeeOf, suggestDeliver } from '/shared/model.js';
+import { tabAttachments } from './attachments.js';
 
 const kindOf = () => (S.c.type === 'civil' ? 'civil' : 'criminal');
 const rerender = () => hooks.rerender();
@@ -1331,6 +1332,7 @@ export const NAV = [
   ] },
   { group: 'ออกเอกสาร', items: [
     { key: 'export', label: 'ออกเอกสาร', ico: 'download', render: tabExport },
+    { key: 'attachments', label: 'เอกสารแนบ', ico: 'paperclip', render: tabAttachments },
     { key: 'ref', label: 'ตำรากฎหมาย', ico: 'book', render: tabRef },
   ] },
   { group: 'ตั้งค่า', items: [
