@@ -75,158 +75,157 @@ if (heroScales && !reduceMotion.matches) {
   }
 }
 
-// ---- data ----
-let data, dataFailed = false;
-try {
-  data = await loadLawData();
-  { const h = Number(data.layout?.all?.['brand.site']); if (h >= 12 && h <= 64) document.documentElement.style.setProperty('--logo-h', h + 'px'); }
-} catch { dataFailed = true; data = { laws: [], items: [], procedure: {}, courts: { groups: [] } }; }
-const lawById = new Map((data.laws || []).map((l) => [l.id, l]));
-const procLaws = new Map(((data.procedure || {}).laws || []).map((l) => [l.id, l]));
-const lawShort = (id) => lawById.get(id)?.short || procLaws.get(id)?.short || id;
-const lawName = (id) => lawById.get(id)?.name || procLaws.get(id)?.name || id;
+// ---- data (loaded lazily) ----
+async function initLibrary() {
+  let data, dataFailed = false;
+  try {
+    data = await loadLawData();
+    { const h = Number(data.layout?.all?.['brand.site']); if (h >= 12 && h <= 64) document.documentElement.style.setProperty('--logo-h', h + 'px'); }
+  } catch { dataFailed = true; data = { laws: [], items: [], procedure: {}, courts: { groups: [] } }; }
+  const lawById = new Map((data.laws || []).map((l) => [l.id, l]));
+  const procLaws = new Map(((data.procedure || {}).laws || []).map((l) => [l.id, l]));
+  const lawShort = (id) => lawById.get(id)?.short || procLaws.get(id)?.short || id;
+  const lawName = (id) => lawById.get(id)?.name || procLaws.get(id)?.name || id;
 
-// รวมข้อหา/มูลคดี + มาตราวิธีพิจารณา เป็นรายการเดียว
-const entries = [
-  ...(data.items || []).map((it) => ({
-    key: it.id, lawId: it.lawId, section: it.section, title: it.name, category: it.category || '', kind: it.kind,
-    body: it.text || '', it,
-  })),
-  ...((data.procedure || {}).sections || []).map((s) => ({
-    key: s.id, lawId: s.law, section: s.section, title: s.title, category: 'วิธีพิจารณา', kind: 'proc', body: s.summary || '', proc: s,
-  })),
-];
-const secNum = (s) => parseFloat(String(s).replace(/[^0-9.]/g, '')) || 0;
+  // รวมข้อหา/มูลคดี + มาตราวิธีพิจารณา เป็นรายการเดียว
+  const entries = [
+    ...(data.items || []).map((it) => ({
+      key: it.id, lawId: it.lawId, section: it.section, title: it.name, category: it.category || '', kind: it.kind,
+      body: it.text || '', it,
+    })),
+    ...((data.procedure || {}).sections || []).map((s) => ({
+      key: s.id, lawId: s.law, section: s.section, title: s.title, category: 'วิธีพิจารณา', kind: 'proc', body: s.summary || '', proc: s,
+    })),
+  ];
+  const secNum = (s) => parseFloat(String(s).replace(/[^0-9.]/g, '')) || 0;
 
-// ---- stats ----
-const courts = (data.courts?.groups || []).flatMap((g) => g.courts || []);
-const stats = [
-  [entries.length, 'มาตราและมูลคดี'],
-  [new Set(entries.map((e) => e.lawId)).size, 'ฉบับกฎหมาย'],
-  [courts.length, 'ศาลทั่วประเทศ'],
-  [77, 'จังหวัด'],
-];
-$('#stats').innerHTML = stats.map(([n, l]) => `<div class="stat"><b data-n="${n}">0</b><span>${l}</span></div>`).join('');
-function countUp() {
-  document.querySelectorAll('.stat b').forEach((el) => {
-    const to = +el.dataset.n; const t0 = performance.now();
-    if (reduceMotion.matches) { el.textContent = fmt(to); return; }
-    const tick = (t) => { const p = Math.min(1, (t - t0) / 1100); el.textContent = fmt(Math.round(to * (1 - Math.pow(1 - p, 3)))); if (p < 1) requestAnimationFrame(tick); };
-    requestAnimationFrame(tick);
+  // ---- stats ----
+  const courts = (data.courts?.groups || []).flatMap((g) => g.courts || []);
+  const stats = [
+    [entries.length, 'มาตราและมูลคดี'],
+    [new Set(entries.map((e) => e.lawId)).size, 'ฉบับกฎหมาย'],
+    [courts.length, 'ศาลทั่วประเทศ'],
+    [77, 'จังหวัด'],
+  ];
+  $('#stats').innerHTML = stats.map(([n, l]) => `<div class="stat"><b data-n="${n}">0</b><span>${l}</span></div>`).join('');
+  function countUp() {
+    document.querySelectorAll('.stat b').forEach((el) => {
+      const to = +el.dataset.n; const t0 = performance.now();
+      if (reduceMotion.matches) { el.textContent = fmt(to); return; }
+      const tick = (t) => { const p = Math.min(1, (t - t0) / 1100); el.textContent = fmt(Math.round(to * (1 - Math.pow(1 - p, 3)))); if (p < 1) requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+    });
+  }
+  new IntersectionObserver((es, o) => { if (es[0].isIntersecting) { countUp(); o.disconnect(); } }, { threshold: 0.4 }).observe($('#stats'));
+
+  // ---- library ----
+  let activeLaw = 'all', activeKind = 'all', query = '', shown = 24;
+  const lawOrder = ['pc', 'cc', 'pvor', 'pvpe'];
+  const lawRank = (id) => (lawOrder.indexOf(id) < 0 ? 99 : lawOrder.indexOf(id));
+  const KINDS = [['all', 'ทั้งหมด'], ['criminal', 'อาญา'], ['civil', 'แพ่ง'], ['proc', 'วิธีพิจารณา']];
+  const inKind = (e) => activeKind === 'all' || e.kind === activeKind;
+  function chips() {
+    const counts = new Map();
+    entries.filter(inKind).forEach((e) => counts.set(e.lawId, (counts.get(e.lawId) || 0) + 1));
+    if (activeLaw !== 'all' && !counts.has(activeLaw)) activeLaw = 'all';
+    const main = lawOrder.filter((id) => counts.has(id));
+    const others = [...counts.keys()].filter((id) => !lawOrder.includes(id)).sort((x, y) => (lawShort(x) || '').localeCompare(lawShort(y) || '', 'th'));
+    const total = entries.filter(inKind).length;
+    const chip = (id, label, n) => `<button class="chip" aria-pressed="${id === activeLaw}" data-law="${esc(id)}" title="${esc(id === 'all' ? 'ทุกฉบับ' : lawName(id))}">${esc(label)}<small>${n}</small></button>`;
+    const otherOn = others.includes(activeLaw);
+    $('#chips').innerHTML = `<div class="kindseg" role="group" aria-label="ประเภทกฎหมาย">${KINDS.map(([k, l]) => `<button type="button" data-kind="${k}" aria-pressed="${k === activeKind}">${l}</button>`).join('')}</div>
+      <div class="lawrow">${chip('all', 'ทุกฉบับ', total)}${main.map((id) => chip(id, lawShort(id) || lawName(id), counts.get(id))).join('')}
+      ${others.length ? `<label class="pillsel ${otherOn ? 'on' : ''}"><span class="sr">กฎหมายอื่น ๆ</span><select id="otherLaw" aria-label="กฎหมายอื่น ๆ">
+        <option value="">กฎหมายอื่น ๆ (${others.length})</option>${others.map((id) => `<option value="${esc(id)}" ${id === activeLaw ? 'selected' : ''}>${esc(lawShort(id) || lawName(id))} — ${esc(lawName(id))} (${counts.get(id)})</option>`).join('')}</select></label>` : ''}</div>`;
+  }
+  function filtered() {
+    const q = query.trim().toLowerCase();
+    return entries.filter((e) => inKind(e) && (activeLaw === 'all' || e.lawId === activeLaw) &&
+      (!q || `${e.section} ${e.title} ${e.category} ${e.body} ${lawShort(e.lawId)}`.toLowerCase().includes(q)))
+      .sort((a, b) => lawRank(a.lawId) - lawRank(b.lawId) || secNum(a.section) - secNum(b.section));
+  }
+  let animFrom = 0;
+  function renderResults() {
+    const list = filtered(), box = $('#results');
+    box.setAttribute('aria-busy', 'false');
+    if (dataFailed) {
+      box.innerHTML = '<div class="empty"><p>โหลดข้อมูลมาตรากฎหมายไม่สำเร็จ ตรวจสอบการเชื่อมต่อแล้วลองใหม่</p><button class="btn-pill ghost" data-act="reload">ลองใหม่</button></div>';
+      $('#resCount').textContent = ''; $('#moreBtn').hidden = true; return;
+    }
+    if (!entries.length) {
+      box.innerHTML = '<div class="empty"><p>กำลังจัดทำฐานข้อมูลมาตรากฎหมาย — กลับมาดูอีกครั้งเร็ว ๆ นี้</p></div>';
+      $('#resCount').textContent = ''; $('#moreBtn').hidden = true; return;
+    }
+    morphInto(box, list.slice(0, shown).map((e, i) => `<button class="card${i >= animFrom ? ' pop' : ''}" style="--i:${Math.min(Math.max(i - animFrom, 0), 10)}" data-key="${esc(e.key)}">
+        <span class="law"><span class="tag ${e.kind === 'civil' ? 'civil' : e.kind === 'criminal' ? 'crim' : ''}">${e.kind === 'civil' ? 'แพ่ง' : e.kind === 'criminal' ? 'อาญา' : ['pvor', 'pvpe'].includes(e.lawId) ? 'วิธีพิจารณา' : 'บททั่วไป'}</span>${esc(lawShort(e.lawId))}</span>
+        <span class="sec-no"><small>มาตรา</small>${esc(e.section)}</span>
+        <h3>${esc(e.title)}</h3>${e.body ? `<p>${esc(e.body)}</p>` : ''}</button>`).join('')
+      || `<div class="empty"><p>ไม่พบรายการที่ตรงกับ${query.trim() ? ` “${esc(query.trim())}”` : 'ตัวกรองนี้'}<br><span class="fine">ลองใช้คำค้นอื่น เลขมาตรา หรือชื่อข้อหา</span></p><button class="btn-pill ghost" data-act="clear">ล้างการค้นหา</button></div>`, { mark: false });
+    $('#resCount').textContent = list.length ? (list.length > shown ? `แสดง ${fmt(shown)} จาก ${fmt(list.length)} รายการ` : `${fmt(list.length)} รายการ`) : '';
+    $('#moreBtn').hidden = list.length <= shown;
+  }
+  $('#chips').addEventListener('click', (e) => {
+    const k = e.target.closest('[data-kind]');
+    if (k) { activeKind = k.dataset.kind; shown = 24; chips(); renderResults(); return; }
+    const b = e.target.closest('.chip');
+    if (b) { activeLaw = b.dataset.law; shown = 24; chips(); renderResults(); }
   });
-}
-new IntersectionObserver((es, o) => { if (es[0].isIntersecting) { countUp(); o.disconnect(); } }, { threshold: 0.4 }).observe($('#stats'));
+  $('#chips').addEventListener('change', (e) => {
+    if (e.target.id !== 'otherLaw') return;
+    activeLaw = e.target.value || 'all'; shown = 24; chips(); renderResults();
+  });
+  let qTimer;
+  $('#q').addEventListener('input', (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { query = e.target.value; shown = 24; renderResults(); }, 120); });
+  $('#moreBtn').addEventListener('click', () => { animFrom = shown; shown += 24; renderResults(); animFrom = 0; });
+  setTimeout(() => { chips(); renderResults(); }, 40);
 
-// ---- library ----
-let activeLaw = 'all', activeKind = 'all', query = '', shown = 24;
-const lawOrder = ['pc', 'cc', 'pvor', 'pvpe'];
-const lawRank = (id) => (lawOrder.indexOf(id) < 0 ? 99 : lawOrder.indexOf(id));
-const KINDS = [['all', 'ทั้งหมด'], ['criminal', 'อาญา'], ['civil', 'แพ่ง'], ['proc', 'วิธีพิจารณา']];
-const inKind = (e) => activeKind === 'all' || e.kind === activeKind;
-/** ตัวกรอง 2 ชั้น: ประเภท (แถบเดียว) → กฎหมายหลัก 4 ฉบับเป็นชิป ที่เหลือรวมในเมนู "กฎหมายอื่น ๆ" */
-function chips() {
-  const counts = new Map();
-  entries.filter(inKind).forEach((e) => counts.set(e.lawId, (counts.get(e.lawId) || 0) + 1));
-  if (activeLaw !== 'all' && !counts.has(activeLaw)) activeLaw = 'all';
-  const main = lawOrder.filter((id) => counts.has(id));
-  const others = [...counts.keys()].filter((id) => !lawOrder.includes(id)).sort((x, y) => (lawShort(x) || '').localeCompare(lawShort(y) || '', 'th'));
-  const total = entries.filter(inKind).length;
-  const chip = (id, label, n) => `<button class="chip" aria-pressed="${id === activeLaw}" data-law="${esc(id)}" title="${esc(id === 'all' ? 'ทุกฉบับ' : lawName(id))}">${esc(label)}<small>${n}</small></button>`;
-  const otherOn = others.includes(activeLaw);
-  $('#chips').innerHTML = `<div class="kindseg" role="group" aria-label="ประเภทกฎหมาย">${KINDS.map(([k, l]) => `<button type="button" data-kind="${k}" aria-pressed="${k === activeKind}">${l}</button>`).join('')}</div>
-    <div class="lawrow">${chip('all', 'ทุกฉบับ', total)}${main.map((id) => chip(id, lawShort(id) || lawName(id), counts.get(id))).join('')}
-    ${others.length ? `<label class="pillsel ${otherOn ? 'on' : ''}"><span class="sr">กฎหมายอื่น ๆ</span><select id="otherLaw" aria-label="กฎหมายอื่น ๆ">
-      <option value="">กฎหมายอื่น ๆ (${others.length})</option>${others.map((id) => `<option value="${esc(id)}" ${id === activeLaw ? 'selected' : ''}>${esc(lawShort(id) || lawName(id))} — ${esc(lawName(id))} (${counts.get(id)})</option>`).join('')}</select></label>` : ''}</div>`;
-}
-function filtered() {
-  const q = query.trim().toLowerCase();
-  return entries.filter((e) => inKind(e) && (activeLaw === 'all' || e.lawId === activeLaw) &&
-    (!q || `${e.section} ${e.title} ${e.category} ${e.body} ${lawShort(e.lawId)}`.toLowerCase().includes(q)))
-    .sort((a, b) => lawRank(a.lawId) - lawRank(b.lawId) || secNum(a.section) - secNum(b.section));
-}
-let animFrom = 0; // การ์ดลำดับตั้งแต่นี้เป็นต้นไปจะค่อย ๆ ปรากฏ (กด “แสดงเพิ่มเติม” ไม่เล่นซ้ำของเดิม)
-function renderResults() {
-  const list = filtered(), box = $('#results');
-  box.setAttribute('aria-busy', 'false');
-  if (dataFailed) {
-    box.innerHTML = '<div class="empty"><p>โหลดข้อมูลมาตรากฎหมายไม่สำเร็จ ตรวจสอบการเชื่อมต่อแล้วลองใหม่</p><button class="btn-pill ghost" data-act="reload">ลองใหม่</button></div>';
-    $('#resCount').textContent = ''; $('#moreBtn').hidden = true; return;
-  }
-  if (!entries.length) {
-    box.innerHTML = '<div class="empty"><p>กำลังจัดทำฐานข้อมูลมาตรากฎหมาย — กลับมาดูอีกครั้งเร็ว ๆ นี้</p></div>';
-    $('#resCount').textContent = ''; $('#moreBtn').hidden = true; return;
-  }
-  morphInto(box, list.slice(0, shown).map((e, i) => `<button class="card${i >= animFrom ? ' pop' : ''}" style="--i:${Math.min(Math.max(i - animFrom, 0), 10)}" data-key="${esc(e.key)}">
-      <span class="law"><span class="tag ${e.kind === 'civil' ? 'civil' : e.kind === 'criminal' ? 'crim' : ''}">${e.kind === 'civil' ? 'แพ่ง' : e.kind === 'criminal' ? 'อาญา' : ['pvor', 'pvpe'].includes(e.lawId) ? 'วิธีพิจารณา' : 'บททั่วไป'}</span>${esc(lawShort(e.lawId))}</span>
-      <span class="sec-no"><small>มาตรา</small>${esc(e.section)}</span>
-      <h3>${esc(e.title)}</h3>${e.body ? `<p>${esc(e.body)}</p>` : ''}</button>`).join('')
-    || `<div class="empty"><p>ไม่พบรายการที่ตรงกับ${query.trim() ? ` “${esc(query.trim())}”` : 'ตัวกรองนี้'}<br><span class="fine">ลองใช้คำค้นอื่น เลขมาตรา หรือชื่อข้อหา</span></p><button class="btn-pill ghost" data-act="clear">ล้างการค้นหา</button></div>`, { mark: false });
-  $('#resCount').textContent = list.length ? (list.length > shown ? `แสดง ${fmt(shown)} จาก ${fmt(list.length)} รายการ` : `${fmt(list.length)} รายการ`) : '';
-  $('#moreBtn').hidden = list.length <= shown;
-}
-$('#chips').addEventListener('click', (e) => {
-  const k = e.target.closest('[data-kind]');
-  if (k) { activeKind = k.dataset.kind; shown = 24; chips(); renderResults(); return; }
-  const b = e.target.closest('.chip');
-  if (b) { activeLaw = b.dataset.law; shown = 24; chips(); renderResults(); }
-});
-$('#chips').addEventListener('change', (e) => {
-  if (e.target.id !== 'otherLaw') return;
-  activeLaw = e.target.value || 'all'; shown = 24; chips(); renderResults();
-});
-let qTimer;
-$('#q').addEventListener('input', (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { query = e.target.value; shown = 24; renderResults(); }, 120); });
-$('#moreBtn').addEventListener('click', () => { animFrom = shown; shown += 24; renderResults(); animFrom = 0; });
-setTimeout(() => { chips(); renderResults(); }, 40);
+  // ---- detail sheet ----
+  const sheet = $('#sheet');
+  const dl = (rows) => `<dl>${rows.filter(([, v]) => v && (!Array.isArray(v) || v.length)).map(([k, v]) => `<dt>${k}</dt><dd>${esc(Array.isArray(v) ? v.join(' • ') : v)}</dd>`).join('')}</dl>`;
+  $('#results').addEventListener('click', (e) => {
+    const act = e.target.closest('[data-act]');
+    if (act) {
+      if (act.dataset.act === 'reload') location.reload();
+      if (act.dataset.act === 'clear') { query = ''; activeLaw = 'all'; activeKind = 'all'; shown = 24; $('#q').value = ''; chips(); renderResults(); $('#q').focus(); }
+      return;
+    }
+    const card = e.target.closest('.card'); if (!card) return;
+    const en = entries.find((x) => x.key === card.dataset.key); if (!en) return;
+    const it = en.it, s = en.proc;
+    let html = `<div class="detail"><span class="law" style="color:var(--ink-3);font-size:14px">${esc(lawName(en.lawId))}</span>
+      <h3 id="sheetTitle">มาตรา ${esc(en.section)} ${esc(en.title)}</h3>`;
+    if (it) {
+      html += dl([
+        ['ตัวบท / สาระ', it.text],
+        ['ระวางโทษ', it.penalty], ['องค์ประกอบ', it.elements],
+        ['ประเภทคำขอ', it.claimType], ['ดอกเบี้ย', it.interest], ['ก่อนฟ้องต้อง', it.prerequisites], ['หลักฐานที่ต้องมี', it.evidenceChecklist], ['ค่าขึ้นศาล', it.courtFeeNote],
+        ['อายุความ', it.limitation],
+        ['มาตราที่อ้างประกอบ', (it.relatedSections || []).map((r) => typeof r === 'string' ? r : `${r.ref}${r.why ? ' (' + r.why + ')' : ''}`)],
+      ]);
+      const flags = [it.privateOffence && '<span class="tag warn">ความผิดต่อส่วนตัว — ต้องร้องทุกข์/ฟ้องภายใน 3 เดือน (ป.อ. มาตรา 96)</span>', it.compoundable && '<span class="tag warn">ยอมความได้</span>'].filter(Boolean).join(' ');
+      if (flags) html += `<div class="box">${flags}</div>`;
+      if (it.caution) html += `<div class="box">⚠ ${esc(it.caution)}</div>`;
+      html += `<p class="fine" style="margin-top:16px">${it.verified === false ? 'ข้อมูลนี้ยังไม่ผ่านการตรวจกับแหล่งทางการ โปรดตรวจสอบตัวบทก่อนใช้' : '<span class="badge ok">✓ ตรวจกับแหล่งอ้างอิงแล้ว</span>'}${it.source ? ' · แหล่งอ้างอิง: ' + (/^https?:/.test(it.source) ? `<a href="${esc(it.source)}" target="_blank" rel="noopener">${esc(new URL(it.source).hostname)}</a>` : esc(it.source)) : ''}</p>`;
+      html += `<div class="cta"><a class="btn-pill primary" href="/workspace/">ใช้ข้อหานี้ร่างคำฟ้อง</a></div>`;
+    } else if (s) {
+      html += dl([['สาระสำคัญ', s.summary], ['ใช้ในเอกสาร', s.usedIn]]);
+      html += `<p class="fine" style="margin-top:16px">${s.verified === false ? 'ยังไม่ผ่านการตรวจกับแหล่งทางการ' : '<span class="badge ok">✓ ตรวจกับแหล่งอ้างอิงแล้ว</span>'}${s.source ? ' · ' + (/^https?:/.test(s.source) ? `<a href="${esc(s.source)}" target="_blank" rel="noopener">แหล่งอ้างอิง</a>` : esc(s.source)) : ''}</p>`;
+    }
+    $('#sheetBody').innerHTML = html + '</div>';
+    sheet.showModal();
+  });
+  $('#sheetClose').addEventListener('click', () => sheet.close());
+  sheet.addEventListener('click', (e) => { if (e.target === sheet) sheet.close(); });
 
-// ---- detail sheet ----
-const sheet = $('#sheet');
-const dl = (rows) => `<dl>${rows.filter(([, v]) => v && (!Array.isArray(v) || v.length)).map(([k, v]) => `<dt>${k}</dt><dd>${esc(Array.isArray(v) ? v.join(' • ') : v)}</dd>`).join('')}</dl>`;
-$('#results').addEventListener('click', (e) => {
-  const act = e.target.closest('[data-act]');
-  if (act) {
-    if (act.dataset.act === 'reload') location.reload();
-    if (act.dataset.act === 'clear') { query = ''; activeLaw = 'all'; activeKind = 'all'; shown = 24; $('#q').value = ''; chips(); renderResults(); $('#q').focus(); }
-    return;
-  }
-  const card = e.target.closest('.card'); if (!card) return;
-  const en = entries.find((x) => x.key === card.dataset.key); if (!en) return;
-  const it = en.it, s = en.proc;
-  let html = `<div class="detail"><span class="law" style="color:var(--ink-3);font-size:14px">${esc(lawName(en.lawId))}</span>
-    <h3 id="sheetTitle">มาตรา ${esc(en.section)} ${esc(en.title)}</h3>`;
-  if (it) {
-    html += dl([
-      ['ตัวบท / สาระ', it.text],
-      ['ระวางโทษ', it.penalty], ['องค์ประกอบ', it.elements],
-      ['ประเภทคำขอ', it.claimType], ['ดอกเบี้ย', it.interest], ['ก่อนฟ้องต้อง', it.prerequisites], ['หลักฐานที่ต้องมี', it.evidenceChecklist], ['ค่าขึ้นศาล', it.courtFeeNote],
-      ['อายุความ', it.limitation],
-      ['มาตราที่อ้างประกอบ', (it.relatedSections || []).map((r) => typeof r === 'string' ? r : `${r.ref}${r.why ? ' (' + r.why + ')' : ''}`)],
-    ]);
-    const flags = [it.privateOffence && '<span class="tag warn">ความผิดต่อส่วนตัว — ต้องร้องทุกข์/ฟ้องภายใน 3 เดือน (ป.อ. มาตรา 96)</span>', it.compoundable && '<span class="tag warn">ยอมความได้</span>'].filter(Boolean).join(' ');
-    if (flags) html += `<div class="box">${flags}</div>`;
-    if (it.caution) html += `<div class="box">⚠ ${esc(it.caution)}</div>`;
-    html += `<p class="fine" style="margin-top:16px">${it.verified === false ? 'ข้อมูลนี้ยังไม่ผ่านการตรวจกับแหล่งทางการ โปรดตรวจสอบตัวบทก่อนใช้' : '<span class="badge ok">✓ ตรวจกับแหล่งอ้างอิงแล้ว</span>'}${it.source ? ' · แหล่งอ้างอิง: ' + (/^https?:/.test(it.source) ? `<a href="${esc(it.source)}" target="_blank" rel="noopener">${esc(new URL(it.source).hostname)}</a>` : esc(it.source)) : ''}</p>`;
-    html += `<div class="cta"><a class="btn-pill primary" href="/workspace/">ใช้ข้อหานี้ร่างคำฟ้อง</a></div>`;
-  } else if (s) {
-    html += dl([['สาระสำคัญ', s.summary], ['ใช้ในเอกสาร', s.usedIn]]);
-    html += `<p class="fine" style="margin-top:16px">${s.verified === false ? 'ยังไม่ผ่านการตรวจกับแหล่งทางการ' : '<span class="badge ok">✓ ตรวจกับแหล่งอ้างอิงแล้ว</span>'}${s.source ? ' · ' + (/^https?:/.test(s.source) ? `<a href="${esc(s.source)}" target="_blank" rel="noopener">แหล่งอ้างอิง</a>` : esc(s.source)) : ''}</p>`;
-  }
-  $('#sheetBody').innerHTML = html + '</div>';
-  sheet.showModal();
-});
-$('#sheetClose').addEventListener('click', () => sheet.close());
-sheet.addEventListener('click', (e) => { if (e.target === sheet) sheet.close(); });
-
-// ---- process ----
-const FALLBACK = [
-  { title: 'ยื่นคำฟ้อง', detail: 'โจทก์ยื่นคำฟ้องพร้อมบัญชีพยานและเอกสารที่เกี่ยวข้องต่อศาลที่มีเขตอำนาจ', ref: 'ป.วิ.อ. มาตรา 158' },
-  { title: 'ไต่สวนมูลฟ้อง', detail: 'ศาลนัดไต่สวนมูลฟ้อง โจทก์นำพยานเข้าสืบเพื่อให้เห็นว่าคดีมีมูล จำเลยมีสิทธิ์ถามค้านพยานโจทก์ได้', ref: 'ป.วิ.อ. มาตรา 162' },
-  { title: 'ประทับฟ้อง', detail: 'ถ้าคดีมีมูล ศาลประทับฟ้องไว้พิจารณา และออกหมายเรียกหรือหมายจับจำเลย', ref: '' },
-  { title: 'สอบคำให้การ', detail: 'ศาลอ่านและอธิบายฟ้องให้จำเลยฟัง สอบถามว่าจะรับสารภาพหรือไม่', ref: 'ป.วิ.อ. มาตรา 172' },
-  { title: 'สืบพยาน', detail: 'โจทก์และจำเลยนำพยานเข้าสืบตามลำดับที่ศาลกำหนด', ref: '' },
-  { title: 'พิพากษา', detail: 'ศาลพิพากษาคดี คู่ความมีสิทธิ์อุทธรณ์ ฎีกาตามกฎหมาย', ref: '' },
-];
-{
+  // ---- process ----
+  const FALLBACK = [
+    { title: 'ยื่นคำฟ้อง', detail: 'โจทก์ยื่นคำฟ้องพร้อมบัญชีพยานและเอกสารที่เกี่ยวข้องต่อศาลที่มีเขตอำนาจ', ref: 'ป.วิ.อ. มาตรา 158' },
+    { title: 'ไต่สวนมูลฟ้อง', detail: 'ศาลนัดไต่สวนมูลฟ้อง โจทก์นำพยานเข้าสืบเพื่อให้เห็นว่าคดีมีมูล จำเลยมีสิทธิ์ถามค้านพยานโจทก์ได้', ref: 'ป.วิ.อ. มาตรา 162' },
+    { title: 'ประทับฟ้อง', detail: 'ถ้าคดีมีมูล ศาลประทับฟ้องไว้พิจารณา และออกหมายเรียกหรือหมายจับจำเลย', ref: '' },
+    { title: 'สอบคำให้การ', detail: 'ศาลอ่านและอธิบายฟ้องให้จำเลยฟัง สอบถามว่าจะรับสารภาพหรือไม่', ref: 'ป.วิ.อ. มาตรา 172' },
+    { title: 'สืบพยาน', detail: 'โจทก์และจำเลยนำพยานเข้าสืบตามลำดับที่ศาลกำหนด', ref: '' },
+    { title: 'พิพากษา', detail: 'ศาลพิพากษาคดี คู่ความมีสิทธิ์อุทธรณ์ ฎีกาตามกฎหมาย', ref: '' },
+  ];
   const path = (data.procedure || {}).criminalCasePath;
   const pSteps = Array.isArray(path) ? path : path?.steps;
   const steps = pSteps?.length ? pSteps : FALLBACK;
@@ -234,9 +233,14 @@ const FALLBACK = [
   observeReveal();
 }
 
+let libInit = false;
+const goLib = () => { if (!libInit) { libInit = true; initLibrary(); } };
+if ('requestIdleCallback' in window) requestIdleCallback(goLib, { timeout: 3000 }); else setTimeout(goLib, 1500);
+$('#q')?.addEventListener('focus', goLib, { once: true });
+
 // ================= เขตอำนาจศาล =================
 // ตัวเครื่องมือย่อยอยู่ใน /site/jurisdiction-tool.js (ใช้ร่วมกับหน้า SEO /jurisdiction/) — ที่นี่แค่ประกอบเข้ากับหน้าแรก
-mountJurisdictionTool($('#jurTool'), { reveal: true, rulesEl: $('#rules'), courts: data.courts, onRender: observeReveal, lazy: true });
+mountJurisdictionTool($('#jurTool'), { reveal: true, rulesEl: $('#rules'), onRender: observeReveal, lazy: true });
 observeReveal();
 
 // ---- คดีออนไลน์: เลือกสถานการณ์ → สิ่งที่ควรทำก่อน + บทความที่เกี่ยวข้อง ----
