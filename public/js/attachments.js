@@ -1,6 +1,7 @@
 import { S, esc, actions, hooks } from './store.js';
 import { group, field, select, pageHead } from './ui.js';
 import { icon } from './icons.js';
+import { sideOf, partyLabel } from '/shared/model.js';
 
 // Load pdf-lib and fontkit lazily
 async function loadPdfLib() {
@@ -21,32 +22,208 @@ async function getFontBytes() {
 
 export function tabAttachments() {
   const c = S.c;
-  if (!S.ui.attachType) S.ui.attachType = 'complaint';
+  if (!c) return '';
+  
+  // 1. Build Document Types
+  const isDef = sideOf(c) === 'defendant';
+  const typeOptions = [];
+  typeOptions.push(['complaint', isDef ? 'เอกสารแนบท้ายคำให้การ' : 'เอกสารแนบท้ายคำฟ้อง']);
+  
+  if (c.motions && c.motions.length > 0) {
+    c.motions.forEach(m => {
+      const t = m.title || 'คำร้อง/คำแถลง';
+      typeOptions.push([`motion_${m.id}`, `เอกสารแนบท้ายคำร้อง: ${t}`]);
+    });
+  } else {
+    typeOptions.push(['motion', 'เอกสารแนบท้ายคำร้อง/คำแถลง']);
+  }
+  
+  let docIdx = 1;
+  let hasDocs = false;
+  if (c.witnesses && c.witnesses.length > 0) {
+    c.witnesses.forEach(w => {
+      if (w.kind === 'document' || w.kind === 'object') {
+        hasDocs = true;
+        const name = (w.name || w.holder || (w.kind === 'document' ? 'เอกสาร' : 'วัตถุ')).trim();
+        const prefix = w.kind === 'document' ? 'พยานเอกสาร' : 'พยานวัตถุ';
+        typeOptions.push([`evidence_${w.id}`, `${prefix}ลำดับที่ ${docIdx}: ${name}`]);
+        docIdx++;
+      }
+    });
+  }
+  if (!hasDocs) {
+    typeOptions.push(['evidence', 'พยานเอกสาร (ยังไม่มีในบัญชี)']);
+  }
+
+  if (!S.ui.attachType || !typeOptions.find(o => o[0] === S.ui.attachType)) {
+    S.ui.attachType = typeOptions[0][0];
+  }
+
+  // 2. Build Signers
+  const nameOptions = [];
+  nameOptions.push(['', 'ไม่ระบุ (หรือเว้นว่างเพื่อเขียนด้วยมือ)']);
+  
+  if (c.counsel && c.counsel.enabled && c.counsel.first) {
+    const counselName = `ทนายความ${isDef ? 'จำเลย' : 'โจทก์'}`;
+    const n = `${c.counsel.prefix || ''}${c.counsel.first} ${c.counsel.last}`.trim();
+    nameOptions.push([n, `${n} (${counselName})`]);
+  }
+  
+  if (c.parties) {
+    c.parties.forEach(p => {
+      const pName = p.kind === 'juristic' ? p.name : `${p.prefix || ''}${p.first} ${p.last}`.trim();
+      if (pName) {
+        const label = partyLabel(c, p);
+        nameOptions.push([pName, `${pName} (${label})`]);
+      }
+    });
+  }
+  if (c.proxy?.holder && (c.proxy.holder.first || c.proxy.holder.name)) {
+     const p = c.proxy.holder;
+     const pName = p.kind === 'juristic' ? p.name : `${p.prefix || ''}${p.first} ${p.last}`.trim();
+     nameOptions.push([pName, `${pName} (ผู้รับมอบอำนาจ)`]);
+  }
+
   return `
-  ${pageHead('เอกสารแนบ', 'อัปโหลดไฟล์ PDF หรือรูปภาพ เพื่อประทับตรา "สำเนาถูกต้อง" และจัดการหมายเลขเอกสาร')}
-  <div class="panel">
-    <h3>ตั้งค่าการประทับตรา</h3>
-    ${group('ประเภทและหมายเลข', `
-      ${select('ประเภทเอกสารแนบ', 'ui.attachType', [
-        ['complaint', 'เอกสารแนบท้ายคำฟ้อง'],
-        ['motion', 'เอกสารแนบท้ายคำร้อง/คำแถลง'],
-        ['evidence', 'พยานเอกสาร']
-      ], { cls: 's6', rerender: true })}
-      ${field('หมายเลข / ลำดับที่', 'ui.attachNum', { cls: 's6', ph: 'เช่น ๑ หรือ 1' })}
+  ${pageHead('จัดการเอกสารแนบ', 'อัปโหลดไฟล์ PDF หรือรูปภาพ ประทับตรา "สำเนาถูกต้อง" พร้อมลงนามและหมายเลขเอกสารอัตโนมัติ')}
+  
+  <style>
+    .attach-panel {
+      background: var(--surface, #ffffff);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+      border: 1px solid var(--border, #e2e8f0);
+      margin-bottom: 24px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .attach-panel:hover {
+      box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+      border-color: #cbd5e1;
+    }
+    .attach-section-title {
+      font-size: 1.15em;
+      font-weight: 600;
+      color: var(--primary, #2563eb);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .upload-box {
+      position: relative;
+      border: 2px dashed var(--primary-light, #93c5fd);
+      border-radius: 16px;
+      padding: 48px 24px;
+      text-align: center;
+      background: var(--bg-50, #eff6ff);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      overflow: hidden;
+    }
+    .upload-box:hover, .upload-box.drag-over {
+      background: #dbeafe;
+      border-color: var(--primary, #2563eb);
+      transform: translateY(-2px);
+    }
+    .upload-box input[type="file"] {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0; cursor: pointer;
+    }
+    .upload-icon {
+      color: var(--primary, #2563eb);
+      margin-bottom: 16px;
+      transition: transform 0.3s ease;
+    }
+    .upload-box:hover .upload-icon {
+      transform: scale(1.1);
+    }
+    .upload-text {
+      font-weight: 500;
+      color: var(--text, #1e293b);
+      font-size: 1.15em;
+    }
+    .upload-subtext {
+      font-size: 0.9em;
+      color: var(--text-muted, #64748b);
+      margin-top: 8px;
+    }
+    .attach-actions {
+      display: flex;
+      gap: 16px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+    .attach-actions .btn {
+      flex: 1;
+      justify-content: center;
+      padding: 14px 24px;
+      font-size: 1.05em;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      transition: all 0.2s ease;
+    }
+    .attach-actions .btn.primary {
+      background: linear-gradient(135deg, var(--primary, #2563eb), #1d4ed8);
+      color: white;
+      border: none;
+    }
+    .attach-actions .btn.primary:hover {
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+      transform: translateY(-2px);
+    }
+    .attach-actions .btn.outline:hover {
+      background: var(--bg-50, #f8fafc);
+      transform: translateY(-2px);
+    }
+  </style>
+
+  <div class="attach-panel">
+    <div class="attach-section-title">
+      ${icon('settings', { size: 22 })} ตั้งค่าเอกสารและคำรับรอง
+    </div>
+    
+    ${group('', `
+      ${select('ประเภทเอกสารแนบ', 'ui.attachType', typeOptions, { cls: 's8', rerender: true })}
+      ${field('หมายเลข / ลำดับที่', 'ui.attachNum', { cls: 's4', ph: 'เช่น ๑ หรือ 1' })}
     `)}
-    ${group('การรับรอง (เฉพาะหน้าแรก)', `
-      ${field('ชื่อผู้ลงลายมือชื่อในวงเล็บ', 'ui.attachName', { cls: 's12', ph: 'เช่น นายโจทก์ ใจดี (หรือเว้นว่างถ้าจะเขียนด้วยมือ)' })}
+    
+    ${group('', `
+      ${select('ผู้ลงลายมือชื่อรับรองสำเนา (เฉพาะหน้าแรก)', 'ui.attachName', nameOptions, { cls: 's12' })}
     `)}
-    ${group('เลือกไฟล์ต้นฉบับ', `
-      <div class="f s12">
-        <input type="file" id="attachFile" accept="application/pdf,image/png,image/jpeg" style="padding: 12px; width: 100%; border: 1px dashed #cbd5e1; border-radius: 8px;">
-      </div>
-    `)}
-    <div class="toolbar pf-go" style="margin-top: 24px;">
-      <button type="button" class="btn outline" data-act="stampAttachment" data-mode="download">${icon('download', { size: 16 })} ดาวน์โหลดลงเครื่อง</button>
-      <button type="button" class="btn" data-act="stampAttachment" data-mode="drive">${icon('cloud', { size: 16 })} อัปโหลดขึ้น Google Drive</button>
+  </div>
+
+  <div class="attach-panel">
+    <div class="attach-section-title">
+      ${icon('fileText', { size: 22 })} อัปโหลดและดำเนินการ
+    </div>
+    
+    <div class="upload-box" id="drop-zone">
+      <div class="upload-icon">${icon('upload', { size: 56, stroke: 1.5 })}</div>
+      <div class="upload-text">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
+      <div class="upload-subtext">รองรับไฟล์ PDF, JPG, PNG (ขนาดไม่เกิน 20MB)</div>
+      <input type="file" id="attachFile" accept="application/pdf,image/png,image/jpeg" onchange="const f=this.files[0];if(f)this.previousElementSibling.previousElementSibling.innerText='เลือกไฟล์แล้ว: '+f.name;">
+    </div>
+
+    <div class="attach-actions">
+      <button type="button" class="btn outline" data-act="stampAttachment" data-mode="download">
+        ${icon('download', { size: 18 })} ดาวน์โหลดลงเครื่อง
+      </button>
+      <button type="button" class="btn primary" data-act="stampAttachment" data-mode="drive">
+        ${icon('cloud', { size: 18 })} ประทับตราและอัปโหลด
+      </button>
     </div>
   </div>
+  <script>
+    // Drag & Drop visual feedback
+    const dropZone = document.getElementById('drop-zone');
+    if (dropZone) {
+      dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+      dropZone.addEventListener('drop', () => dropZone.classList.remove('drag-over'));
+    }
+  </script>
   `;
 }
 
@@ -55,10 +232,22 @@ actions.stampAttachment = async (el) => {
   if (!fileInput || !fileInput.files.length) return hooks.toast('กรุณาเลือกไฟล์ที่ต้องการประทับตรา');
   const file = fileInput.files[0];
 
-  const type = S.ui.attachType || 'complaint';
+  const typeRaw = S.ui.attachType || 'complaint';
   const num = S.ui.attachNum || '';
   const name = S.ui.attachName || '';
   const mode = el.dataset.mode;
+
+  let baseType = typeRaw;
+  let typeName = '';
+  
+  if (typeRaw === 'complaint') {
+    baseType = 'complaint';
+    typeName = (sideOf(S.c) === 'defendant') ? 'คำให้การ' : 'คำฟ้อง';
+  } else if (typeRaw.startsWith('motion_') || typeRaw === 'motion') {
+    baseType = 'motion';
+  } else if (typeRaw.startsWith('evidence_') || typeRaw === 'evidence') {
+    baseType = 'evidence';
+  }
 
   hooks.toast('กำลังประมวลผลไฟล์...');
   
@@ -93,8 +282,8 @@ actions.stampAttachment = async (el) => {
     const color = PDFLib.rgb(0, 0, 0);
 
     // ประทับตราหัวกระดาษและคำรับรอง
-    if (type === 'complaint' || type === 'motion') {
-      const headerText = type === 'complaint' ? `เอกสารแนบท้ายคำฟ้อง หมายเลข ${num}` : `เอกสารแนบท้ายคำร้อง/คำแถลง หมายเลข ${num}`;
+    if (baseType === 'complaint' || baseType === 'motion') {
+      const headerText = baseType === 'complaint' ? `เอกสารแนบท้าย${typeName} หมายเลข ${num}` : `เอกสารแนบท้ายคำร้อง/คำแถลง หมายเลข ${num}`;
       // หัวกระดาษ หน้าแรก (ขวาบน)
       firstPage.drawText(headerText, { x: width - customFont.widthOfTextAtSize(headerText, textSize) - 50, y: height - 50, size: textSize, font: customFont, color });
       
@@ -104,7 +293,7 @@ actions.stampAttachment = async (el) => {
       if (name) {
         firstPage.drawText(`(${name})`, { x: width - 150 + 10, y: certY - 40, size: textSize, font: customFont, color });
       }
-    } else if (type === 'evidence') {
+    } else if (baseType === 'evidence') {
       const headerText = `พยานเอกสารลำดับที่ ${num}`;
       // หัวกระดาษ ทุกหน้า
       pages.forEach(page => {
@@ -126,7 +315,7 @@ actions.stampAttachment = async (el) => {
 
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-    const outputName = `${type}_${num}.pdf`;
+    const outputName = `${typeRaw}_${num}.pdf`;
 
     if (mode === 'download') {
       const url = URL.createObjectURL(blob);
