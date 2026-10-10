@@ -161,16 +161,16 @@ const APP_VERSION = '__APP_VERSION__';
 async function checkUpdate() {
   if (APP_VERSION === '__APP_VERSION__' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
   try {
-    const res = await fetch(\`/version.json?_t=\${Date.now()}\`, { cache: 'no-store' });
+    const res = await fetch(`/version.json?_t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) return;
     const data = await res.json();
     if (data.version && data.version !== APP_VERSION) {
       if (document.getElementById('version-update-modal')) return;
-      document.body.insertAdjacentHTML('beforeend', \`<div id="version-update-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;flex-direction:column;font-family:sans-serif;text-align:center;padding:20px;">
+      document.body.insertAdjacentHTML('beforeend', `<div id="version-update-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;flex-direction:column;font-family:sans-serif;text-align:center;padding:20px;">
         <h2 style="margin-bottom:1rem;color:#ff9800;">พบระบบเวอร์ชันใหม่</h2>
         <p style="margin-bottom:2rem;">กรุณารีเฟรชหรือล้างแคชหน้าเว็บเพื่อเข้าใช้งาน<br>เพื่อป้องกันปัญหาการโหลดไฟล์รุ่นเก่าขัดข้อง</p>
         <button onclick="location.reload(true)" style="padding:12px 24px;font-size:16px;cursor:pointer;background:#007bff;color:#fff;border:none;border-radius:6px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">รีเฟรชหน้าเว็บ</button>
-      </div>\`);
+      </div>`);
     }
   } catch (e) {}
 }

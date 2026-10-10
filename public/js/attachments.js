@@ -94,7 +94,7 @@ actions.stampAttachment = async (el) => {
 
     // ประทับตราหัวกระดาษและคำรับรอง
     if (type === 'complaint' || type === 'motion') {
-      const headerText = type === 'complaint' ? \`เอกสารแนบท้ายคำฟ้อง หมายเลข \${num}\` : \`เอกสารแนบท้ายคำร้อง/คำแถลง หมายเลข \${num}\`;
+      const headerText = type === 'complaint' ? `เอกสารแนบท้ายคำฟ้อง หมายเลข ${num}` : `เอกสารแนบท้ายคำร้อง/คำแถลง หมายเลข ${num}`;
       // หัวกระดาษ หน้าแรก (ขวาบน)
       firstPage.drawText(headerText, { x: width - customFont.widthOfTextAtSize(headerText, textSize) - 50, y: height - 50, size: textSize, font: customFont, color });
       
@@ -102,10 +102,10 @@ actions.stampAttachment = async (el) => {
       const certY = 100;
       firstPage.drawText('สำเนาถูกต้อง', { x: width - 150, y: certY, size: textSize, font: customFont, color });
       if (name) {
-        firstPage.drawText(\`(\${name})\`, { x: width - 150 + 10, y: certY - 40, size: textSize, font: customFont, color });
+        firstPage.drawText(`(${name})`, { x: width - 150 + 10, y: certY - 40, size: textSize, font: customFont, color });
       }
     } else if (type === 'evidence') {
-      const headerText = \`พยานเอกสารลำดับที่ \${num}\`;
+      const headerText = `พยานเอกสารลำดับที่ ${num}`;
       // หัวกระดาษ ทุกหน้า
       pages.forEach(page => {
         const { width: pWidth, height: pHeight } = page.getSize();
@@ -117,16 +117,16 @@ actions.stampAttachment = async (el) => {
       const certX = 50;
       const certY = 120;
       firstPage.drawText('พยานเอกสาร', { x: certX, y: certY, size: textSize, font: customFont, color });
-      firstPage.drawText(\`หมายเลข \${num}\`, { x: certX, y: certY - 20, size: textSize, font: customFont, color });
+      firstPage.drawText(`หมายเลข ${num}`, { x: certX, y: certY - 20, size: textSize, font: customFont, color });
       firstPage.drawText('ลงชื่อ ..........................................', { x: certX, y: certY - 50, size: textSize, font: customFont, color });
       if (name) {
-        firstPage.drawText(\`(\${name})\`, { x: certX + 30, y: certY - 70, size: textSize, font: customFont, color });
+        firstPage.drawText(`(${name})`, { x: certX + 30, y: certY - 70, size: textSize, font: customFont, color });
       }
     }
 
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-    const outputName = \`\${type}_\${num}.pdf\`;
+    const outputName = `${type}_${num}.pdf`;
 
     if (mode === 'download') {
       const url = URL.createObjectURL(blob);
