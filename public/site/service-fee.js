@@ -94,8 +94,13 @@ class Picker {
     else if (k === 'tambon') { v.tambon = val; v.moo = '?'; v.court = 0; }
     else if (k === 'moo') { v.moo = val === '__all' ? '' : val || '?'; v.court = 0; }
     else if (k === 'court') { v.court = +val || 0; v.courtName = ''; }
-    this.compute(); this.render(); this.after();
-    const f = this.root.querySelector(`[data-k="${k}"]`); f?.focus();
+    
+    // หน่วงเวลาให้ iOS ปิด select picker ก่อนที่จะวาด DOM ใหม่
+    setTimeout(() => {
+      this.compute(); this.render(); this.after();
+      const f = this.root.querySelector(`[data-k="${k}"]`);
+      if (f && !('ontouchstart' in window)) f.focus();
+    }, 10);
   }
   async loadProv() {
     const p = this.index.provinces.find((x) => x.name === this.v.prov);
@@ -104,7 +109,7 @@ class Picker {
     try { this.data = await loadProvince(p.name); this.error = ''; }
     catch { this.data = null; this.loadingProv = false; this.v.prov = ''; this.error = `โหลดข้อมูลจังหวัด${p.name}ไม่สำเร็จ`; this.render(); this.after(); return; }
     this.loadingProv = false; this.compute(); this.render(); this.after();
-    this.root.querySelector('[data-k="amphur"]')?.focus();
+    if (!('ontouchstart' in window)) this.root.querySelector('[data-k="amphur"]')?.focus();
   }
   compute() {
     const v = this.v, rows = this.areaRows();

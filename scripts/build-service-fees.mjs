@@ -54,6 +54,32 @@ for (const f of files) {
     best.set(k, row);
   }
 }
+
+// ถ้าจังหวัดไหนมีศาลแขวง ศาลจังหวัดจะมีอำนาจพิจารณาในพื้นที่ศาลแขวงด้วย (แขวงคดีเล็ก จังหวัดใหญ่)
+// แต่ข้อมูลนำหมายมักลงไว้ที่ศาลแขวงที่เดียว จึงต้องคัดลอกมาให้ศาลจังหวัด (หรือศาลหลักอื่นๆ ที่ครอบคลุมอำเภอนั้น) ด้วย
+const jur = JSON.parse(fs.readFileSync(path.join(root, 'data', 'jurisdiction.json'), 'utf8'));
+const extra = [];
+for (const [k, r] of best.entries()) {
+  if (r.court.startsWith('ศาลแขวง')) {
+    const amphurStr = r.amphur.replace(/^(เขต|อ\.|อำเภอ)\s*/, '').trim();
+    const courts = jur.provinces[r.prov]?.districts[amphurStr] || [];
+    for (const c of courts) {
+      // ศาลชั้นต้นที่ไม่มี magistrate: true (เช่น ศาลจังหวัด, ศาลแพ่ง) ถือว่าคลุมพื้นที่แขวงด้วย
+      if (c.type === 'first' && !c.magistrate && c.name !== r.court) {
+        const nk = [c.name, r.amphur, r.tambon, r.moo].join('|');
+        if (!best.has(nk)) {
+          // ไม่แก้ไข remark ปล่อยให้แสดงเหมือนศาลแขวง
+          extra.push({ ...r, court: c.name });
+        }
+      }
+    }
+  }
+}
+for (const r of extra) {
+  const nk = [r.court, r.amphur, r.tambon, r.moo].join('|');
+  if (!best.has(nk)) best.set(nk, r);
+}
+
 // ---- ตัดข้อมูลซ้ำ/ไม่จำเป็น (ต้องไม่ทำให้ผลค้นของ lookupServiceFee เปลี่ยน — ดู shared/service-fee.js) ----
 // remark: ปรับช่องว่าง/วรรคตอนท้ายข้อความให้เหมือนกัน เพื่อให้ข้อความที่ต่างกันแค่เล็กน้อยรวมเป็นอันเดียว
 const normRemark = (t) => String(t || '').replace(/[\s​]+/g, ' ').replace(/\s*([,;:])\s*/g, '$1 ').replace(/\s+([.)])/g, '$1').replace(/[\s.;,]+$/, '').trim();
