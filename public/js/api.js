@@ -12,6 +12,7 @@ export const localBackend = {
   label: 'เครื่องนี้ (ไฟล์ในโฟลเดอร์ cases)',
   needsLogin: false,
   role: () => 'admin', // โหมดไฟล์ในเครื่อง = เครื่องของเจ้าของระบบ ไม่มีบัญชี
+  providerToken: async () => '',
   async init() {},
   async loadAll() {
     const [data, geo, people] = await Promise.all([http('/api/data'), http('/api/geo').catch(() => ({ provinces: [] })), http('/api/people').catch(() => [])]);

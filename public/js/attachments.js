@@ -2,6 +2,7 @@ import { S, esc, actions, hooks } from './store.js';
 import { group, field, select, pageHead } from './ui.js';
 import { icon } from './icons.js';
 import { sideOf, partyLabel } from '/shared/model.js';
+import { backend } from './api.js';
 
 // Load pdf-lib and fontkit lazily
 async function loadPdfLib() {
@@ -23,12 +24,12 @@ async function getFontBytes() {
 export function tabAttachments() {
   const c = S.c;
   if (!c) return '';
-  
+
   // 1. Build Document Types
   const isDef = sideOf(c) === 'defendant';
   const typeOptions = [];
   typeOptions.push(['complaint', isDef ? 'เอกสารแนบท้ายคำให้การ' : 'เอกสารแนบท้ายคำฟ้อง']);
-  
+
   if (c.motions && c.motions.length > 0) {
     c.motions.forEach(m => {
       const t = m.title || 'คำร้อง/คำแถลง';
@@ -37,7 +38,7 @@ export function tabAttachments() {
   } else {
     typeOptions.push(['motion', 'เอกสารแนบท้ายคำร้อง/คำแถลง']);
   }
-  
+
   let docIdx = 1;
   let hasDocs = false;
   if (c.witnesses && c.witnesses.length > 0) {
@@ -62,13 +63,13 @@ export function tabAttachments() {
   // 2. Build Signers
   const nameOptions = [];
   nameOptions.push(['', 'ไม่ระบุ (หรือเว้นว่างเพื่อเขียนด้วยมือ)']);
-  
+
   if (c.counsel && c.counsel.enabled && c.counsel.first) {
     const counselName = `ทนายความ${isDef ? 'จำเลย' : 'โจทก์'}`;
     const n = `${c.counsel.prefix || ''}${c.counsel.first} ${c.counsel.last}`.trim();
     nameOptions.push([n, `${n} (${counselName})`]);
   }
-  
+
   if (c.parties) {
     c.parties.forEach(p => {
       const pName = p.kind === 'juristic' ? p.name : `${p.prefix || ''}${p.first} ${p.last}`.trim();
@@ -79,9 +80,9 @@ export function tabAttachments() {
     });
   }
   if (c.proxy?.holder && (c.proxy.holder.first || c.proxy.holder.name)) {
-     const p = c.proxy.holder;
-     const pName = p.kind === 'juristic' ? p.name : `${p.prefix || ''}${p.first} ${p.last}`.trim();
-     nameOptions.push([pName, `${pName} (ผู้รับมอบอำนาจ)`]);
+    const p = c.proxy.holder;
+    const pName = p.kind === 'juristic' ? p.name : `${p.prefix || ''}${p.first} ${p.last}`.trim();
+    nameOptions.push([pName, `${pName} (ผู้รับมอบอำนาจ)`]);
   }
 
   return `
@@ -186,11 +187,11 @@ export function tabAttachments() {
     
     ${group('', `
       ${select('ประเภทเอกสารแนบ', 'ui.attachType', typeOptions, { cls: 's8', rerender: true })}
-      ${field('หมายเลข / ลำดับที่', 'ui.attachNum', { cls: 's4', ph: 'เช่น ๑ หรือ 1' })}
+      ${field('หมายเลข', 'ui.attachNum', { cls: 's4', ph: 'เช่น ๑ หรือ 1' })}
     `)}
     
     ${group('', `
-      ${select('ผู้ลงลายมือชื่อรับรองสำเนา (เฉพาะหน้าแรก)', 'ui.attachName', nameOptions, { cls: 's12' })}
+      ${select('ผู้ลงลายมือชื่อรับรองสำเนา', 'ui.attachName', nameOptions, { cls: 's12' })}
     `)}
   </div>
 
@@ -239,7 +240,7 @@ actions.stampAttachment = async (el) => {
 
   let baseType = typeRaw;
   let typeName = '';
-  
+
   if (typeRaw === 'complaint') {
     baseType = 'complaint';
     typeName = (sideOf(S.c) === 'defendant') ? 'คำให้การ' : 'คำฟ้อง';
@@ -250,7 +251,7 @@ actions.stampAttachment = async (el) => {
   }
 
   hooks.toast('กำลังประมวลผลไฟล์...');
-  
+
   try {
     const PDFLib = await loadPdfLib();
     let pdfDoc;
@@ -264,7 +265,7 @@ actions.stampAttachment = async (el) => {
       let image;
       if (file.type === 'image/jpeg') image = await pdfDoc.embedJpg(imageBytes);
       else if (file.type === 'image/png') image = await pdfDoc.embedPng(imageBytes);
-      
+
       const page = pdfDoc.addPage([image.width, image.height]);
       page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
     } else {
@@ -276,7 +277,7 @@ actions.stampAttachment = async (el) => {
     const pages = pdfDoc.getPages();
     const firstPage = pages[0];
     const { width, height } = firstPage.getSize();
-    
+
     // ตั้งค่าขนาดและสีอักษร
     const textSize = 16;
     const color = PDFLib.rgb(0, 0, 0);
@@ -286,7 +287,7 @@ actions.stampAttachment = async (el) => {
       const headerText = baseType === 'complaint' ? `เอกสารแนบท้าย${typeName} หมายเลข ${num}` : `เอกสารแนบท้ายคำร้อง/คำแถลง หมายเลข ${num}`;
       // หัวกระดาษ หน้าแรก (ขวาบน)
       firstPage.drawText(headerText, { x: width - customFont.widthOfTextAtSize(headerText, textSize) - 50, y: height - 50, size: textSize, font: customFont, color });
-      
+
       // สำเนาถูกต้อง (ขวาล่างหรือกลางล่าง)
       const certY = 100;
       firstPage.drawText('สำเนาถูกต้อง', { x: width - 150, y: certY, size: textSize, font: customFont, color });
@@ -341,22 +342,50 @@ actions.stampAttachment = async (el) => {
 let gTokenClient;
 const GOOGLE_API_KEY = window.GOOGLE_API_KEY || 'AIzaSyBIRxZF7obWCoLR4Nd7xUUjAGFxiyHHXe8';
 
-function uploadToGoogleDrive(blob, filename) {
-  if (!window.google) {
-    hooks.toast('กำลังโหลด Google API...');
-    const s = document.createElement('script');
-    s.src = 'https://accounts.google.com/gsi/client';
-    s.onload = () => initDriveAuth(blob, filename);
-    document.head.appendChild(s);
-  } else {
-    initDriveAuth(blob, filename);
+async function uploadToGoogleDrive(blob, filename) {
+  // 1. ดึง provider_token จาก Supabase Auth (ที่ขอสิทธิ์ Google Drive ไว้ตอนล็อกอิน)
+  let token = null;
+  try {
+    if (backend && backend.providerToken) {
+      token = await backend.providerToken();
+    }
+  } catch (err) {
+    console.warn('Error reading providerToken:', err);
+  }
+
+  if (token) {
+    return executeDriveUpload(token, blob, filename);
+  }
+
+  // 2. ถ้ามี Google OAuth Client ID ระบุไว้ ให้ใช้ Google Identity Services
+  if (window.GOOGLE_CLIENT_ID) {
+    if (!window.google) {
+      hooks.toast('กำลังโหลด Google API...');
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.onload = () => initDriveAuth(blob, filename);
+      document.head.appendChild(s);
+    } else {
+      initDriveAuth(blob, filename);
+    }
+    return;
+  }
+
+  // 3. ถ้าไม่มีทั้ง Provider Token และ Client ID: แจ้งเตือนผู้ใช้ให้ล็อกอินด้วย Google เพื่อเปิดสิทธิ์
+  hooks.toast('ยังไม่ได้รับสิทธิ์เข้าถึง Google Drive');
+  const relogin = confirm('ยังไม่พบสิทธิ์ Google Drive สำหรับบัญชีนี้ (หรือเซสชันหมดอายุ)\n\nต้องการเข้าสู่ระบบด้วย Google อีกครั้งเพื่ออนุญาตสิทธิ์เข้าถึง Google Drive ทันทีหรือไม่?');
+  if (relogin && backend && backend.signInWithGoogle) {
+    await backend.signInWithGoogle();
   }
 }
 
 function initDriveAuth(blob, filename) {
-  // ต้องเปลี่ยนเป็น Client ID จริงของแอปพลิเคชัน
-  const CLIENT_ID = window.GOOGLE_CLIENT_ID || '101416790518-gtd3n0cptv1i9c6d4ngvstjip48bntf2.apps.googleusercontent.com'; // TODO: Update to real ID or use env var
-  
+  const CLIENT_ID = window.GOOGLE_CLIENT_ID;
+  if (!CLIENT_ID) {
+    hooks.toast('กรุณาระบุ Google Client ID หรือเข้าสู่ระบบด้วย Google ใหม่');
+    return;
+  }
+
   if (!gTokenClient) {
     gTokenClient = google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
@@ -385,7 +414,7 @@ async function executeDriveUpload(accessToken, blob, filename) {
       headers: { Authorization: 'Bearer ' + accessToken },
       body: form
     });
-    
+
     if (res.ok) {
       hooks.toast('อัปโหลดขึ้น Google Drive สำเร็จ!');
     } else {

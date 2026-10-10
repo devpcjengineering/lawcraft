@@ -89,7 +89,14 @@ export const supabaseBackend = {
   async addAdmin(email) { const { data, error } = await sb.rpc('add_admin', { new_email: email }); if (error) throw new Error(error.message); return data === true; },
   async signInWithGoogle() {
     // redirectTo คง /admin/ ไว้ตามรายการ Redirect URLs ใน Supabase Auth (ยังไม่ได้เพิ่ม /workspace/) — public/admin/index.html เด้งต่อโดยพก ?code / #access_token ไปด้วย
-    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + '/admin/', queryParams: { prompt: 'select_account' } } });
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: location.origin + '/admin/',
+        scopes: 'https://www.googleapis.com/auth/drive.file',
+        queryParams: { prompt: 'consent select_account', access_type: 'offline' }
+      }
+    });
     if (error) {
       throw new Error(/provider is not enabled|Unsupported provider/i.test(error.message)
         ? 'ยังไม่ได้เปิดใช้ Login ด้วย Google ใน Supabase — ตั้งค่า Google OAuth ก่อน (ดูขั้นตอนในหน้าตั้งค่า/README)'
@@ -101,6 +108,8 @@ export const supabaseBackend = {
   async sessionUserId() { const { data } = await sb.auth.getSession(); return data.session?.user?.id || ''; },
   /** โทเค็นของผู้ใช้ที่ล็อกอินอยู่ (ส่งให้ /api/pdf บน Vercel ตรวจกับ Supabase Auth) */
   async accessToken() { const { data } = await sb.auth.getSession(); return data.session?.access_token || ''; },
+  /** Google OAuth provider token (สำหรับอัปโหลด Google Drive) */
+  async providerToken() { const { data } = await sb.auth.getSession(); return data.session?.provider_token || ''; },
 
   async loadAll() {
     const { data, geo } = await loadLaw();
