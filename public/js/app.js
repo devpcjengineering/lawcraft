@@ -157,17 +157,19 @@ window.addEventListener('offline', () => banner('net', { type: 'warn', message: 
 window.addEventListener('online', () => { clearBanner('net'); if (saveFailed || savePending) doSave(); });
 
 // --- ระบบตรวจจับเวอร์ชัน ---
-const APP_VERSION = '__APP_VERSION__';
+export const APP_VERSION = '__APP_VERSION__';
+export const APP_DATE = '__APP_DATE__';
 async function checkUpdate() {
-  if (APP_VERSION === '__APP_VERSION__' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
   try {
     const res = await fetch(`/version.json?_t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) return;
     const data = await res.json();
     if (data.version && data.version !== APP_VERSION) {
       if (document.getElementById('version-update-modal')) return;
+      const vText = data.version + (data.date ? ` (${data.date})` : '');
       document.body.insertAdjacentHTML('beforeend', `<div id="version-update-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;flex-direction:column;font-family:sans-serif;text-align:center;padding:20px;">
-        <h2 style="margin-bottom:1rem;color:#ff9800;">พบระบบเวอร์ชันใหม่</h2>
+        <h2 style="margin-bottom:1rem;color:#ff9800;">พบระบบเวอร์ชันใหม่ (v.${vText})</h2>
         <p style="margin-bottom:2rem;">กรุณารีเฟรชหรือล้างแคชหน้าเว็บเพื่อเข้าใช้งาน<br>เพื่อป้องกันปัญหาการโหลดไฟล์รุ่นเก่าขัดข้อง</p>
         <button onclick="location.reload(true)" style="padding:12px 24px;font-size:16px;cursor:pointer;background:#007bff;color:#fff;border:none;border-radius:6px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">รีเฟรชหน้าเว็บ</button>
       </div>`);
@@ -274,7 +276,7 @@ async function showHome() {
           <button class="btn sm" data-act="dupCase" data-id="${esc(x.id)}" title="คัดลอกคู่ความ ทนาย และข้อมูลทั้งหมดไปเป็นคดีใหม่">ทำสำเนา</button>
           ${authUi.isSharedWithMe(x) ? `<button class="btn sm danger" data-act="leaveCase" data-id="${esc(x.id)}" title="เลิกร่วมแก้ไขคดีนี้ (ไม่ลบคดีของเจ้าของ)">ออกจากคดี</button>` : `<button class="btn sm danger" data-act="delCase" data-id="${esc(x.id)}">ลบ</button>`}</div></div>`).join('')}</div>`
       : `<div class="empty-state"><span class="es-ico">${ico2('folder')}</span><b>ยังไม่มีคดีที่บันทึกไว้</b><p>เริ่มจากกดปุ่ม “คดีอาญา” หรือ “คดีแพ่ง” ด้านบน ระบบจะบันทึกให้อัตโนมัติทุกครั้งที่แก้ไข</p></div>`}</section>
-    <p class="home-foot">${ico2('info')}<span>แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม (สำนักงานศาลยุติธรรม) · ข้อมูลกฎหมายเป็นเครื่องมือช่วยร่าง ผู้ใช้ต้องตรวจสอบความถูกต้องก่อนยื่นต่อศาลทุกครั้ง</span></p>
+    <p class="home-foot">${ico2('info')}<span>แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม (สำนักงานศาลยุติธรรม) · ข้อมูลกฎหมายเป็นเครื่องมือช่วยร่าง ผู้ใช้ต้องตรวจสอบความถูกต้องก่อนยื่นต่อศาลทุกครั้ง</span><span class="home-foot-ver" style="margin-left:auto;white-space:nowrap;font-size:12px;">เวอร์ชัน <b>v.${APP_VERSION}</b> · ${APP_DATE}</span></p>
   </main>`;
   mountBanners($('.topbar'));
   authUi.afterHome(app);

@@ -27,10 +27,22 @@ export function contentVersion(dist) {
 
 const addV = (u, v) => (/[?#]/.test(u) ? u : `${u}?v=${v}`);
 
-export function rewrite(text, kind, v) {
+export function formatThaiDate(d = new Date()) {
+  const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  const day = d.getDate();
+  const month = months[d.getMonth()];
+  const year = d.getFullYear() + 543;
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${day} ${month} ${year} ${time}`;
+}
+
+export function rewrite(text, kind, v, dateStr = formatThaiDate()) {
   if (kind === 'html') {
     // src="…" / href="…" ที่ชี้ไฟล์ในเว็บ (ไม่แตะลิงก์ภายนอก, #, mailto:, tel:, หน้า HTML/โฟลเดอร์)
-    return text.replace(new RegExp(`((?:src|href)=")(?!https?:|//|mailto:|tel:|data:|#)([^"#?]+\\.(?:${ASSET_EXT}))(")`, 'g'), (_, a, u, c) => `${a}${addV(u, v)}${c}`);
+    let s = text.replace(new RegExp(`((?:src|href)=")(?!https?:|//|mailto:|tel:|data:|#)([^"#?]+\\.(?:${ASSET_EXT}))(")`, 'g'), (_, a, u, c) => `${a}${addV(u, v)}${c}`);
+    s = s.replace(/__APP_VERSION__/g, v);
+    s = s.replace(/__APP_DATE__/g, dateStr);
+    return s;
   }
   if (kind === 'css') {
     return text.replace(new RegExp(`url\\(\\s*(['"]?)(?!https?:|//|data:)([^'")?#]+\\.(?:${ASSET_EXT}))\\1\\s*\\)`, 'g'), (_, q, u) => `url(${q}${addV(u, v)}${q})`);
@@ -46,18 +58,20 @@ export function rewrite(text, kind, v) {
   // หน้าต่าง PDF ในหน้า (iframe srcdoc) โหลด css/doc.css
   s = s.replace(/href="css\/doc\.css"/g, `href="css/doc.css?v=${v}"`);
   s = s.replace(/__APP_VERSION__/g, v);
+  s = s.replace(/__APP_DATE__/g, dateStr);
   return s;
 }
 
-export function versionAssets(dist) {
+export function versionAssets(dist, options = {}) {
   const v = contentVersion(dist);
+  const dateStr = options.date || formatThaiDate();
   let changed = 0;
   for (const f of listFiles(dist)) {
     if (!TEXT.test(f)) continue;
     const p = path.join(dist, f);
     const src = fs.readFileSync(p, 'utf8');
     const kind = f.endsWith('.html') ? 'html' : f.endsWith('.css') ? 'css' : 'js';
-    const out = rewrite(src, kind, v);
+    const out = rewrite(src, kind, v, dateStr);
     if (out !== src) { fs.writeFileSync(p, out); changed++; }
   }
   // ตรวจ: ทุก import ภายในต้องมี ?v= (กันโมดูลซ้ำสองสำเนา) และไม่มี import แบบคำนวณค่าที่เราแก้ไม่ได้
@@ -71,5 +85,5 @@ export function versionAssets(dist) {
     for (const m of s.matchAll(/\bimport\s*\(\s*(?!['"])/g)) bad.push(`${f}: import() แบบคำนวณค่า (ใส่เวอร์ชันไม่ได้)`);
   }
   if (bad.length) throw new Error(`ใส่เวอร์ชันให้ import ไม่ครบ:\n  ${bad.slice(0, 20).join('\n  ')}`);
-  return { version: v, filesChanged: changed };
+  return { version: v, date: dateStr, filesChanged: changed };
 }
