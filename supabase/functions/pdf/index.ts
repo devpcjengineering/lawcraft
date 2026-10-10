@@ -32,11 +32,13 @@ Deno.serve(async (req) => {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Length': String(file.size),
-      'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(name.toWellFormed()).replace(/['()*]/g, (ch) => '%' + ch.charCodeAt(0).toString(16).toUpperCase())}`, // RFC 5987: ' ( ) * ต้องเข้ารหัสด้วย (ชื่อคดีมีอักขระเหล่านี้ได้)
-      'Cache-Control': 'private, no-store', // อัปโหลดใหม่แล้วลิงก์เดิมต้องเห็นไฟล์ล่าสุดเสมอ
+      'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(name.toWellFormed()).replace(/['()*]/g, (ch) => '%' + ch.charCodeAt(0).toString(16).toUpperCase())}`, // RFC 5987
+      'Cache-Control': 'private, no-store',
       'X-Robots-Tag': 'noindex, nofollow',
       'Referrer-Policy': 'no-referrer',
       'Access-Control-Allow-Origin': '*',
+      'X-Case-Title': encodeURIComponent(title),
+      'X-Case-Updated': encodeURIComponent(String(row.updated_at || '')),
     },
   });
 });
