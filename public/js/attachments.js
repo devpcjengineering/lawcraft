@@ -610,9 +610,9 @@ export function tabAttachments() {
     
     <div class="upload-box" id="drop-zone">
       <div class="upload-icon">${icon('upload', { size: 50, stroke: 1.5 })}</div>
-      <div class="upload-text" id="upload-status-text">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
+      <div class="upload-text" id="upload-status-text">${S.ui.attachCurrentFile ? `เลือกไฟล์แล้ว: ${esc(S.ui.attachCurrentFile.name)}` : 'ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์'}</div>
       <div class="upload-subtext">รองรับไฟล์ PDF, JPG, PNG (ขนาดไม่เกิน 20MB) — เลือกแล้วแสดงตัวอย่างทันที</div>
-      <input type="file" id="attachFile" accept="application/pdf,image/png,image/jpeg" onchange="actions.onFileSelected(this)">
+      <input type="file" id="attachFile" accept="application/pdf,image/png,image/jpeg" data-onchange="onFileSelected">
     </div>
 
     <div class="attach-actions">
@@ -693,29 +693,43 @@ export function tabAttachments() {
       </div>
     `}
   </div>
-
-  <script>
-    // Drag & Drop visual feedback
-    const dropZone = document.getElementById('drop-zone');
-    if (dropZone) {
-      dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-      dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('drag-over');
-        const dt = e.dataTransfer;
-        if (dt && dt.files && dt.files.length) {
-          const inp = document.getElementById('attachFile');
-          if (inp) {
-            inp.files = dt.files;
-            document.getElementById('upload-status-text').innerText = 'เลือกไฟล์แล้ว: ' + dt.files[0].name;
-            actions.onFileSelected(inp);
-          }
-        }
-      });
-    }
-  </script>
   `;
+}
+
+// Drag & Drop visual feedback (ลงทะเบียนระดับ document ทำงานได้ตลอดทุกครั้งที่เปิดแท็บ)
+if (typeof document !== 'undefined') {
+  document.addEventListener('dragover', (e) => {
+    const dropZone = e.target.closest('#drop-zone');
+    if (dropZone) {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    }
+  });
+
+  document.addEventListener('dragleave', (e) => {
+    const dropZone = e.target.closest('#drop-zone');
+    if (dropZone) {
+      dropZone.classList.remove('drag-over');
+    }
+  });
+
+  document.addEventListener('drop', (e) => {
+    const dropZone = e.target.closest('#drop-zone');
+    if (dropZone) {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const dt = e.dataTransfer;
+      if (dt && dt.files && dt.files.length) {
+        const inp = document.getElementById('attachFile');
+        if (inp) {
+          inp.files = dt.files;
+          const statusEl = document.getElementById('upload-status-text');
+          if (statusEl) statusEl.innerText = 'เลือกไฟล์แล้ว: ' + dt.files[0].name;
+          actions.onFileSelected(inp);
+        }
+      }
+    }
+  });
 }
 
 // ---------------- Actions ----------------

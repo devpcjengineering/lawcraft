@@ -27,4 +27,5 @@ export function setPath(obj, path, value) {
 }
 
 export const actions = {};      // data-act → fn(el, ev)
+if (typeof window !== 'undefined') window.actions = actions;
 export const hooks = { changed: () => {}, rerender: () => {}, toast: () => {}, preview: () => {}, layoutLive: () => {}, api: null };
