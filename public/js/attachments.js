@@ -541,7 +541,7 @@ export function tabAttachments() {
 
       <label class="f s4">
         <span>หมายเลข</span>
-        <input type="text" value="${esc(S.ui.attachNum || '')}" data-bind="@ui.attachNum" data-oninput="onAttachNumChange" placeholder="เช่น 1 หรือ 2">
+        <input type="text" value="${esc(S.ui.attachNum || '')}" data-bind="@ui.attachNum" data-oninput="onAttachNumChange" placeholder="เช่น 1">
       </label>
     </div>
 
@@ -701,7 +701,14 @@ actions.delAttachment = async (el) => {
   if (!ok) return;
 
   if (S.c && Array.isArray(S.c.attachments)) {
+    const target = S.c.attachments.find(a => a.id === id);
+    if (target?.blobUrl) {
+      try { URL.revokeObjectURL(target.blobUrl); } catch (_) {}
+    }
     S.c.attachments = S.c.attachments.filter(a => a.id !== id);
+    if (S.ui.pvDoc === `att-${id}`) {
+      S.ui.pvDoc = 'complaint';
+    }
     hooks.changed();
     hooks.rerender();
     hooks.preview();
@@ -801,6 +808,7 @@ actions.stampAttachment = async (el) => {
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     const outputName = `${typeRaw}_${num || '1'}.pdf`;
+    const blobUrl = URL.createObjectURL(blob);
 
     // 4. บันทึกประวัติรายการเอกสารแนบท้ายลงในคดี (แสดงว่าเอกสารไหนแนบท้ายตัวไหน)
     const record = {
@@ -818,23 +826,24 @@ actions.stampAttachment = async (el) => {
       mode: mode,
       driveUrl: '',
       driveId: '',
+      blobUrl: blobUrl,
     };
 
     if (!Array.isArray(S.c.attachments)) S.c.attachments = [];
     S.c.attachments.unshift(record);
+    S.ui.pvDoc = `att-${record.id}`;
     hooks.changed();
     hooks.rerender();
     hooks.preview();
 
     if (mode === 'download') {
-      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
+      a.href = blobUrl;
       a.download = outputName;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      // ไม่ revoke ทันที เพื่อให้ preview pane ยังคงแสดงผลไฟล์จริงในเซสชันได้
       hooks.toast('สร้างและดาวน์โหลดไฟล์สำเร็จ');
     } else if (mode === 'drive') {
       uploadToGoogleDrive(blob, outputName, record);

@@ -6,6 +6,7 @@ import { syncWitnessSummons, newCase, indexLaw, caseTitle, caseLabel, validateCa
 import { buildDocuments, isPostFilingDoc } from '/shared/docs.js';
 import { resolveLayout, layoutCssVars } from '/shared/layout.js';
 import { docsHtml, docHtml, attachmentDocHtml } from './render-html.js';
+import { resolveCaseSigner } from './attachments.js';
 import { ageFromBirth, validCitizenId, maskCitizenId } from '/shared/thai.js';
 import { selectBackend } from './api.js';
 import { showBook, leaveBook } from './book.js';
@@ -610,8 +611,8 @@ function previewDocs() {
   for (const doc of docs) {
     result.push(doc);
 
-    // สำหรับคำฟ้อง ให้แทรกต่อจากคำขอท้ายฟ้อง (prayer) ถ้ามี หรือคำฟ้อง (complaint)
-    const isComplaintTarget = hasPrayer ? doc.id === 'prayer' : doc.id === 'complaint';
+    // สำหรับคำฟ้อง ให้แทรกต่อจากคำขอท้ายฟ้อง (prayer) ถ้ามี หรือคำฟ้อง (complaint) หรือคำให้การ (answer)
+    const isComplaintTarget = hasPrayer ? doc.id === 'prayer' : (doc.id === 'complaint' || doc.id === 'answer');
 
     for (const att of atts) {
       if (handled.has(att.id)) continue;
@@ -683,13 +684,15 @@ function renderPreview() {
   const oldZoom = parseFloat(inner.style.zoom) || 1;
   let sheetsHtml;
   if (doc.isAttachment) {
-    sheetsHtml = paginateHtml(attachmentDocHtml(doc.attachmentData));
+    const att = { ...doc.attachmentData };
+    if (!att.signer && S.c) att.signer = resolveCaseSigner(S.c).name;
+    sheetsHtml = attachmentDocHtml(att);
   } else {
     let rawHtml = docHtml(doc, S.data.layout);
     // แสดงเอกสารแนบต่อท้ายเอกสารที่เลือกในแผงตัวอย่างด้วย
     const atts = S.c?.attachments || [];
     const hasPrayer = docs.some((d) => d.id === 'prayer');
-    const isComplaintTarget = hasPrayer ? doc.id === 'prayer' : doc.id === 'complaint';
+    const isComplaintTarget = hasPrayer ? doc.id === 'prayer' : (doc.id === 'complaint' || doc.id === 'answer');
     const related = atts.filter((att) => {
       if (att.type === 'complaint') return isComplaintTarget;
       if (att.type?.startsWith('motion_')) {
@@ -700,10 +703,14 @@ function renderPreview() {
       if (att.type?.startsWith('evidence')) return doc.id === 'witness';
       return false;
     });
-    if (related.length) {
-      rawHtml += related.map(attachmentDocHtml).join('');
-    }
     sheetsHtml = paginateHtml(rawHtml);
+    if (related.length) {
+      sheetsHtml += related.map((att) => {
+        const a = { ...att };
+        if (!a.signer && S.c) a.signer = resolveCaseSigner(S.c).name;
+        return attachmentDocHtml(a);
+      }).join('');
+    }
   }
   const sheets = countSheets(sheetsHtml);
   if (same) morphInto(inner, sheetsHtml, { mark: false }); else inner.innerHTML = sheetsHtml;
@@ -819,7 +826,14 @@ async function guardExport() {
 
 async function viewDocs(docs, title) {
   await documentFontsReady();
-  const html = docs.map((d) => paginateHtml(docHtml(d, S.data.layout))).join('');
+  const html = docs.map((d) => {
+    if (d.isAttachment) {
+      const att = { ...d.attachmentData };
+      if (!att.signer && S.c) att.signer = resolveCaseSigner(S.c).name;
+      return attachmentDocHtml(att);
+    }
+    return paginateHtml(docHtml(d, S.data.layout));
+  }).join('');
   const win = window.open('', '_blank');
   if (!win) return alertBox('โปรดอนุญาต Pop-up ของเบราว์เซอร์ แล้วกดอีกครั้งเพื่อเปิดเอกสารในแท็บใหม่', { title: 'เปิดเอกสารไม่ได้', tone: 'warn' });
   win.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>${esc(title)}</title><base href="${location.origin}/"><link rel="stylesheet" href="css/doc.css">
