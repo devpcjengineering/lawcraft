@@ -108,4 +108,63 @@ export function docsHtml(docs, layout) {
   return docs.map((d) => docHtml(d, layout)).join('');
 }
 
+/** เรนเดอร์หน้าแผ่น A4 ตัวอย่างของเอกสารแนบท้าย */
+export function attachmentDocHtml(att) {
+  if (!att) return '';
+  const headerText = att.headerText || 'เอกสารแนบท้าย';
+  const headerPos = att.headerPos || 'center';
+  const signPos = att.signPos || 'center';
+  const signer = att.signer || '';
+  const filename = att.filename || 'เอกสารแนบ.pdf';
+  const pageCount = att.pageCount || 1;
+  const parentLabel = att.parentLabel || '';
+  const driveUrl = att.driveUrl || '';
+
+  const headerAlign = headerPos === 'right' ? 'text-align: right; margin-right: 15mm;' : 'text-align: center;';
+  const signAlign = signPos === 'right' ? 'margin-left: auto; margin-right: 15mm;' : 'margin: 0 auto;';
+
+  return `<section class="page att-preview-sheet" data-doc="att-${escRaw(att.id)}" style="display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; padding: 25mm 20mm 20mm 20mm; min-height: 297mm; width: 210mm; background: #ffffff; font-family: 'THSarabunIT9', 'Sarabun', sans-serif;">
+    <div style="${headerAlign} font-size: 16pt; font-weight: bold; color: #000000; line-height: 1.4; margin-bottom: 20px;">
+      ${esc(headerText)}
+    </div>
+
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed #cbd5e1; border-radius: 14px; background: #f8fafc; padding: 36px 24px; margin: 20px 0; text-align: center;">
+      <div style="width: 60px; height: 60px; border-radius: 16px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; box-shadow: 0 4px 12px rgba(37,99,235,0.12);">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"></path>
+        </svg>
+      </div>
+      
+      <div style="font-size: 16pt; font-weight: bold; color: #1e293b; margin-bottom: 6px; word-break: break-word; max-width: 90%; line-height: 1.3;">
+        ${escRaw(filename)}
+      </div>
+      
+      <div style="font-size: 14pt; color: #64748b; margin-bottom: 16px;">
+        จำนวน ${esc(pageCount)} หน้า ${parentLabel ? `· แนบท้าย ${esc(parentLabel)}` : ''}
+      </div>
+
+      ${driveUrl ? `
+        <a href="${escRaw(driveUrl)}" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #ffffff; padding: 9px 20px; border-radius: 10px; font-size: 14pt; text-decoration: none; font-weight: 500; box-shadow: 0 4px 14px rgba(37,99,235,0.25);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+          </svg>
+          เปิดดูเอกสารต้นฉบับใน Google Drive
+        </a>
+      ` : `
+        <div style="display: inline-block; background: #e2e8f0; color: #475569; padding: 6px 14px; border-radius: 8px; font-size: 13pt;">
+          เอกสารแนบประทับตราแล้ว
+        </div>
+      `}
+    </div>
+
+    <div style="${signAlign} width: 230px; text-align: center; font-size: 16pt; color: #000000; line-height: 1.6; margin-top: 20px;">
+      <div>สำเนาถูกต้อง</div>
+      <div style="margin: 8px 0;">ลงชื่อ ..........................................</div>
+      <div>( ${signer ? esc(signer) : '..........................................'} )</div>
+    </div>
+  </section>`;
+}
+
+
 

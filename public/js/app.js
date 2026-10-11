@@ -5,7 +5,7 @@ import { provinceList, refreshGeo, idStateHtml } from './ui.js';
 import { syncWitnessSummons, newCase, indexLaw, caseTitle, caseLabel, validateCase, newParty, uid, applyServiceAuto, isFiled, filedBadge, newWitness, splitCaseNo, migrateCaseYears, newCaseFor, sideOf } from '/shared/model.js';
 import { buildDocuments, isPostFilingDoc } from '/shared/docs.js';
 import { resolveLayout, layoutCssVars } from '/shared/layout.js';
-import { docsHtml, docHtml } from './render-html.js';
+import { docsHtml, docHtml, attachmentDocHtml } from './render-html.js';
 import { ageFromBirth, validCitizenId, maskCitizenId } from '/shared/thai.js';
 import { selectBackend } from './api.js';
 import { showBook, leaveBook } from './book.js';
@@ -179,7 +179,7 @@ async function checkUpdate() {
             <span style="width:6px;height:6px;border-radius:50%;background:#3b82f6;"></span>
             <span>v.${vText}</span>
           </div>
-          <p style="font-size:15px;color:#475569;line-height:1.6;margin:0 0 24px;">กรุณารีเฟรชหรือล้างแคชหน้าเว็บเพื่อเข้าใช้งาน<br><span style="color:#64748b;font-size:13.5px;">เพื่อป้องกันปัญหาการระบบขัดข้อง</span></p>
+          <p style="font-size:15px;color:#475569;line-height:1.6;margin:0 0 24px;">กรุณารีเฟรชหรือล้างแคชหน้าเว็บเพื่อเข้าใช้งาน<br><span style="color:#64748b;font-size:13.5px;">เพื่อป้องกันปัญหารระบบขัดข้อง</span></p>
           <button type="button" onclick="location.reload(true)" style="width:100%;padding:14px 24px;font-size:16px;font-weight:600;font-family:inherit;color:#ffffff;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:14px;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,0.35);transition:all .2s ease;display:flex;align-items:center;justify-content:center;gap:8px;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
             รีเฟรชหน้าเว็บ
@@ -192,7 +192,7 @@ async function checkUpdate() {
       </style>
       `);
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 window.addEventListener('focus', checkUpdate);
 setTimeout(checkUpdate, 2000);
@@ -295,10 +295,6 @@ async function showHome() {
           ${authUi.isSharedWithMe(x) ? `<button class="btn sm danger" data-act="leaveCase" data-id="${esc(x.id)}" title="เลิกร่วมแก้ไขคดีนี้ (ไม่ลบคดีของเจ้าของ)">ออกจากคดี</button>` : `<button class="btn sm danger" data-act="delCase" data-id="${esc(x.id)}">ลบ</button>`}</div></div>`).join('')}</div>`
       : `<div class="empty-state"><span class="es-ico">${ico2('folder')}</span><b>ยังไม่มีคดีที่บันทึกไว้</b><p>เริ่มจากกดปุ่ม “คดีอาญา” หรือ “คดีแพ่ง” ด้านบน ระบบจะบันทึกให้อัตโนมัติทุกครั้งที่แก้ไข</p></div>`}</section>
     <footer class="home-foot">
-      <div class="home-foot-note">
-        ${ico2('info')}
-        <span>แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม (สำนักงานศาลยุติธรรม) · ข้อมูลกฎหมายเป็นเครื่องมือช่วยร่าง ผู้ใช้ต้องตรวจสอบความถูกต้องก่อนยื่นต่อศาลทุกครั้ง</span>
-      </div>
       <div class="home-foot-ver">
         <span class="hfv-dot"></span>
         <span>เวอร์ชัน <b>v.${APP_VERSION}</b></span>
@@ -434,7 +430,7 @@ actions.goTab = (el) => {
 };
 /** เปลี่ยนหน้าแบบจางข้ามกัน (View Transitions) ถ้าเบราว์เซอร์รองรับ ไม่งั้นสลับทันที */
 /** การเปลี่ยนที่ถูกอันใหม่ข้าม (AbortError) ไม่ใช่ข้อผิดพลาด — กันขึ้น unhandled rejection ในคอนโซล */
-const quietVT = (t) => { for (const k of ['ready', 'finished', 'updateCallbackDone']) t?.[k]?.catch?.(() => {}); return t; };
+const quietVT = (t) => { for (const k of ['ready', 'finished', 'updateCallbackDone']) t?.[k]?.catch?.(() => { }); return t; };
 function smoothSwap(fn) {
   if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) { try { quietVT(document.startViewTransition(fn)); return; } catch { /* fallthrough */ } }
   fn();
@@ -586,21 +582,76 @@ const isDocOf = (d, key) => d.id === key || d.id.startsWith(key + '-') || (key =
 function previewDocs() {
   const docs = currentDocs();
   const key = S.tab === 'layout' ? LAYOUT_DOCKEY[S.ui.layoutForm] : null;
-  if (!key || docs.some((d) => isDocOf(d, key))) return docs;
-  // สร้างตัวอย่างเฉพาะแบบนี้จากสำเนาคดี (เติมข้อมูลตัวอย่างเท่าที่จำเป็น) — ไม่กระทบคดีจริงและชุดที่ออกเอกสาร
-  const tmp = structuredClone(S.c);
-  if (key === 'service' && tmp.service.mode === 'none') tmp.service.mode = 'cross-post';
-  if (key === 'summons') tmp.type = 'criminal';
-  if (key === 'witnessExtra' && !(tmp.witnesses || []).some((w) => w.extra && (w.name || '').trim())) tmp.witnesses = [...(tmp.witnesses || []), { ...newWitness('person', true), name: 'นายตัวอย่าง พยานเพิ่มเติม' }];
-  if (key === 'motions' && !tmp.motions.length) tmp.motions = [{ id: 'sample', title: 'ตัวอย่างคำร้อง', text: 'โจทก์ขอยื่นคำร้องนี้เพื่อประกอบการพิจารณาของศาล\n\nขอศาลได้โปรดพิจารณา' }];
-  if (key === 'attachment') {
-    for (const role of ['plaintiff', 'defendant']) {
-      const list = tmp.parties.filter((p) => p.role === role);
-      if (list.length < 2) tmp.parties.push({ ...structuredClone(list[0] || newParty(role)), id: uid(), first: (list[0]?.first || 'ตัวอย่าง') + ' (คนที่ 2)' });
+  if (key && !docs.some((d) => isDocOf(d, key))) {
+    // สร้างตัวอย่างเฉพาะแบบนี้จากสำเนาคดี (เติมข้อมูลตัวอย่างเท่าที่จำเป็น) — ไม่กระทบคดีจริงและชุดที่ออกเอกสาร
+    const tmp = structuredClone(S.c);
+    if (key === 'service' && tmp.service.mode === 'none') tmp.service.mode = 'cross-post';
+    if (key === 'summons') tmp.type = 'criminal';
+    if (key === 'witnessExtra' && !(tmp.witnesses || []).some((w) => w.extra && (w.name || '').trim())) tmp.witnesses = [...(tmp.witnesses || []), { ...newWitness('person', true), name: 'นายตัวอย่าง พยานเพิ่มเติม' }];
+    if (key === 'motions' && !tmp.motions.length) tmp.motions = [{ id: 'sample', title: 'ตัวอย่างคำร้อง', text: 'โจทก์ขอยื่นคำร้องนี้เพื่อประกอบการพิจารณาของศาล\n\nขอศาลได้โปรดพิจารณา' }];
+    if (key === 'attachment') {
+      for (const role of ['plaintiff', 'defendant']) {
+        const list = tmp.parties.filter((p) => p.role === role);
+        if (list.length < 2) tmp.parties.push({ ...structuredClone(list[0] || newParty(role)), id: uid(), first: (list[0]?.first || 'ตัวอย่าง') + ' (คนที่ 2)' });
+      }
+    }
+    const extra = buildDocuments(tmp, S.data, [key]);
+    if (extra.length) docs.push(...extra);
+  }
+
+  // แทรกเอกสารแนบท้ายต่อจากเอกสารที่เลือก / เอกสารหลัก
+  const atts = S.c?.attachments || [];
+  if (!atts.length) return docs;
+
+  const result = [];
+  const handled = new Set();
+  const hasPrayer = docs.some((d) => d.id === 'prayer');
+
+  for (const doc of docs) {
+    result.push(doc);
+
+    // สำหรับคำฟ้อง ให้แทรกต่อจากคำขอท้ายฟ้อง (prayer) ถ้ามี หรือคำฟ้อง (complaint)
+    const isComplaintTarget = hasPrayer ? doc.id === 'prayer' : doc.id === 'complaint';
+
+    for (const att of atts) {
+      if (handled.has(att.id)) continue;
+      let match = false;
+      if (att.type === 'complaint' && isComplaintTarget) match = true;
+      else if (att.type?.startsWith('motion_')) {
+        const mid = att.type.replace('motion_', '');
+        if (doc.id === `motion-${mid}` || doc.id === mid) match = true;
+      } else if (att.type === 'motion' && doc.id.startsWith('motion-')) {
+        match = true;
+      } else if (att.type?.startsWith('evidence') && doc.id === 'witness') {
+        match = true;
+      }
+
+      if (match) {
+        handled.add(att.id);
+        result.push({
+          id: `att-${att.id}`,
+          title: `📎 ${att.headerText || 'เอกสารแนบท้าย'} (${att.filename || 'PDF'})`,
+          isAttachment: true,
+          attachmentData: att,
+          blocks: [],
+        });
+      }
     }
   }
-  const extra = buildDocuments(tmp, S.data, [key]);
-  return extra.length ? [...docs, ...extra] : docs;
+
+  for (const att of atts) {
+    if (!handled.has(att.id)) {
+      result.push({
+        id: `att-${att.id}`,
+        title: `📎 ${att.headerText || 'เอกสารแนบท้าย'} (${att.filename || 'PDF'})`,
+        isAttachment: true,
+        attachmentData: att,
+        blocks: [],
+      });
+    }
+  }
+
+  return result;
 }
 
 function renderPreview() {
@@ -630,7 +681,30 @@ function renderPreview() {
   const same = inner.dataset.doc === doc.id;
   const keepTop = sc.scrollTop, keepLeft = sc.scrollLeft;
   const oldZoom = parseFloat(inner.style.zoom) || 1;
-  const sheetsHtml = paginateHtml(docHtml(doc, S.data.layout));
+  let sheetsHtml;
+  if (doc.isAttachment) {
+    sheetsHtml = paginateHtml(attachmentDocHtml(doc.attachmentData));
+  } else {
+    let rawHtml = docHtml(doc, S.data.layout);
+    // แสดงเอกสารแนบต่อท้ายเอกสารที่เลือกในแผงตัวอย่างด้วย
+    const atts = S.c?.attachments || [];
+    const hasPrayer = docs.some((d) => d.id === 'prayer');
+    const isComplaintTarget = hasPrayer ? doc.id === 'prayer' : doc.id === 'complaint';
+    const related = atts.filter((att) => {
+      if (att.type === 'complaint') return isComplaintTarget;
+      if (att.type?.startsWith('motion_')) {
+        const mid = att.type.replace('motion_', '');
+        return doc.id === `motion-${mid}` || doc.id === mid;
+      }
+      if (att.type === 'motion') return doc.id.startsWith('motion-');
+      if (att.type?.startsWith('evidence')) return doc.id === 'witness';
+      return false;
+    });
+    if (related.length) {
+      rawHtml += related.map(attachmentDocHtml).join('');
+    }
+    sheetsHtml = paginateHtml(rawHtml);
+  }
   const sheets = countSheets(sheetsHtml);
   if (same) morphInto(inner, sheetsHtml, { mark: false }); else inner.innerHTML = sheetsHtml;
   inner.classList.toggle('pv-guides', !!S.ui.guides);

@@ -3,6 +3,7 @@ import { group, field, select, pageHead } from './ui.js';
 import { icon } from './icons.js';
 import { sideOf, partyLabel, partyName, plaintiffs, defendants } from '/shared/model.js';
 import { toThaiDigits } from '/shared/thai.js';
+import { confirmBox } from './modal.js';
 import { backend } from './api.js';
 
 // Load pdf-lib and fontkit lazily
@@ -22,7 +23,7 @@ async function getFontBytes() {
   return fontBytes;
 }
 
-/** ตรวจหาผู้ลงลายมือชื่ออัตโนมัติจากฝั่งคดี (ทนายความ -> ผู้รับมอบอำนาจ -> คู่ความตัวจริง) */
+/** ตรวจหาผู้ลงลายมือชื่ออัตโนมัติตามฝั่งคดี (ทนายความ -> ผู้รับมอบอำนาจ -> คู่ความตัวจริง) */
 export function resolveCaseSigner(c) {
   if (!c) return { name: '', role: '', full: '' };
   const isDef = sideOf(c) === 'defendant';
@@ -63,41 +64,41 @@ export function resolveCaseSigner(c) {
   return { name: '', role: sideWord, full: '' };
 }
 
-/** คำนวณหมายเลขเอกสารถัดไปอัตโนมัติ */
-function getAutoNum(c, typeRaw) {
-  if (!c) return '๑';
-  const list = c.attachments || [];
-  let nextNum = 1;
-
-  if (typeRaw.startsWith('evidence_')) {
-    const wid = typeRaw.replace('evidence_', '');
-    let docIdx = 1;
-    let found = 1;
-    (c.witnesses || []).forEach(w => {
-      if (w.kind === 'document' || w.kind === 'object') {
-        if (w.id === wid) found = docIdx;
-        docIdx++;
-      }
-    });
-    nextNum = found;
-  } else if (typeRaw === 'evidence') {
-    nextNum = list.filter(a => (a.type || '').startsWith('evidence')).length + 1;
-  } else if (typeRaw.startsWith('motion_') || typeRaw === 'motion') {
-    nextNum = list.filter(a => a.type === typeRaw).length + 1;
-  } else {
-    // complaint
-    nextNum = list.filter(a => a.type === 'complaint').length + 1;
+/** ดึงชื่อประเภทเอกสารหลัก เช่น คำฟ้อง, คำให้การ, คำร้อง, คำแถลง, คำขอ, พยานเอกสาร */
+export function getDocTypeName(c, typeRaw) {
+  const isDef = sideOf(c) === 'defendant';
+  if (typeRaw === 'complaint') {
+    return isDef ? 'คำให้การ' : 'คำฟ้อง';
   }
-
-  return c.options?.thaiDigits !== false ? toThaiDigits(nextNum) : String(nextNum);
+  if (typeRaw.startsWith('motion_')) {
+    const mid = typeRaw.replace('motion_', '');
+    if (mid === 'statement') return 'คำแถลง';
+    if (mid === 'petition') return 'คำขอ';
+    if (mid === 'request') return 'คำร้อง';
+    const m = (c?.motions || []).find(x => x.id === mid);
+    if (m) {
+      if (m.kind) return m.kind;
+      if (m.title?.startsWith('คำแถลง')) return 'คำแถลง';
+      if (m.title?.startsWith('คำขอ')) return 'คำขอ';
+      if (m.title?.startsWith('คำร้อง')) return 'คำร้อง';
+    }
+    return 'คำร้อง';
+  }
+  if (typeRaw === 'motion') return 'คำร้อง';
+  if (typeRaw.startsWith('evidence_') || typeRaw === 'evidence') {
+    return 'พยานเอกสาร';
+  }
+  return 'คำฟ้อง';
 }
 
-/** ข้อความหัวเอกสารเริ่มต้น */
-function getDefaultHeader(typeRaw, num) {
-  if (typeRaw.startsWith('evidence_') || typeRaw === 'evidence') {
-    return `พยานเอกสาร หมายเลข ${num}`;
+/** ข้อความหัวเอกสารเริ่มต้นตามประเภทเอกสารที่ระบุ (คำฟ้อง / คำร้อง / คำแถลง / คำขอ) พร้อมเลขไทย */
+export function getDefaultHeader(c, typeRaw, num) {
+  const docType = getDocTypeName(c, typeRaw);
+  const thaiNum = num ? toThaiDigits(num) : '';
+  if (docType === 'พยานเอกสาร') {
+    return thaiNum ? `พยานเอกสาร หมายเลข ${thaiNum}` : 'พยานเอกสาร หมายเลข ';
   }
-  return `เอกสารแนบท้ายหมายเลข ${num}`;
+  return thaiNum ? `เอกสารแนบท้าย${docType} หมายเลข ${thaiNum}` : `เอกสารแนบท้าย${docType} หมายเลข `;
 }
 
 /** คำอธิบายเอกสารหลักที่เอกสารนี้แนบท้าย */
@@ -108,8 +109,12 @@ function getParentLabel(c, typeRaw) {
   }
   if (typeRaw.startsWith('motion_')) {
     const mid = typeRaw.replace('motion_', '');
+    if (mid === 'statement') return 'คำแถลง';
+    if (mid === 'petition') return 'คำขอ';
+    if (mid === 'request') return 'คำร้อง';
     const m = (c.motions || []).find(x => x.id === mid);
-    return `คำร้อง: ${m?.title || 'คำร้อง/คำแถลง'}`;
+    const kind = m?.kind || (m?.title?.startsWith('คำแถลง') ? 'คำแถลง' : m?.title?.startsWith('คำขอ') ? 'คำขอ' : 'คำร้อง');
+    return m?.title ? `${kind}: ${m.title}` : kind;
   }
   if (typeRaw === 'motion') {
     return 'คำร้อง/คำแถลง';
@@ -144,17 +149,20 @@ export function tabAttachments() {
 
   const isDef = sideOf(c) === 'defendant';
 
-  // 1. ตัวเลือกประเภทเอกสารแนบ
+  // 1. ตัวเลือกประเภทเอกสารแนบ (คำฟ้อง, คำร้อง, คำแถลง, คำขอ, พยานเอกสาร)
   const typeOptions = [];
   typeOptions.push(['complaint', isDef ? 'แนบท้ายคำให้การ' : 'แนบท้ายคำฟ้อง']);
 
   if (c.motions && c.motions.length > 0) {
     c.motions.forEach(m => {
-      const t = m.title || 'คำร้อง/คำแถลง';
-      typeOptions.push([`motion_${m.id}`, `แนบท้ายคำร้อง: ${t}`]);
+      const kind = m.kind || (m.title?.startsWith('คำแถลง') ? 'คำแถลง' : m.title?.startsWith('คำขอ') ? 'คำขอ' : 'คำร้อง');
+      const t = m.title ? `${kind}: ${m.title}` : kind;
+      typeOptions.push([`motion_${m.id}`, `แนบท้าย${t}`]);
     });
   } else {
-    typeOptions.push(['motion', 'แนบท้ายคำร้อง/คำแถลง']);
+    typeOptions.push(['motion_request', 'แนบท้ายคำร้อง']);
+    typeOptions.push(['motion_statement', 'แนบท้ายคำแถลง']);
+    typeOptions.push(['motion_petition', 'แนบท้ายคำขอ']);
   }
 
   let docIdx = 1;
@@ -171,7 +179,7 @@ export function tabAttachments() {
     });
   }
   if (!hasDocs) {
-    typeOptions.push(['evidence', 'พยานเอกสาร (ยังไม่มีในบัญชี)']);
+    typeOptions.push(['evidence', 'พยานเอกสาร']);
   }
 
   if (!S.ui.attachType || !typeOptions.find(o => o[0] === S.ui.attachType)) {
@@ -184,38 +192,39 @@ export function tabAttachments() {
     S.ui.attachName = autoSigner.name;
   }
 
-  // 3. ซิงก์หมายเลขและข้อความหัวเอกสารอัตโนมัติ
+  // 3. หมายเลขเอกสาร (ไม่ต้องขึ้นอัตโนมัติ ให้เป็นช่องว่างไว้รอผู้ใช้กรอก)
+  if (S.ui.attachNum === undefined) {
+    S.ui.attachNum = '';
+  }
+
+  // 4. ซิงก์ข้อความหัวเอกสารเริ่มต้น
   if (S.ui.attachLastType !== S.ui.attachType) {
     S.ui.attachLastType = S.ui.attachType;
-    S.ui.attachNum = getAutoNum(c, S.ui.attachType);
-    S.ui.attachHeaderText = getDefaultHeader(S.ui.attachType, S.ui.attachNum);
-  }
-  if (!S.ui.attachNum) {
-    S.ui.attachNum = getAutoNum(c, S.ui.attachType);
+    S.ui.attachHeaderText = getDefaultHeader(c, S.ui.attachType, S.ui.attachNum);
   }
   if (!S.ui.attachHeaderText) {
-    S.ui.attachHeaderText = getDefaultHeader(S.ui.attachType, S.ui.attachNum);
+    S.ui.attachHeaderText = getDefaultHeader(c, S.ui.attachType, S.ui.attachNum);
   }
 
-  // 4. ตำแหน่งเริ่มต้น (กึ่งกลาง หรือ มุมขวา)
-  if (!S.ui.attachHeaderPos) S.ui.attachHeaderPos = 'right';
-  if (!S.ui.attachSignPos) S.ui.attachSignPos = 'right';
+  // 5. ตำแหน่งเริ่มต้น: กึ่งกลางหน้ากระดาษ
+  if (!S.ui.attachHeaderPos) S.ui.attachHeaderPos = 'center';
+  if (!S.ui.attachSignPos) S.ui.attachSignPos = 'center';
 
   const headerPosOptions = [
-    ['right', 'มุมขวาบน (มาตรฐาน)'],
-    ['center', 'กึ่งกลางหน้ากระดาษ (ด้านบน)']
+    ['center', 'กึ่งกลางหน้ากระดาษ'],
+    ['right', 'มุมขวาบน']
   ];
 
   const signPosOptions = [
-    ['right', 'มุมขวาล่าง (มาตรฐาน)'],
-    ['center', 'กึ่งกลางหน้ากระดาษ (ด้านล่าง)']
+    ['center', 'กึ่งกลางหน้ากระดาษ'],
+    ['right', 'มุมขวาล่าง']
   ];
 
-  // 5. รายการประวัติเอกสารแนบ
+  // 6. รายการประวัติเอกสารแนบ
   const attachments = c.attachments || [];
 
   return `
-  ${pageHead('จัดการเอกสารแนบ', 'อัปโหลดไฟล์ PDF หรือรูปภาพ ประทับตราหัวเอกสาร "เอกสารแนบท้ายหมายเลข..." ขนาด 16 พร้อมสำเนาถูกต้องและลงชื่ออัตโนมัติ')}
+  ${pageHead('จัดการเอกสารแนบ', 'อัปโหลดไฟล์ PDF หรือรูปภาพ ประทับตราหัวเอกสาร "เอกสารแนบท้าย..." ขนาด 16 พร้อมสำเนาถูกต้องและลงชื่อ')}
   
   <style>
     .attach-panel {
@@ -281,11 +290,9 @@ export function tabAttachments() {
       flex: 1;
     }
     .auto-signer-label {
-      font-size: 0.82em;
+      font-size: 0.86em;
       font-weight: 600;
       color: #047857;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
       margin-bottom: 2px;
     }
     .auto-signer-name {
@@ -376,10 +383,10 @@ export function tabAttachments() {
     
     /* รายการเอกสารแนบ */
     .att-table-wrap {
-      overflow-x: auto;
       border: 1px solid var(--border, #e2e8f0);
       border-radius: 12px;
       margin-top: 12px;
+      background: #ffffff;
     }
     .att-table {
       width: 100%;
@@ -389,14 +396,14 @@ export function tabAttachments() {
     }
     .att-table th {
       background: #f8fafc;
-      padding: 12px 16px;
+      padding: 14px 16px;
       font-weight: 600;
       color: #475569;
       border-bottom: 1px solid #e2e8f0;
       white-space: nowrap;
     }
     .att-table td {
-      padding: 14px 16px;
+      padding: 16px;
       border-bottom: 1px solid #f1f5f9;
       vertical-align: middle;
     }
@@ -409,11 +416,12 @@ export function tabAttachments() {
     .badge-att-num {
       display: inline-block;
       font-weight: 600;
-      color: #1e3a8a;
-      background: #dbeafe;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.9em;
+      color: #1e40af;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.92em;
       white-space: nowrap;
     }
     .badge-att-parent {
@@ -423,8 +431,9 @@ export function tabAttachments() {
       font-weight: 500;
       color: #6b21a8;
       background: #f3e8ff;
-      padding: 4px 10px;
-      border-radius: 6px;
+      border: 1px solid #e9d5ff;
+      padding: 5px 12px;
+      border-radius: 8px;
       font-size: 0.88em;
       white-space: nowrap;
     }
@@ -435,13 +444,15 @@ export function tabAttachments() {
       background: #9333ea;
     }
     .att-file-title {
-      font-weight: 500;
+      font-weight: 600;
       color: #1e293b;
-      margin-bottom: 2px;
-      word-break: break-all;
+      margin-bottom: 4px;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      line-height: 1.4;
     }
     .att-file-meta {
-      font-size: 0.82em;
+      font-size: 0.84em;
       color: #64748b;
     }
     .att-actions-col {
@@ -452,13 +463,13 @@ export function tabAttachments() {
       white-space: nowrap;
     }
     .btn-xs {
-      padding: 5px 10px;
-      font-size: 0.85em;
+      padding: 6px 12px;
+      font-size: 0.88em;
       border-radius: 6px;
     }
     .empty-attach-box {
       text-align: center;
-      padding: 36px 16px;
+      padding: 40px 16px;
       background: #f8fafc;
       border-radius: 12px;
       border: 1px dashed #cbd5e1;
@@ -466,10 +477,10 @@ export function tabAttachments() {
     }
     .empty-attach-icon {
       color: #94a3b8;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .empty-attach-text {
-      font-weight: 500;
+      font-weight: 600;
       color: #334155;
       font-size: 1.05em;
     }
@@ -490,11 +501,11 @@ export function tabAttachments() {
       </div>
     </div>
 
-    <!-- บัตรระบุผู้ลงลายมือชื่ออัตโนมัติตามฝั่งคดี -->
+    <!-- บัตรระบุผู้ลงลายมือชื่อ -->
     <div class="auto-signer-banner">
       <div class="auto-signer-icon">${icon('userCheck', { size: 24 })}</div>
       <div class="auto-signer-body">
-        <div class="auto-signer-label">ผู้ลงลายมือชื่อรับรองสำเนา (ระบบระบุให้อัตโนมัติสำหรับฝั่ง${isDef ? 'จำเลย' : 'โจทก์'})</div>
+        <div class="auto-signer-label">ผู้ลงลายมือชื่อรับรองสำเนา</div>
         <div class="auto-signer-name">
           ${esc(autoSigner.name || 'ยังไม่ได้ระบุชื่อในข้อมูลคดี')}
           ${autoSigner.role ? `<span class="auto-signer-role-tag">${esc(autoSigner.role)}</span>` : ''}
@@ -512,17 +523,17 @@ export function tabAttachments() {
 
       <label class="f s4">
         <span>หมายเลข</span>
-        <input type="text" value="${esc(S.ui.attachNum)}" data-bind="@ui.attachNum" data-oninput="onAttachNumChange" placeholder="เช่น ๑ หรือ 1">
+        <input type="text" value="${esc(S.ui.attachNum || '')}" data-bind="@ui.attachNum" data-oninput="onAttachNumChange" placeholder="เช่น 1 หรือ 2">
       </label>
     </div>
 
     ${group('', `
-      ${field('ข้อความหัวเอกสาร (ขนาด 16)', '@ui.attachHeaderText', { cls: 's8', ph: 'เช่น เอกสารแนบท้ายหมายเลข ๑' })}
+      ${field('ข้อความหัวเอกสาร (ขนาด 16)', '@ui.attachHeaderText', { cls: 's8', ph: 'เช่น เอกสารแนบท้ายคำฟ้อง หมายเลข ๑' })}
       ${select('ตำแหน่งหัวเอกสาร', '@ui.attachHeaderPos', headerPosOptions, { cls: 's4' })}
     `)}
 
     ${group('', `
-      ${field('ชื่อผู้ลงนามบนเอกสาร (ปรับเปลี่ยนได้หากต้องการ)', '@ui.attachName', { cls: 's8', ph: 'ชื่อ-นามสกุล ผู้ลงลายมือชื่อ' })}
+      ${field('ชื่อผู้ลงนามบนเอกสาร', '@ui.attachName', { cls: 's8', ph: 'ชื่อ-นามสกุล ผู้ลงลายมือชื่อ' })}
       ${select('ตำแหน่งลายมือชื่อ', '@ui.attachSignPos', signPosOptions, { cls: 's4' })}
     `)}
   </div>
@@ -571,8 +582,8 @@ export function tabAttachments() {
         <table class="att-table">
           <thead>
             <tr>
-              <th style="width: 25%;">หมายเลขเอกสาร</th>
-              <th style="width: 28%;">แนบท้ายเอกสารหลัก</th>
+              <th style="width: 28%;">หมายเลขเอกสาร</th>
+              <th style="width: 25%;">แนบท้ายเอกสารหลัก</th>
               <th style="width: 32%;">ชื่อไฟล์และรายละเอียด</th>
               <th style="text-align: right; width: 15%;">จัดการ</th>
             </tr>
@@ -581,7 +592,7 @@ export function tabAttachments() {
             ${attachments.map(att => `
               <tr>
                 <td>
-                  <span class="badge-att-num">${esc(att.headerText || ('หมายเลข ' + att.num))}</span>
+                  <span class="badge-att-num">${esc(att.headerText || ('หมายเลข ' + toThaiDigits(att.num || '')))}</span>
                 </td>
                 <td>
                   <span class="badge-att-parent">
@@ -644,25 +655,38 @@ export function tabAttachments() {
 
 actions.onAttachTypeChange = (el) => {
   S.ui.attachType = el.value;
-  S.ui.attachNum = getAutoNum(S.c, el.value);
-  S.ui.attachHeaderText = getDefaultHeader(el.value, S.ui.attachNum);
+  S.ui.attachHeaderText = getDefaultHeader(S.c, el.value, S.ui.attachNum);
+  const hInp = document.querySelector('[data-bind="@ui.attachHeaderText"]');
+  if (hInp) hInp.value = S.ui.attachHeaderText;
   hooks.rerender();
 };
 
 actions.onAttachNumChange = (el) => {
   S.ui.attachNum = el.value;
-  S.ui.attachHeaderText = getDefaultHeader(S.ui.attachType || 'complaint', el.value);
+  S.ui.attachHeaderText = getDefaultHeader(S.c, S.ui.attachType || 'complaint', el.value);
   const hInp = document.querySelector('[data-bind="@ui.attachHeaderText"]');
   if (hInp) hInp.value = S.ui.attachHeaderText;
 };
 
-actions.delAttachment = (el) => {
+actions.delAttachment = async (el) => {
   const id = el.dataset.id;
-  if (!confirm('ต้องการลบประวัติรายการเอกสารแนบนี้ออกจากคดีหรือไม่?')) return;
+  const att = (S.c?.attachments || []).find(a => a.id === id);
+  const name = att ? (att.headerText || att.filename || 'เอกสารนี้') : 'เอกสารนี้';
+
+  const ok = await confirmBox(`ต้องการลบประวัติรายการ "${name}" ออกจากคดีหรือไม่?`, {
+    title: 'ยืนยันการลบเอกสารแนบ',
+    okText: 'ลบรายการ',
+    cancelText: 'ยกเลิก',
+    danger: true,
+  });
+
+  if (!ok) return;
+
   if (S.c && Array.isArray(S.c.attachments)) {
     S.c.attachments = S.c.attachments.filter(a => a.id !== id);
     hooks.changed();
     hooks.rerender();
+    hooks.preview();
     hooks.toast('ลบรายการเอกสารแนบแล้ว');
   }
 };
@@ -673,11 +697,13 @@ actions.stampAttachment = async (el) => {
   const file = fileInput.files[0];
 
   const typeRaw = S.ui.attachType || 'complaint';
-  const num = S.ui.attachNum || getAutoNum(S.c, typeRaw);
+  const num = S.ui.attachNum || '';
   const name = S.ui.attachName !== undefined ? S.ui.attachName : resolveCaseSigner(S.c).name;
-  const headerPos = S.ui.attachHeaderPos || 'right';
-  const signPos = S.ui.attachSignPos || 'right';
-  const headerText = S.ui.attachHeaderText || getDefaultHeader(typeRaw, num);
+  const headerPos = S.ui.attachHeaderPos || 'center';
+  const signPos = S.ui.attachSignPos || 'center';
+  const rawHeaderText = S.ui.attachHeaderText || getDefaultHeader(S.c, typeRaw, num);
+  // แปลงเลขอารบิกในหัวกระดาษเป็นเลขไทยเสมอตามแบบศาล
+  const headerText = toThaiDigits(rawHeaderText);
   const mode = el.dataset.mode;
 
   hooks.toast('กำลังประมวลผลไฟล์...');
@@ -712,7 +738,7 @@ actions.stampAttachment = async (el) => {
     const textSize = 16;
     const color = PDFLib.rgb(0, 0, 0);
 
-    // 2. ประทับตราหัวกระดาษ "เอกสารแนบท้ายหมายเลข...." ขนาด 16
+    // 2. ประทับตราหัวกระดาษ "เอกสารแนบท้าย..." ขนาด 16
     const hw = customFont.widthOfTextAtSize(headerText, textSize);
     let hX;
     if (headerPos === 'center') {
@@ -756,7 +782,7 @@ actions.stampAttachment = async (el) => {
 
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-    const outputName = `${typeRaw}_${num}.pdf`;
+    const outputName = `${typeRaw}_${num || '1'}.pdf`;
 
     // 4. บันทึกประวัติรายการเอกสารแนบท้ายลงในคดี (แสดงว่าเอกสารไหนแนบท้ายตัวไหน)
     const record = {
@@ -765,6 +791,8 @@ actions.stampAttachment = async (el) => {
       parentLabel: getParentLabel(S.c, typeRaw),
       num: num,
       headerText: headerText,
+      headerPos: headerPos,
+      signPos: signPos,
       filename: file.name,
       signer: name,
       pageCount: pages.length,
@@ -778,6 +806,7 @@ actions.stampAttachment = async (el) => {
     S.c.attachments.unshift(record);
     hooks.changed();
     hooks.rerender();
+    hooks.preview();
 
     if (mode === 'download') {
       const url = URL.createObjectURL(blob);
@@ -790,7 +819,6 @@ actions.stampAttachment = async (el) => {
       URL.revokeObjectURL(url);
       hooks.toast('สร้างและดาวน์โหลดไฟล์สำเร็จ');
     } else if (mode === 'drive') {
-      // เรียกใช้ฟังก์ชันอัปโหลดเข้า Drive
       uploadToGoogleDrive(blob, outputName, record);
     }
   } catch (err) {
@@ -804,7 +832,7 @@ let gTokenClient;
 const GOOGLE_API_KEY = window.GOOGLE_API_KEY || 'AIzaSyBIRxZF7obWCoLR4Nd7xUUjAGFxiyHHXe8';
 
 async function uploadToGoogleDrive(blob, filename, record) {
-  // 1. ดึง provider_token จาก Supabase Auth (ที่ขอสิทธิ์ Google Drive ไว้ตอนล็อกอิน)
+  // 1. ดึง provider_token จาก Supabase Auth
   let token = null;
   try {
     if (backend && backend.providerToken) {
@@ -818,7 +846,7 @@ async function uploadToGoogleDrive(blob, filename, record) {
     return executeDriveUpload(token, blob, filename, record);
   }
 
-  // 2. ถ้ามี Google OAuth Client ID ระบุไว้ ให้ใช้ Google Identity Services
+  // 2. ถ้ามี Google OAuth Client ID
   if (window.GOOGLE_CLIENT_ID) {
     if (!window.google) {
       hooks.toast('กำลังโหลด Google API...');
@@ -832,7 +860,7 @@ async function uploadToGoogleDrive(blob, filename, record) {
     return;
   }
 
-  // 3. ถ้าไม่มีทั้ง Provider Token และ Client ID: แจ้งเตือนผู้ใช้ให้ล็อกอินด้วย Google เพื่อเปิดสิทธิ์
+  // 3. ขอสิทธิ์ผ่าน Google
   hooks.toast('ยังไม่ได้รับสิทธิ์เข้าถึง Google Drive');
   const relogin = confirm('ยังไม่พบสิทธิ์ Google Drive สำหรับบัญชีนี้ (หรือเซสชันหมดอายุ)\n\nต้องการเข้าสู่ระบบด้วย Google อีกครั้งเพื่ออนุญาตสิทธิ์เข้าถึง Google Drive ทันทีหรือไม่?');
   if (relogin && backend && backend.signInWithGoogle) {
@@ -883,6 +911,7 @@ async function executeDriveUpload(accessToken, blob, filename, record) {
         record.driveUrl = data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`;
         hooks.changed();
         hooks.rerender();
+        hooks.preview();
       }
       hooks.toast('อัปโหลดขึ้น Google Drive สำเร็จ!');
     } else {
