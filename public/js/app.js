@@ -354,7 +354,7 @@ function openCase(c, tab = 'case') {
   if (t.adminOnly) hooks.toast(ADMIN_ONLY_MSG, { type: 'warn' });
   else if (t.blk) WIZ_NOTE(t.blk);
   S.tab = t.tab;
-  if (S.tab === 'layout' || S.tab === 'attachments') S.ui.pvOn = true;
+  if (S.tab === 'layout') S.ui.pvOn = true;
   S.ui.pvDoc = '';
   syncPreviewDoc();
   replaceUrl(urls.caseTab(S.c.id, S.tab)); setTitle(TAB_NAMES[S.tab]);
@@ -382,7 +382,7 @@ function switchTab(tab) {
   else if (t.blk) WIZ_NOTE(t.blk);
   if (t.tab !== tab) replaceUrl(urls.caseTab(S.c.id, t.tab));
   S.tab = t.tab;
-  if (S.tab === 'layout' || S.tab === 'attachments') S.ui.pvOn = true;
+  if (S.tab === 'layout') S.ui.pvOn = true;
   syncPreviewDoc();
   setTitle(TAB_NAMES[S.tab]);
   smoothSwap(() => { renderShell(true); window.scrollTo({ top: 0 }); $('#main')?.scrollTo({ top: 0 }); });
@@ -548,7 +548,7 @@ function playEnter(el) {
 function renderShell(enter = false) {
   renderSteps();
   renderMain(enter);
-  $('#work').classList.toggle('live', S.tab === 'layout' || S.tab === 'attachments');
+  $('#work').classList.toggle('live', S.tab === 'layout' || (S.tab === 'attachments' && !!S.ui.attachCurrentFile));
   $('#work').classList.toggle('nopreview', !S.ui.pvOn);
   if ($('#pv-inner')?.dataset.doc) applyPvFit(); // แผงเพิ่งโผล่ (เช่นหน้าตั้งค่าบนจอแคบ) → ตั้งขนาดพอดีทันที ไม่ให้เฟรมแรกใช้ซูมค้างตอนซ่อน
   schedulePreview(enter);
@@ -585,34 +585,16 @@ function previewDocs() {
   if (S.tab === 'attachments') {
     const cur = S.ui.attachCurrentPreview;
     const curFile = S.ui.attachCurrentFile;
-    const num = S.ui.attachNum || '';
-    const typeRaw = S.ui.attachType || 'complaint';
-    const rawHeaderText = S.ui.attachHeaderText || getDefaultHeader(S.c, typeRaw, num);
-    const headerText = toThaiDigits(rawHeaderText);
-    const autoSigner = resolveCaseSigner(S.c);
-    const name = S.ui.attachName !== undefined ? S.ui.attachName : autoSigner.name;
-    const headerPos = S.ui.attachHeaderPos || 'center';
-    const signPos = S.ui.attachSignPos || 'top-right';
-
-    const attData = cur ? { ...cur } : {
-      id: 'current',
-      type: typeRaw,
-      parentLabel: getParentLabel(S.c, typeRaw),
-      num: num,
-      headerText: headerText,
-      headerPos: headerPos,
-      signPos: signPos,
-      filename: curFile?.name || 'ตัวอย่างเอกสารแนบ (ยังไม่อัปโหลด)',
-      signer: name,
-      pageCount: 1,
-      blobUrl: '',
-    };
-    if (!attData.headerText) attData.headerText = headerText;
-    if (!attData.signer && name) attData.signer = name;
+    // แสดงตัวอย่างเฉพาะเมื่อมีการเลือกไฟล์แล้ว หรือกำลังคลิกดูเอกสารที่เคยแนบ
+    if (!curFile && (!cur || cur.id === 'current')) {
+      return [];
+    }
+    const attData = cur ? { ...cur } : null;
+    if (!attData) return [];
 
     return [{
       id: 'att-current',
-      title: `📎 ${attData.headerText || 'เอกสารแนบท้าย'} (${attData.filename || 'ตัวอย่าง'})`,
+      title: `📎 ${attData.headerText || 'เอกสารแนบท้าย'} (${attData.filename || 'เอกสาร'})`,
       isAttachment: true,
       attachmentData: attData,
       blocks: [],
@@ -648,7 +630,15 @@ function renderPreview() {
   box.style.display = S.ui.pvOn ? '' : 'none';
   if (!S.ui.pvOn) return;
   const docs = previewDocs();
-  if (!docs.length) { $('#pv-bar').innerHTML = `<div class="pv-nav"><button type="button" class="pv-close" data-act="togglePreview" aria-label="ปิดตัวอย่างเอกสาร">${ico2('x')}</button></div>`; $('#pv-bar').dataset.sig = ''; $('#pv-inner').dataset.doc = ''; $('#pv-inner').innerHTML = `<div class="pv-empty">${ico2('file', { size: 28 })}<b>ยังไม่ได้เลือกเอกสาร</b><span>เลือกเอกสารในชุดที่หน้า “ออกเอกสาร” เพื่อดูตัวอย่าง</span></div>`; return; }
+  if (!docs.length) {
+    $('#pv-bar').innerHTML = `<div class="pv-nav"><button type="button" class="pv-close" data-act="togglePreview" aria-label="ปิดตัวอย่างเอกสาร">${ico2('x')}</button></div>`;
+    $('#pv-bar').dataset.sig = '';
+    $('#pv-inner').dataset.doc = '';
+    $('#pv-inner').innerHTML = S.tab === 'attachments'
+      ? `<div class="pv-empty">${ico2('file', { size: 28 })}<b>ยังไม่ได้เลือกไฟล์</b><span>เลือกไฟล์ PDF หรือรูปภาพ เพื่อดูตัวอย่างก่อนอัปโหลด</span></div>`
+      : `<div class="pv-empty">${ico2('file', { size: 28 })}<b>ยังไม่ได้เลือกเอกสาร</b><span>เลือกเอกสารในชุดที่หน้า “ออกเอกสาร” เพื่อดูตัวอย่าง</span></div>`;
+    return;
+  }
   if (S.tab === 'layout' && S.ui.lastLayoutForm !== S.ui.layoutForm) {
     S.ui.lastLayoutForm = S.ui.layoutForm;
     const k = LAYOUT_DOCKEY[S.ui.layoutForm];

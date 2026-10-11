@@ -139,58 +139,7 @@ export function attachmentDocHtml(att) {
     </section>`;
   }
 
-  const headerAlign = headerPos === 'right' ? 'text-align: right;' : 'text-align: center;';
-  const isTopRight = signPos === 'top-right';
-  const signStyle = isTopRight
-    ? 'position: absolute; top: 38mm; right: 20mm;'
-    : (signPos === 'right' ? 'position: absolute; bottom: 25mm; right: 20mm;' : 'position: absolute; bottom: 25mm; left: 50%; transform: translateX(-50%);');
-
-  return `<section class="page sheet att-preview-sheet" data-doc="att-${escRaw(att.id)}" style="width: 210mm; height: 297mm; min-height: 297mm; margin: 0 auto 18px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,.18), 0 8px 24px rgba(0,0,0,.08); position: relative; box-sizing: border-box; overflow: hidden; font-family: 'THSarabunIT9', 'Sarabun', sans-serif;">
-    <div style="position: absolute; inset: 0; padding: 25mm 20mm; box-sizing: border-box; pointer-events: none;">
-      <div style="${headerAlign} font-size: 16pt; font-weight: bold; color: #000000; line-height: 1.4; margin-bottom: 24px; pointer-events: auto;">
-        ${esc(headerText)}
-      </div>
-
-      <div style="border: 1px solid #e2e8f0; border-radius: 16px; background: #f8fafc; padding: 32px 24px; margin: ${isTopRight ? '80px auto 20px' : '20px auto'}; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.02); max-width: 90%; pointer-events: auto;">
-        <div style="width: 56px; height: 56px; border-radius: 16px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; box-shadow: 0 4px 12px rgba(37,99,235,0.12);">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"></path>
-          </svg>
-        </div>
-        
-        <div style="font-size: 16pt; font-weight: bold; color: #1e293b; margin-bottom: 6px; word-break: break-word; line-height: 1.3;">
-          ${escRaw(filename)}
-        </div>
-        
-        <div style="font-size: 14pt; color: #64748b; margin-bottom: 14px;">
-          จำนวน ${esc(String(pageCount))} หน้า ${parentLabel ? `· แนบท้าย ${esc(parentLabel)}` : ''}
-        </div>
-
-        ${driveUrl ? `
-          <a href="${escRaw(driveUrl)}" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #ffffff; padding: 8px 20px; border-radius: 10px; font-size: 14pt; text-decoration: none; font-weight: 500; box-shadow: 0 4px 12px rgba(37,99,235,0.25);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
-            </svg>
-            เปิดดูเอกสารต้นฉบับใน Google Drive
-          </a>
-        ` : `
-          <div style="display: inline-flex; align-items: center; gap: 6px; background: #e0f2fe; color: #0284c7; padding: 6px 16px; border-radius: 8px; font-size: 13pt; font-weight: 500;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            เอกสารแนบประทับตราแล้ว
-          </div>
-        `}
-      </div>
-
-      <div style="${signStyle} width: 250px; text-align: center; font-size: 16pt; color: #000000; line-height: 1.6; pointer-events: auto;">
-        <div>สำเนาถูกต้อง</div>
-        <div style="margin: 8px 0;">ลงชื่อ ..........................................</div>
-        <div>( ${signer ? esc(signer) : '..........................................'} )</div>
-      </div>
-    </div>
-  </section>`;
+  return '';
 }
 
 

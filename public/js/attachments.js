@@ -281,26 +281,7 @@ export function tabAttachments() {
     ['right', 'มุมขวาล่าง']
   ];
 
-  // 6. ตั้งค่า preview เริ่มต้นทันที (แม้ยังไม่ได้เลือกไฟล์ ก็แสดงหน้าตัวอย่างทันที)
-  if (!S.ui.attachCurrentPreview) {
-    S.ui.attachCurrentPreview = {
-      id: 'current',
-      type: S.ui.attachType,
-      parentLabel: getParentLabel(c, S.ui.attachType),
-      num: S.ui.attachNum || '',
-      headerText: toThaiDigits(S.ui.attachHeaderText || getDefaultHeader(c, S.ui.attachType, S.ui.attachNum || '')),
-      headerPos: S.ui.attachHeaderPos,
-      signPos: S.ui.attachSignPos,
-      filename: S.ui.attachCurrentFile?.name || 'ตัวอย่างเอกสารแนบ (ยังไม่อัปโหลด)',
-      signer: S.ui.attachName,
-      pageCount: 1,
-      createdAt: new Date().toISOString(),
-      blobUrl: '',
-    };
-  }
-  S.ui.pvDoc = 'att-current';
-
-  // 7. รายการประวัติเอกสารแนบ
+  // 6. รายการประวัติเอกสารแนบ
   const attachments = c.attachments || [];
   const isViewingHistory = S.ui.attachCurrentPreview && S.ui.attachCurrentPreview.id !== 'current';
 
@@ -816,6 +797,7 @@ actions.onFileSelected = async (el) => {
 };
 
 export async function updateAttachPreview(file) {
+  if (!file) return;
   const typeRaw = S.ui.attachType || 'complaint';
   const num = S.ui.attachNum || '';
   const autoSigner = resolveCaseSigner(S.c);
@@ -870,8 +852,25 @@ export async function updateAttachPreview(file) {
         let image;
         if (file.type === 'image/jpeg') image = await pdfDoc.embedJpg(imageBytes);
         else if (file.type === 'image/png') image = await pdfDoc.embedPng(imageBytes);
-        const page = pdfDoc.addPage([image.width, image.height]);
-        page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+
+        // วางลงบนหน้ากระดาษ A4 มาตรฐาน (595.28 x 841.89 pt) เพื่อให้ตัวหนังสือขนาด 16 มีขนาดมาตรฐานศาล ไม่เล็กจิ๋ว
+        const a4W = 595.28;
+        const a4H = 841.89;
+        const page = pdfDoc.addPage([a4W, a4H]);
+
+        const marginX = 36;
+        const topSpace = 125;
+        const bottomMargin = 36;
+        const maxW = a4W - (marginX * 2);
+        const maxH = a4H - topSpace - bottomMargin;
+
+        const scale = Math.min(maxW / image.width, maxH / image.height);
+        const imgW = image.width * scale;
+        const imgH = image.height * scale;
+        const imgX = (a4W - imgW) / 2;
+        const imgY = bottomMargin + (maxH - imgH) / 2;
+
+        page.drawImage(image, { x: imgX, y: imgY, width: imgW, height: imgH });
       }
 
       if (pdfDoc) {
@@ -922,22 +921,10 @@ export async function updateAttachPreview(file) {
           startY = 115;
         }
 
+        // ประทับตราสำเนาถูกต้องเฉพาะหน้าแรกตามคำขอ
         firstPage.drawText(line1, { x: x1, y: startY, size: textSize, font: customFont, color });
         firstPage.drawText(line2, { x: x2, y: startY - 22, size: textSize, font: customFont, color });
         firstPage.drawText(line3, { x: x3, y: startY - 44, size: textSize, font: customFont, color });
-
-        for (let pIdx = 1; pIdx < pages.length; pIdx++) {
-          const page = pages[pIdx];
-          const pSize = page.getSize();
-          const pBaseX = signPos === 'center' ? (pSize.width - signW) / 2 : pSize.width - signW - marginR;
-          const px1 = pBaseX + (signW - w1) / 2;
-          const px2 = pBaseX + (signW - w2) / 2;
-          const px3 = pBaseX + (signW - w3) / 2;
-          const pStartY = signPos === 'top-right' ? pSize.height - 36 - 26 : 115;
-          page.drawText(line1, { x: px1, y: pStartY, size: textSize, font: customFont, color });
-          page.drawText(line2, { x: px2, y: pStartY - 22, size: textSize, font: customFont, color });
-          page.drawText(line3, { x: px3, y: pStartY - 44, size: textSize, font: customFont, color });
-        }
 
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -1054,8 +1041,24 @@ actions.stampAttachment = async (el) => {
       if (file.type === 'image/jpeg') image = await pdfDoc.embedJpg(imageBytes);
       else if (file.type === 'image/png') image = await pdfDoc.embedPng(imageBytes);
 
-      const page = pdfDoc.addPage([image.width, image.height]);
-      page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+      // วางลงบนหน้ากระดาษ A4 มาตรฐาน (595.28 x 841.89 pt) เพื่อให้ตัวหนังสือขนาด 16 มีขนาดมาตรฐานศาล ไม่เล็กจิ๋ว
+      const a4W = 595.28;
+      const a4H = 841.89;
+      const page = pdfDoc.addPage([a4W, a4H]);
+
+      const marginX = 36;
+      const topSpace = 125;
+      const bottomMargin = 36;
+      const maxW = a4W - (marginX * 2);
+      const maxH = a4H - topSpace - bottomMargin;
+
+      const scale = Math.min(maxW / image.width, maxH / image.height);
+      const imgW = image.width * scale;
+      const imgH = image.height * scale;
+      const imgX = (a4W - imgW) / 2;
+      const imgY = bottomMargin + (maxH - imgH) / 2;
+
+      page.drawImage(image, { x: imgX, y: imgY, width: imgW, height: imgH });
     } else {
       return hooks.toast('รองรับเฉพาะไฟล์ PDF, JPG และ PNG');
     }
@@ -1109,22 +1112,10 @@ actions.stampAttachment = async (el) => {
       startY = 115;
     }
 
+    // ประทับตราสำเนาถูกต้องเฉพาะหน้าแรกตามคำขอ
     firstPage.drawText(line1, { x: x1, y: startY, size: textSize, font: customFont, color });
     firstPage.drawText(line2, { x: x2, y: startY - 22, size: textSize, font: customFont, color });
     firstPage.drawText(line3, { x: x3, y: startY - 44, size: textSize, font: customFont, color });
-
-    for (let pIdx = 1; pIdx < pages.length; pIdx++) {
-      const page = pages[pIdx];
-      const pSize = page.getSize();
-      const pBaseX = signPos === 'center' ? (pSize.width - signW) / 2 : pSize.width - signW - marginR;
-      const px1 = pBaseX + (signW - w1) / 2;
-      const px2 = pBaseX + (signW - w2) / 2;
-      const px3 = pBaseX + (signW - w3) / 2;
-      const pStartY = signPos === 'top-right' ? pSize.height - 36 - 26 : 115;
-      page.drawText(line1, { x: px1, y: pStartY, size: textSize, font: customFont, color });
-      page.drawText(line2, { x: px2, y: pStartY - 22, size: textSize, font: customFont, color });
-      page.drawText(line3, { x: px3, y: pStartY - 44, size: textSize, font: customFont, color });
-    }
 
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -1159,6 +1150,7 @@ actions.stampAttachment = async (el) => {
     }
     S.ui.attachCurrentPreview = null;
     S.ui.attachCurrentFile = null;
+    S.ui.pvDoc = '';
 
     // เลื่อนเลขเอกสารแนบลำดับถัดไปอัตโนมัติ
     const nextNum = String(parseInt(num || '1', 10) + 1);
