@@ -224,9 +224,9 @@ export function tabAttachments() {
     S.ui.attachHeaderText = getDefaultHeader(c, S.ui.attachType, S.ui.attachNum);
   }
 
-  // 5. ตำแหน่งเริ่มต้น: กึ่งกลางหน้ากระดาษ
+  // 5. ตำแหน่งเริ่มต้น: กึ่งกลางหน้ากระดาษ หรือ มุมขวาบน
   if (!S.ui.attachHeaderPos) S.ui.attachHeaderPos = 'center';
-  if (!S.ui.attachSignPos) S.ui.attachSignPos = 'center';
+  if (!S.ui.attachSignPos) S.ui.attachSignPos = 'top-right';
 
   const headerPosOptions = [
     ['center', 'กึ่งกลางหน้ากระดาษ'],
@@ -234,6 +234,7 @@ export function tabAttachments() {
   ];
 
   const signPosOptions = [
+    ['top-right', 'มุมขวาบน'],
     ['center', 'กึ่งกลางหน้ากระดาษ'],
     ['right', 'มุมขวาล่าง']
   ];
@@ -517,6 +518,9 @@ export function tabAttachments() {
       <div class="attach-title-left">
         ${icon('settings', { size: 22 })} ตั้งค่าเอกสารและคำรับรอง
       </div>
+      <div class="attach-title-right" style="font-size: 14px; color: var(--text-muted, #64748b); font-weight: 500;">
+        ชื่อผู้ลงนามบนเอกสาร: <b style="color: var(--text, #1e293b);">${esc(autoSigner.name || 'ยังไม่ได้ระบุ')}</b> ${autoSigner.role ? `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 6px; font-size: 12px; margin-left: 4px;">${esc(autoSigner.role)}</span>` : ''}
+      </div>
     </div>
 
     <!-- บัตรระบุผู้ลงลายมือชื่อ -->
@@ -546,13 +550,13 @@ export function tabAttachments() {
     </div>
 
     ${group('', `
-      ${field('ข้อความหัวเอกสาร (ขนาด 16)', '@ui.attachHeaderText', { cls: 's8', ph: 'เช่น เอกสารแนบท้ายคำฟ้อง หมายเลข ๑' })}
-      ${select('ตำแหน่งหัวเอกสาร', '@ui.attachHeaderPos', headerPosOptions, { cls: 's4' })}
+      ${field('ข้อความหัวเอกสาร (ขนาด 16)', '@ui.attachHeaderText', { cls: 's8', ph: 'เช่น เอกสารแนบท้ายคำฟ้อง หมายเลข ๑', oninput: 'onAttachSettingChange' })}
+      ${select('ตำแหน่งหัวเอกสาร', '@ui.attachHeaderPos', headerPosOptions, { cls: 's4', onchange: 'onAttachSettingChange' })}
     `)}
 
     ${group('', `
-      ${field('ชื่อผู้ลงนามบนเอกสาร', '@ui.attachName', { cls: 's8', ph: 'ชื่อ-นามสกุล ผู้ลงลายมือชื่อ' })}
-      ${select('ตำแหน่งลายมือชื่อ', '@ui.attachSignPos', signPosOptions, { cls: 's4' })}
+      ${field('ชื่อผู้ลงนามบนเอกสาร', '@ui.attachName', { cls: 's8', ph: 'ชื่อ-นามสกุล ผู้ลงลายมือชื่อ', oninput: 'onAttachSettingChange' })}
+      ${select('ตำแหน่งลายมือชื่อ', '@ui.attachSignPos', signPosOptions, { cls: 's4', onchange: 'onAttachSettingChange' })}
     `)}
   </div>
 
@@ -566,8 +570,8 @@ export function tabAttachments() {
     <div class="upload-box" id="drop-zone">
       <div class="upload-icon">${icon('upload', { size: 50, stroke: 1.5 })}</div>
       <div class="upload-text" id="upload-status-text">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
-      <div class="upload-subtext">รองรับไฟล์ PDF, JPG, PNG (ขนาดไม่เกิน 20MB)</div>
-      <input type="file" id="attachFile" accept="application/pdf,image/png,image/jpeg" onchange="const f=this.files[0];if(f)document.getElementById('upload-status-text').innerText='เลือกไฟล์แล้ว: '+f.name;">
+      <div class="upload-subtext">รองรับไฟล์ PDF, JPG, PNG (ขนาดไม่เกิน 20MB) — เลือกแล้วแสดงตัวอย่างทันที</div>
+      <input type="file" id="attachFile" accept="application/pdf,image/png,image/jpeg" onchange="actions.onFileSelected(this)">
     </div>
 
     <div class="attach-actions">
@@ -661,6 +665,7 @@ export function tabAttachments() {
           if (inp) {
             inp.files = dt.files;
             document.getElementById('upload-status-text').innerText = 'เลือกไฟล์แล้ว: ' + dt.files[0].name;
+            actions.onFileSelected(inp);
           }
         }
       });
@@ -676,6 +681,7 @@ actions.onAttachTypeChange = (el) => {
   S.ui.attachHeaderText = getDefaultHeader(S.c, el.value, S.ui.attachNum);
   const hInp = document.querySelector('[data-bind="@ui.attachHeaderText"]');
   if (hInp) hInp.value = S.ui.attachHeaderText;
+  if (S.ui.attachCurrentFile) updateAttachPreview(S.ui.attachCurrentFile);
   hooks.rerender();
 };
 
@@ -684,7 +690,154 @@ actions.onAttachNumChange = (el) => {
   S.ui.attachHeaderText = getDefaultHeader(S.c, S.ui.attachType || 'complaint', el.value);
   const hInp = document.querySelector('[data-bind="@ui.attachHeaderText"]');
   if (hInp) hInp.value = S.ui.attachHeaderText;
+  if (S.ui.attachCurrentFile) updateAttachPreview(S.ui.attachCurrentFile);
 };
+
+let settingTimer = null;
+actions.onAttachSettingChange = () => {
+  clearTimeout(settingTimer);
+  settingTimer = setTimeout(() => {
+    if (S.ui.attachCurrentFile) updateAttachPreview(S.ui.attachCurrentFile);
+    else if (S.ui.attachCurrentPreview) {
+      updateAttachPreview(null);
+    }
+  }, 200);
+};
+
+actions.onFileSelected = async (el) => {
+  const file = el.files?.[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById('upload-status-text');
+  if (statusEl) statusEl.innerText = 'เลือกไฟล์แล้ว: ' + file.name;
+
+  S.ui.attachCurrentFile = file;
+  await updateAttachPreview(file);
+};
+
+export async function updateAttachPreview(file) {
+  const typeRaw = S.ui.attachType || 'complaint';
+  const num = S.ui.attachNum || '';
+  const autoSigner = resolveCaseSigner(S.c);
+  const name = S.ui.attachName !== undefined ? S.ui.attachName : autoSigner.name;
+  const headerPos = S.ui.attachHeaderPos || 'center';
+  const signPos = S.ui.attachSignPos || 'top-right';
+  const rawHeaderText = S.ui.attachHeaderText || getDefaultHeader(S.c, typeRaw, num);
+  const headerText = toThaiDigits(rawHeaderText);
+
+  // 1. เด้ง preview ขึ้นมาทันที
+  S.ui.pvOn = true;
+  S.ui.pvDoc = 'att-current';
+
+  if (!S.ui.attachCurrentPreview) {
+    S.ui.attachCurrentPreview = {
+      id: 'current',
+      type: typeRaw,
+      parentLabel: getParentLabel(S.c, typeRaw),
+      num: num,
+      headerText: headerText,
+      headerPos: headerPos,
+      signPos: signPos,
+      filename: file?.name || 'เอกสารแนบ.pdf',
+      signer: name,
+      pageCount: 1,
+      createdAt: new Date().toISOString(),
+      blobUrl: '',
+    };
+  } else {
+    S.ui.attachCurrentPreview.headerText = headerText;
+    S.ui.attachCurrentPreview.headerPos = headerPos;
+    S.ui.attachCurrentPreview.signPos = signPos;
+    S.ui.attachCurrentPreview.signer = name;
+    S.ui.attachCurrentPreview.num = num;
+    S.ui.attachCurrentPreview.parentLabel = getParentLabel(S.c, typeRaw);
+    if (file) S.ui.attachCurrentPreview.filename = file.name;
+  }
+
+  hooks.preview();
+
+  // 2. ถ้ามีไฟล์ ให้ประทับตราสดในหน่วยความจำ เพื่อให้แสดงตัวอย่างไฟล์จริงทันที
+  if (file) {
+    try {
+      const PDFLib = await loadPdfLib();
+      let pdfDoc;
+      if (file.type === 'application/pdf') {
+        const fileBytes = await file.arrayBuffer();
+        pdfDoc = await PDFLib.PDFDocument.load(fileBytes);
+      } else if (file.type.startsWith('image/')) {
+        pdfDoc = await PDFLib.PDFDocument.create();
+        const imageBytes = await file.arrayBuffer();
+        let image;
+        if (file.type === 'image/jpeg') image = await pdfDoc.embedJpg(imageBytes);
+        else if (file.type === 'image/png') image = await pdfDoc.embedPng(imageBytes);
+        const page = pdfDoc.addPage([image.width, image.height]);
+        page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+      }
+
+      if (pdfDoc) {
+        pdfDoc.registerFontkit(window.fontkit);
+        const customFont = await pdfDoc.embedFont(await getFontBytes());
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
+        const { width, height } = firstPage.getSize();
+        const textSize = 16;
+        const color = PDFLib.rgb(0, 0, 0);
+
+        const hw = customFont.widthOfTextAtSize(headerText, textSize);
+        const hX = headerPos === 'center' ? (width - hw) / 2 : width - hw - 54;
+        const hY = height - 54;
+        firstPage.drawText(headerText, { x: hX, y: hY, size: textSize, font: customFont, color });
+
+        const line1 = 'สำเนาถูกต้อง';
+        const line2 = 'ลงชื่อ ..........................................';
+        const line3 = name ? `( ${name} )` : '( .......................................... )';
+        const w1 = customFont.widthOfTextAtSize(line1, textSize);
+        const w2 = customFont.widthOfTextAtSize(line2, textSize);
+        const w3 = customFont.widthOfTextAtSize(line3, textSize);
+        const blockW = Math.max(w1, w2, w3);
+
+        const baseX = signPos === 'center' ? (width - blockW) / 2 : width - blockW - 54;
+        const x1 = baseX + (blockW - w1) / 2;
+        const x2 = baseX + (blockW - w2) / 2;
+        const x3 = baseX + (blockW - w3) / 2;
+
+        const lineGap = 24;
+        const startY = signPos === 'top-right' ? (headerPos === 'right' ? hY - 30 : hY) : 115;
+
+        firstPage.drawText(line1, { x: x1, y: startY, size: textSize, font: customFont, color });
+        firstPage.drawText(line2, { x: x2, y: startY - lineGap, size: textSize, font: customFont, color });
+        firstPage.drawText(line3, { x: x3, y: startY - (lineGap * 2), size: textSize, font: customFont, color });
+
+        for (let pIdx = 1; pIdx < pages.length; pIdx++) {
+          const page = pages[pIdx];
+          const pSize = page.getSize();
+          const pBaseX = signPos === 'center' ? (pSize.width - blockW) / 2 : pSize.width - blockW - 54;
+          const px1 = pBaseX + (blockW - w1) / 2;
+          const px2 = pBaseX + (blockW - w2) / 2;
+          const px3 = pBaseX + (blockW - w3) / 2;
+          const pStartY = signPos === 'top-right' ? pSize.height - 54 : 115;
+          page.drawText(line1, { x: px1, y: pStartY, size: textSize, font: customFont, color });
+          page.drawText(line2, { x: px2, y: pStartY - lineGap, size: textSize, font: customFont, color });
+          page.drawText(line3, { x: px3, y: pStartY - (lineGap * 2), size: textSize, font: customFont, color });
+        }
+
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        if (S.ui.attachCurrentPreview?.blobUrl) {
+          try { URL.revokeObjectURL(S.ui.attachCurrentPreview.blobUrl); } catch (_) {}
+        }
+        const blobUrl = URL.createObjectURL(blob);
+        if (S.ui.attachCurrentPreview) {
+          S.ui.attachCurrentPreview.blobUrl = blobUrl;
+          S.ui.attachCurrentPreview.pageCount = pages.length;
+          hooks.preview();
+        }
+      }
+    } catch (err) {
+      console.warn('Live preview stamp error:', err);
+    }
+  }
+}
 
 actions.delAttachment = async (el) => {
   const id = el.dataset.id;
@@ -703,7 +856,7 @@ actions.delAttachment = async (el) => {
   if (S.c && Array.isArray(S.c.attachments)) {
     const target = S.c.attachments.find(a => a.id === id);
     if (target?.blobUrl) {
-      try { URL.revokeObjectURL(target.blobUrl); } catch (_) {}
+      try { URL.revokeObjectURL(target.blobUrl); } catch (_) { }
     }
     S.c.attachments = S.c.attachments.filter(a => a.id !== id);
     if (S.ui.pvDoc === `att-${id}`) {
@@ -725,9 +878,8 @@ actions.stampAttachment = async (el) => {
   const num = S.ui.attachNum || '';
   const name = S.ui.attachName !== undefined ? S.ui.attachName : resolveCaseSigner(S.c).name;
   const headerPos = S.ui.attachHeaderPos || 'center';
-  const signPos = S.ui.attachSignPos || 'center';
+  const signPos = S.ui.attachSignPos || 'top-right';
   const rawHeaderText = S.ui.attachHeaderText || getDefaultHeader(S.c, typeRaw, num);
-  // แปลงเลขอารบิกในหัวกระดาษเป็นเลขไทยเสมอตามแบบศาล
   const headerText = toThaiDigits(rawHeaderText);
   const mode = el.dataset.mode;
 
@@ -775,9 +927,6 @@ actions.stampAttachment = async (el) => {
     firstPage.drawText(headerText, { x: hX, y: hY, size: textSize, font: customFont, color });
 
     // 3. ประทับตราคำรับรองสำเนาถูกต้องและลงชื่อ (ขนาด 16)
-    //    สำเนาถูกต้อง
-    //    ลงชื่อ ..........................................
-    //    (ชื่อ)
     const line1 = 'สำเนาถูกต้อง';
     const line2 = 'ลงชื่อ ..........................................';
     const line3 = name ? `( ${name} )` : '( .......................................... )';
@@ -798,12 +947,30 @@ actions.stampAttachment = async (el) => {
     const x2 = baseX + (blockW - w2) / 2;
     const x3 = baseX + (blockW - w3) / 2;
 
-    const startY = 115;
     const lineGap = 24;
+    let startY;
+    if (signPos === 'top-right') {
+      startY = headerPos === 'right' ? hY - 30 : hY;
+    } else {
+      startY = 115;
+    }
 
     firstPage.drawText(line1, { x: x1, y: startY, size: textSize, font: customFont, color });
     firstPage.drawText(line2, { x: x2, y: startY - lineGap, size: textSize, font: customFont, color });
     firstPage.drawText(line3, { x: x3, y: startY - (lineGap * 2), size: textSize, font: customFont, color });
+
+    for (let pIdx = 1; pIdx < pages.length; pIdx++) {
+      const page = pages[pIdx];
+      const pSize = page.getSize();
+      const pBaseX = signPos === 'center' ? (pSize.width - blockW) / 2 : pSize.width - blockW - 54;
+      const px1 = pBaseX + (blockW - w1) / 2;
+      const px2 = pBaseX + (blockW - w2) / 2;
+      const px3 = pBaseX + (blockW - w3) / 2;
+      const pStartY = signPos === 'top-right' ? pSize.height - 54 : 115;
+      page.drawText(line1, { x: px1, y: pStartY, size: textSize, font: customFont, color });
+      page.drawText(line2, { x: px2, y: pStartY - lineGap, size: textSize, font: customFont, color });
+      page.drawText(line3, { x: px3, y: pStartY - (lineGap * 2), size: textSize, font: customFont, color });
+    }
 
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -831,6 +998,11 @@ actions.stampAttachment = async (el) => {
 
     if (!Array.isArray(S.c.attachments)) S.c.attachments = [];
     S.c.attachments.unshift(record);
+    if (S.ui.attachCurrentPreview?.blobUrl) {
+      try { URL.revokeObjectURL(S.ui.attachCurrentPreview.blobUrl); } catch (_) {}
+    }
+    S.ui.attachCurrentPreview = null;
+    S.ui.attachCurrentFile = null;
     S.ui.pvDoc = `att-${record.id}`;
     hooks.changed();
     hooks.rerender();

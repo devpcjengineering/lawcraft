@@ -652,6 +652,16 @@ function previewDocs() {
     }
   }
 
+  if (S.ui.attachCurrentPreview) {
+    result.push({
+      id: 'att-current',
+      title: `📎 [กำลังเลือก] ${S.ui.attachCurrentPreview.headerText || 'เอกสารแนบท้าย'} (${S.ui.attachCurrentPreview.filename || 'PDF'})`,
+      isAttachment: true,
+      attachmentData: S.ui.attachCurrentPreview,
+      blocks: [],
+    });
+  }
+
   return result;
 }
 
