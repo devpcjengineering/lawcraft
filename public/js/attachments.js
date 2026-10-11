@@ -128,19 +128,37 @@ function getParentLabel(c, typeRaw) {
   return 'พยานเอกสาร';
 }
 
-/** ฟอร์แมตวันที่แบบไทย */
+/** ฟอร์แมตวันที่แบบไทยตามเวลาประเทศไทย (Asia/Bangkok) */
 function formatThaiDateTime(isoStr) {
   if (!isoStr) return '';
   const d = new Date(isoStr);
   if (isNaN(d.getTime())) return isoStr;
-  const thMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-  const day = d.getDate();
-  const month = thMonths[d.getMonth()];
-  const year = d.getFullYear() + 543;
-  const hours = String(d.getHours()).padStart(2, '0');
-  const mins = String(d.getMinutes()).padStart(2, '0');
-  return `${day} ${month} ${year} ${hours}:${mins}`;
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Bangkok',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+    }).formatToParts(d);
+    const get = (type) => parts.find((p) => p.type === type)?.value;
+    const day = get('day');
+    const mNum = parseInt(get('month'), 10) - 1;
+    const thMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    const month = thMonths[mNum] || '';
+    const year = parseInt(get('year'), 10) + 543;
+    let hour = get('hour');
+    if (hour === '24') hour = '00';
+    hour = String(hour).padStart(2, '0');
+    const mins = String(get('minute')).padStart(2, '0');
+    return `${day} ${month} ${year} ${hour}:${mins}`;
+  } catch (e) {
+    return d.toLocaleString('th-TH');
+  }
 }
+
 
 export function tabAttachments() {
   const c = S.c;

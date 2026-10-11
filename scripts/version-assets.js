@@ -28,13 +28,29 @@ export function contentVersion(dist) {
 const addV = (u, v) => (/[?#]/.test(u) ? u : `${u}?v=${v}`);
 
 export function formatThaiDate(d = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(d);
+
+  const get = (type) => parts.find((p) => p.type === type)?.value;
+  const day = get('day');
+  const mNum = parseInt(get('month'), 10) - 1;
   const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-  const day = d.getDate();
-  const month = months[d.getMonth()];
-  const year = d.getFullYear() + 543;
-  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const month = months[mNum] || '';
+  const year = parseInt(get('year'), 10) + 543;
+  let hour = get('hour');
+  if (hour === '24') hour = '00';
+  hour = String(hour).padStart(2, '0');
+  const time = `${hour}:${String(get('minute')).padStart(2, '0')}`;
   return `${day} ${month} ${year} ${time}`;
 }
+
 
 export function rewrite(text, kind, v, dateStr = formatThaiDate()) {
   if (kind === 'html') {
