@@ -131,7 +131,7 @@ export function attachmentDocHtml(att) {
   const headerAlign = headerPos === 'right' ? 'text-align: right;' : 'text-align: center;';
   const isTopRight = signPos === 'top-right';
   const signStyle = isTopRight
-    ? (headerPos === 'right' ? 'position: absolute; top: 40mm; right: 20mm;' : 'position: absolute; top: 25mm; right: 20mm;')
+    ? 'position: absolute; top: 38mm; right: 20mm;'
     : (signPos === 'right' ? 'position: absolute; bottom: 25mm; right: 20mm;' : 'position: absolute; bottom: 25mm; left: 50%; transform: translateX(-50%);');
 
   return `<section class="page sheet att-preview-sheet" data-doc="att-${escRaw(att.id)}" style="width: 210mm; height: 297mm; min-height: 297mm; margin: 0 auto 18px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,.18), 0 8px 24px rgba(0,0,0,.08); position: relative; box-sizing: border-box; overflow: hidden; font-family: 'THSarabunIT9', 'Sarabun', sans-serif;">
@@ -140,7 +140,7 @@ export function attachmentDocHtml(att) {
         ${esc(headerText)}
       </div>
 
-      <div style="border: 1px solid #e2e8f0; border-radius: 16px; background: #f8fafc; padding: 32px 24px; margin: ${isTopRight ? '60px auto 20px' : '20px auto'}; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.02); max-width: 90%; pointer-events: auto;">
+      <div style="border: 1px solid #e2e8f0; border-radius: 16px; background: #f8fafc; padding: 32px 24px; margin: ${isTopRight ? '80px auto 20px' : '20px auto'}; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.02); max-width: 90%; pointer-events: auto;">
         <div style="width: 56px; height: 56px; border-radius: 16px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; box-shadow: 0 4px 12px rgba(37,99,235,0.12);">
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>

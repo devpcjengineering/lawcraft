@@ -102,7 +102,7 @@ export function getDefaultHeader(c, typeRaw, num) {
 }
 
 /** คำอธิบายเอกสารหลักที่เอกสารนี้แนบท้าย */
-function getParentLabel(c, typeRaw) {
+export function getParentLabel(c, typeRaw) {
   const isDef = sideOf(c) === 'defendant';
   if (typeRaw === 'complaint') {
     return isDef ? 'คำให้การ' : 'คำฟ้อง';
@@ -239,20 +239,55 @@ export function tabAttachments() {
     ['right', 'มุมขวาล่าง']
   ];
 
-  // 6. รายการประวัติเอกสารแนบ
+  // 6. ตั้งค่า preview เริ่มต้นทันที (แม้ยังไม่ได้เลือกไฟล์ ก็แสดงหน้าตัวอย่างทันที)
+  if (!S.ui.attachCurrentPreview) {
+    S.ui.attachCurrentPreview = {
+      id: 'current',
+      type: S.ui.attachType,
+      parentLabel: getParentLabel(c, S.ui.attachType),
+      num: S.ui.attachNum || '',
+      headerText: toThaiDigits(S.ui.attachHeaderText || getDefaultHeader(c, S.ui.attachType, S.ui.attachNum || '')),
+      headerPos: S.ui.attachHeaderPos,
+      signPos: S.ui.attachSignPos,
+      filename: S.ui.attachCurrentFile?.name || 'ตัวอย่างเอกสารแนบ (ยังไม่อัปโหลด)',
+      signer: S.ui.attachName,
+      pageCount: 1,
+      createdAt: new Date().toISOString(),
+      blobUrl: '',
+    };
+  }
+  S.ui.pvDoc = 'att-current';
+
+  // 7. รายการประวัติเอกสารแนบ
   const attachments = c.attachments || [];
+  const isViewingHistory = S.ui.attachCurrentPreview && S.ui.attachCurrentPreview.id !== 'current';
 
   return `
   ${pageHead('จัดการเอกสารแนบ', 'อัปโหลดไฟล์ PDF หรือรูปภาพ ประทับตราหัวเอกสาร "เอกสารแนบท้าย..." ขนาด 16 พร้อมสำเนาถูกต้องและลงชื่อ')}
+
+  ${isViewingHistory ? `
+    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; font-size: 0.95em; color: #1e40af; box-shadow: 0 2px 8px rgba(37,99,235,0.06);">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        ${icon('eye', { size: 18 })}
+        <span>กำลังดูตัวอย่างเอกสารที่แนบไปแล้ว: <b>${esc(S.ui.attachCurrentPreview.headerText || S.ui.attachCurrentPreview.filename)}</b></span>
+      </div>
+      <button type="button" class="btn btn-xs primary" data-act="resetAttachConfig" style="padding: 6px 14px; font-weight: 500;">
+        ${icon('plus', { size: 14 })} แนบเอกสารใหม่
+      </button>
+    </div>
+  ` : ''}
   
   <style>
     .attach-panel {
       background: var(--surface, #ffffff);
       border-radius: 16px;
-      padding: 28px;
+      padding: 24px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.04);
       border: 1px solid var(--border, #e2e8f0);
       margin-bottom: 24px;
+      box-sizing: border-box;
+      max-width: 100%;
+      overflow: hidden;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .attach-panel:hover {
@@ -404,25 +439,28 @@ export function tabAttachments() {
     .att-table-wrap {
       border: 1px solid var(--border, #e2e8f0);
       border-radius: 12px;
-      margin-top: 12px;
+      margin-top: 14px;
       background: #ffffff;
+      overflow-x: auto;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .att-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.95em;
+      font-size: 0.92em;
       text-align: left;
     }
     .att-table th {
       background: #f8fafc;
-      padding: 14px 16px;
+      padding: 12px 14px;
       font-weight: 600;
       color: #475569;
       border-bottom: 1px solid #e2e8f0;
       white-space: nowrap;
     }
     .att-table td {
-      padding: 16px;
+      padding: 14px;
       border-bottom: 1px solid #f1f5f9;
       vertical-align: middle;
     }
@@ -433,15 +471,18 @@ export function tabAttachments() {
       background: #f8fafc;
     }
     .badge-att-num {
-      display: inline-block;
-      font-weight: 600;
-      color: #1e40af;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #1d4ed8;
       background: #eff6ff;
       border: 1px solid #bfdbfe;
-      padding: 6px 12px;
+      min-width: 32px;
+      height: 32px;
+      padding: 0 8px;
       border-radius: 8px;
-      font-size: 0.92em;
-      white-space: nowrap;
+      font-size: 1.05em;
     }
     .badge-att-parent {
       display: inline-flex;
@@ -604,17 +645,17 @@ export function tabAttachments() {
         <table class="att-table">
           <thead>
             <tr>
-              <th style="width: 28%;">หมายเลขเอกสาร</th>
+              <th style="width: 10%; text-align: center;">หมายเลข</th>
               <th style="width: 25%;">แนบท้ายเอกสารหลัก</th>
-              <th style="width: 32%;">ชื่อไฟล์และรายละเอียด</th>
-              <th style="text-align: right; width: 15%;">จัดการ</th>
+              <th style="width: 43%;">ชื่อไฟล์และรายละเอียด</th>
+              <th style="text-align: right; width: 22%;">จัดการ</th>
             </tr>
           </thead>
           <tbody>
             ${attachments.map(att => `
               <tr>
-                <td>
-                  <span class="badge-att-num">${esc(att.headerText || ('หมายเลข ' + toThaiDigits(att.num || '')))}</span>
+                <td style="text-align: center;">
+                  <span class="badge-att-num" title="หมายเลข ${esc(toThaiDigits(att.num || '๑'))}">${esc(toThaiDigits(att.num || '๑'))}</span>
                 </td>
                 <td>
                   <span class="badge-att-parent">
@@ -625,19 +666,22 @@ export function tabAttachments() {
                 <td>
                   <div class="att-file-title">${esc(att.filename || 'เอกสาร.pdf')}</div>
                   <div class="att-file-meta">
-                    ${att.pageCount ? `${att.pageCount} หน้า · ` : ''}
+                    ${att.pageCount ? `${toThaiDigits(att.pageCount)} หน้า · ` : ''}
                     ลงชื่อ: ${esc(att.signer || 'ไม่ระบุ')} · 
                     ${formatThaiDateTime(att.createdAt)}
                   </div>
                 </td>
                 <td>
                   <div class="att-actions-col">
+                    <button type="button" class="btn btn-xs outline" data-act="viewAttachment" data-id="${esc(att.id)}" title="ดูตัวอย่างเอกสารนี้" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 9px; font-size: 13px;">
+                      ${icon('eye', { size: 14 })} ดู
+                    </button>
                     ${att.driveUrl ? `
-                      <a href="${esc(att.driveUrl)}" target="_blank" rel="noopener" class="btn btn-xs primary" title="เปิดดูใน Google Drive">
-                        ${icon('cloud', { size: 14 })} เปิดใน Drive
+                      <a href="${esc(att.driveUrl)}" target="_blank" rel="noopener" class="btn btn-xs primary" title="เปิดดูใน Google Drive" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 9px; font-size: 13px; text-decoration: none;">
+                        ${icon('cloud', { size: 14 })} Drive
                       </a>
                     ` : ''}
-                    <button type="button" class="btn btn-xs outline text-danger" data-act="delAttachment" data-id="${esc(att.id)}" title="ลบรายการนี้ออกจากประวัติ">
+                    <button type="button" class="btn btn-xs outline text-danger" data-act="delAttachment" data-id="${esc(att.id)}" title="ลบรายการนี้ออกจากประวัติ" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 9px; font-size: 13px;">
                       ${icon('trash', { size: 14 })} ลบ
                     </button>
                   </div>
@@ -783,42 +827,60 @@ export async function updateAttachPreview(file) {
         const textSize = 16;
         const color = PDFLib.rgb(0, 0, 0);
 
+        const marginR = 40;
         const hw = customFont.widthOfTextAtSize(headerText, textSize);
-        const hX = headerPos === 'center' ? (width - hw) / 2 : width - hw - 54;
-        const hY = height - 54;
-        firstPage.drawText(headerText, { x: hX, y: hY, size: textSize, font: customFont, color });
-
         const line1 = 'สำเนาถูกต้อง';
         const line2 = 'ลงชื่อ ..........................................';
         const line3 = name ? `( ${name} )` : '( .......................................... )';
         const w1 = customFont.widthOfTextAtSize(line1, textSize);
         const w2 = customFont.widthOfTextAtSize(line2, textSize);
         const w3 = customFont.widthOfTextAtSize(line3, textSize);
-        const blockW = Math.max(w1, w2, w3);
+        const signW = Math.max(w1, w2, w3);
 
-        const baseX = signPos === 'center' ? (width - blockW) / 2 : width - blockW - 54;
-        const x1 = baseX + (blockW - w1) / 2;
-        const x2 = baseX + (blockW - w2) / 2;
-        const x3 = baseX + (blockW - w3) / 2;
+        const hY = height - 36;
+        let hX;
+        if (headerPos === 'center') {
+          hX = (width - hw) / 2;
+        } else {
+          hX = width - hw - marginR;
+        }
 
-        const lineGap = 24;
-        const startY = signPos === 'top-right' ? (headerPos === 'right' ? hY - 30 : hY) : 115;
+        firstPage.drawText(headerText, { x: hX, y: hY, size: textSize, font: customFont, color });
+
+        let signBaseX;
+        if (signPos === 'center') {
+          signBaseX = (width - signW) / 2;
+        } else {
+          signBaseX = width - signW - marginR;
+        }
+
+        const x1 = signBaseX + (signW - w1) / 2;
+        const x2 = signBaseX + (signW - w2) / 2;
+        const x3 = signBaseX + (signW - w3) / 2;
+
+        let startY;
+        if (signPos === 'top-right') {
+          // อยู่ใต้หัวเอกสารแนบท้ายเสมอ ห่างลงมา 26pt ไม่ซ้อนทับกัน
+          startY = hY - 26;
+        } else {
+          startY = 115;
+        }
 
         firstPage.drawText(line1, { x: x1, y: startY, size: textSize, font: customFont, color });
-        firstPage.drawText(line2, { x: x2, y: startY - lineGap, size: textSize, font: customFont, color });
-        firstPage.drawText(line3, { x: x3, y: startY - (lineGap * 2), size: textSize, font: customFont, color });
+        firstPage.drawText(line2, { x: x2, y: startY - 22, size: textSize, font: customFont, color });
+        firstPage.drawText(line3, { x: x3, y: startY - 44, size: textSize, font: customFont, color });
 
         for (let pIdx = 1; pIdx < pages.length; pIdx++) {
           const page = pages[pIdx];
           const pSize = page.getSize();
-          const pBaseX = signPos === 'center' ? (pSize.width - blockW) / 2 : pSize.width - blockW - 54;
-          const px1 = pBaseX + (blockW - w1) / 2;
-          const px2 = pBaseX + (blockW - w2) / 2;
-          const px3 = pBaseX + (blockW - w3) / 2;
-          const pStartY = signPos === 'top-right' ? pSize.height - 54 : 115;
+          const pBaseX = signPos === 'center' ? (pSize.width - signW) / 2 : pSize.width - signW - marginR;
+          const px1 = pBaseX + (signW - w1) / 2;
+          const px2 = pBaseX + (signW - w2) / 2;
+          const px3 = pBaseX + (signW - w3) / 2;
+          const pStartY = signPos === 'top-right' ? pSize.height - 36 - 26 : 115;
           page.drawText(line1, { x: px1, y: pStartY, size: textSize, font: customFont, color });
-          page.drawText(line2, { x: px2, y: pStartY - lineGap, size: textSize, font: customFont, color });
-          page.drawText(line3, { x: px3, y: pStartY - (lineGap * 2), size: textSize, font: customFont, color });
+          page.drawText(line2, { x: px2, y: pStartY - 22, size: textSize, font: customFont, color });
+          page.drawText(line3, { x: px3, y: pStartY - 44, size: textSize, font: customFont, color });
         }
 
         const pdfBytes = await pdfDoc.save();
@@ -838,6 +900,23 @@ export async function updateAttachPreview(file) {
     }
   }
 }
+
+actions.viewAttachment = (el) => {
+  const id = el.dataset.id;
+  const att = (S.c?.attachments || []).find(a => a.id === id);
+  if (!att) return;
+  S.ui.attachCurrentPreview = { ...att };
+  S.ui.pvOn = true;
+  S.ui.pvDoc = 'att-current';
+  hooks.rerender();
+  hooks.preview();
+};
+
+actions.resetAttachConfig = () => {
+  S.ui.attachCurrentPreview = null;
+  updateAttachPreview(S.ui.attachCurrentFile || null);
+  hooks.rerender();
+};
 
 actions.delAttachment = async (el) => {
   const id = el.dataset.id;
@@ -915,61 +994,60 @@ actions.stampAttachment = async (el) => {
     const textSize = 16;
     const color = PDFLib.rgb(0, 0, 0);
 
-    // 2. ประทับตราหัวกระดาษ "เอกสารแนบท้าย..." ขนาด 16
+    const marginR = 40;
     const hw = customFont.widthOfTextAtSize(headerText, textSize);
+    const line1 = 'สำเนาถูกต้อง';
+    const line2 = 'ลงชื่อ ..........................................';
+    const line3 = name ? `( ${name} )` : '( .......................................... )';
+    const w1 = customFont.widthOfTextAtSize(line1, textSize);
+    const w2 = customFont.widthOfTextAtSize(line2, textSize);
+    const w3 = customFont.widthOfTextAtSize(line3, textSize);
+    const signW = Math.max(w1, w2, w3);
+
+    const hY = height - 36;
     let hX;
     if (headerPos === 'center') {
       hX = (width - hw) / 2;
     } else {
-      hX = width - hw - 54;
+      hX = width - hw - marginR;
     }
-    const hY = height - 54;
+
     firstPage.drawText(headerText, { x: hX, y: hY, size: textSize, font: customFont, color });
 
-    // 3. ประทับตราคำรับรองสำเนาถูกต้องและลงชื่อ (ขนาด 16)
-    const line1 = 'สำเนาถูกต้อง';
-    const line2 = 'ลงชื่อ ..........................................';
-    const line3 = name ? `( ${name} )` : '( .......................................... )';
-
-    const w1 = customFont.widthOfTextAtSize(line1, textSize);
-    const w2 = customFont.widthOfTextAtSize(line2, textSize);
-    const w3 = customFont.widthOfTextAtSize(line3, textSize);
-    const blockW = Math.max(w1, w2, w3);
-
-    let baseX;
+    let signBaseX;
     if (signPos === 'center') {
-      baseX = (width - blockW) / 2;
+      signBaseX = (width - signW) / 2;
     } else {
-      baseX = width - blockW - 54;
+      signBaseX = width - signW - marginR;
     }
 
-    const x1 = baseX + (blockW - w1) / 2;
-    const x2 = baseX + (blockW - w2) / 2;
-    const x3 = baseX + (blockW - w3) / 2;
+    const x1 = signBaseX + (signW - w1) / 2;
+    const x2 = signBaseX + (signW - w2) / 2;
+    const x3 = signBaseX + (signW - w3) / 2;
 
-    const lineGap = 24;
     let startY;
     if (signPos === 'top-right') {
-      startY = headerPos === 'right' ? hY - 30 : hY;
+      // อยู่ใต้หัวเอกสารแนบท้ายเสมอ ห่างลงมา 26pt ไม่ซ้อนทับกัน
+      startY = hY - 26;
     } else {
       startY = 115;
     }
 
     firstPage.drawText(line1, { x: x1, y: startY, size: textSize, font: customFont, color });
-    firstPage.drawText(line2, { x: x2, y: startY - lineGap, size: textSize, font: customFont, color });
-    firstPage.drawText(line3, { x: x3, y: startY - (lineGap * 2), size: textSize, font: customFont, color });
+    firstPage.drawText(line2, { x: x2, y: startY - 22, size: textSize, font: customFont, color });
+    firstPage.drawText(line3, { x: x3, y: startY - 44, size: textSize, font: customFont, color });
 
     for (let pIdx = 1; pIdx < pages.length; pIdx++) {
       const page = pages[pIdx];
       const pSize = page.getSize();
-      const pBaseX = signPos === 'center' ? (pSize.width - blockW) / 2 : pSize.width - blockW - 54;
-      const px1 = pBaseX + (blockW - w1) / 2;
-      const px2 = pBaseX + (blockW - w2) / 2;
-      const px3 = pBaseX + (blockW - w3) / 2;
-      const pStartY = signPos === 'top-right' ? pSize.height - 54 : 115;
+      const pBaseX = signPos === 'center' ? (pSize.width - signW) / 2 : pSize.width - signW - marginR;
+      const px1 = pBaseX + (signW - w1) / 2;
+      const px2 = pBaseX + (signW - w2) / 2;
+      const px3 = pBaseX + (signW - w3) / 2;
+      const pStartY = signPos === 'top-right' ? pSize.height - 36 - 26 : 115;
       page.drawText(line1, { x: px1, y: pStartY, size: textSize, font: customFont, color });
-      page.drawText(line2, { x: px2, y: pStartY - lineGap, size: textSize, font: customFont, color });
-      page.drawText(line3, { x: px3, y: pStartY - (lineGap * 2), size: textSize, font: customFont, color });
+      page.drawText(line2, { x: px2, y: pStartY - 22, size: textSize, font: customFont, color });
+      page.drawText(line3, { x: px3, y: pStartY - 44, size: textSize, font: customFont, color });
     }
 
     const pdfBytes = await pdfDoc.save();
@@ -982,7 +1060,7 @@ actions.stampAttachment = async (el) => {
       id: Math.random().toString(36).slice(2, 10),
       type: typeRaw,
       parentLabel: getParentLabel(S.c, typeRaw),
-      num: num,
+      num: num || '1',
       headerText: headerText,
       headerPos: headerPos,
       signPos: signPos,
@@ -998,12 +1076,18 @@ actions.stampAttachment = async (el) => {
 
     if (!Array.isArray(S.c.attachments)) S.c.attachments = [];
     S.c.attachments.unshift(record);
+    if (fileInput) fileInput.value = '';
     if (S.ui.attachCurrentPreview?.blobUrl) {
       try { URL.revokeObjectURL(S.ui.attachCurrentPreview.blobUrl); } catch (_) {}
     }
     S.ui.attachCurrentPreview = null;
     S.ui.attachCurrentFile = null;
-    S.ui.pvDoc = `att-${record.id}`;
+
+    // เลื่อนเลขเอกสารแนบลำดับถัดไปอัตโนมัติ
+    const nextNum = String(parseInt(num || '1', 10) + 1);
+    S.ui.attachNum = nextNum;
+    S.ui.attachHeaderText = getDefaultHeader(S.c, typeRaw, nextNum);
+
     hooks.changed();
     hooks.rerender();
     hooks.preview();

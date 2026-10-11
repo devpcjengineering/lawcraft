@@ -6,8 +6,8 @@ import { syncWitnessSummons, newCase, indexLaw, caseTitle, caseLabel, validateCa
 import { buildDocuments, isPostFilingDoc } from '/shared/docs.js';
 import { resolveLayout, layoutCssVars } from '/shared/layout.js';
 import { docsHtml, docHtml, attachmentDocHtml } from './render-html.js';
-import { resolveCaseSigner } from './attachments.js';
-import { ageFromBirth, validCitizenId, maskCitizenId } from '/shared/thai.js';
+import { resolveCaseSigner, getParentLabel, getDefaultHeader } from './attachments.js';
+import { ageFromBirth, validCitizenId, maskCitizenId, toThaiDigits } from '/shared/thai.js';
 import { selectBackend } from './api.js';
 import { showBook, leaveBook } from './book.js';
 import { showSiteAdmin, leaveSiteAdmin } from './site-admin.js';
@@ -354,7 +354,7 @@ function openCase(c, tab = 'case') {
   if (t.adminOnly) hooks.toast(ADMIN_ONLY_MSG, { type: 'warn' });
   else if (t.blk) WIZ_NOTE(t.blk);
   S.tab = t.tab;
-  if (S.tab === 'layout') S.ui.pvOn = true;
+  if (S.tab === 'layout' || S.tab === 'attachments') S.ui.pvOn = true;
   S.ui.pvDoc = '';
   syncPreviewDoc();
   replaceUrl(urls.caseTab(S.c.id, S.tab)); setTitle(TAB_NAMES[S.tab]);
@@ -382,7 +382,7 @@ function switchTab(tab) {
   else if (t.blk) WIZ_NOTE(t.blk);
   if (t.tab !== tab) replaceUrl(urls.caseTab(S.c.id, t.tab));
   S.tab = t.tab;
-  if (S.tab === 'layout') S.ui.pvOn = true;
+  if (S.tab === 'layout' || S.tab === 'attachments') S.ui.pvOn = true;
   syncPreviewDoc();
   setTitle(TAB_NAMES[S.tab]);
   smoothSwap(() => { renderShell(true); window.scrollTo({ top: 0 }); $('#main')?.scrollTo({ top: 0 }); });
@@ -441,6 +441,7 @@ function smoothSwap(fn) {
 function syncPreviewDoc() {
   const t = TABS.find((x) => x.key === S.tab);
   if (t?.doc) S.ui.pvDoc = t.doc;
+  else if (S.tab === 'attachments') S.ui.pvDoc = 'att-current';
 }
 
 // ---------------- พื้นที่ทำงาน ----------------
@@ -547,7 +548,7 @@ function playEnter(el) {
 function renderShell(enter = false) {
   renderSteps();
   renderMain(enter);
-  $('#work').classList.toggle('live', S.tab === 'layout');
+  $('#work').classList.toggle('live', S.tab === 'layout' || S.tab === 'attachments');
   $('#work').classList.toggle('nopreview', !S.ui.pvOn);
   if ($('#pv-inner')?.dataset.doc) applyPvFit(); // แผงเพิ่งโผล่ (เช่นหน้าตั้งค่าบนจอแคบ) → ตั้งขนาดพอดีทันที ไม่ให้เฟรมแรกใช้ซูมค้างตอนซ่อน
   schedulePreview(enter);
@@ -581,6 +582,43 @@ function currentDocs() { return buildDocuments(S.c, S.data); }
 const LAYOUT_DOCKEY = { complaint: 'complaint', prayer: 'prayer', attachment: 'attachment', service: 'service', motion: 'motions', witness: 'witness', witnessExtra: 'witnessExtra', summons: 'summons', witnessSummons: 'witnessSummons', witnessRequest: 'witnessRequest', attorney: 'attorney', proxy: 'proxy', answer: 'answer', settlement: 'settlement' };
 const isDocOf = (d, key) => d.id === key || d.id.startsWith(key + '-') || (key === 'motions' && d.id.startsWith('motion-'));
 function previewDocs() {
+  if (S.tab === 'attachments') {
+    const cur = S.ui.attachCurrentPreview;
+    const curFile = S.ui.attachCurrentFile;
+    const num = S.ui.attachNum || '';
+    const typeRaw = S.ui.attachType || 'complaint';
+    const rawHeaderText = S.ui.attachHeaderText || getDefaultHeader(S.c, typeRaw, num);
+    const headerText = toThaiDigits(rawHeaderText);
+    const autoSigner = resolveCaseSigner(S.c);
+    const name = S.ui.attachName !== undefined ? S.ui.attachName : autoSigner.name;
+    const headerPos = S.ui.attachHeaderPos || 'center';
+    const signPos = S.ui.attachSignPos || 'top-right';
+
+    const attData = cur ? { ...cur } : {
+      id: 'current',
+      type: typeRaw,
+      parentLabel: getParentLabel(S.c, typeRaw),
+      num: num,
+      headerText: headerText,
+      headerPos: headerPos,
+      signPos: signPos,
+      filename: curFile?.name || 'ตัวอย่างเอกสารแนบ (ยังไม่อัปโหลด)',
+      signer: name,
+      pageCount: 1,
+      blobUrl: '',
+    };
+    if (!attData.headerText) attData.headerText = headerText;
+    if (!attData.signer && name) attData.signer = name;
+
+    return [{
+      id: 'att-current',
+      title: `📎 ${attData.headerText || 'เอกสารแนบท้าย'} (${attData.filename || 'ตัวอย่าง'})`,
+      isAttachment: true,
+      attachmentData: attData,
+      blocks: [],
+    }];
+  }
+
   const docs = currentDocs();
   const key = S.tab === 'layout' ? LAYOUT_DOCKEY[S.ui.layoutForm] : null;
   if (key && !docs.some((d) => isDocOf(d, key))) {
@@ -600,69 +638,7 @@ function previewDocs() {
     if (extra.length) docs.push(...extra);
   }
 
-  // แทรกเอกสารแนบท้ายต่อจากเอกสารที่เลือก / เอกสารหลัก
-  const atts = S.c?.attachments || [];
-  if (!atts.length) return docs;
-
-  const result = [];
-  const handled = new Set();
-  const hasPrayer = docs.some((d) => d.id === 'prayer');
-
-  for (const doc of docs) {
-    result.push(doc);
-
-    // สำหรับคำฟ้อง ให้แทรกต่อจากคำขอท้ายฟ้อง (prayer) ถ้ามี หรือคำฟ้อง (complaint) หรือคำให้การ (answer)
-    const isComplaintTarget = hasPrayer ? doc.id === 'prayer' : (doc.id === 'complaint' || doc.id === 'answer');
-
-    for (const att of atts) {
-      if (handled.has(att.id)) continue;
-      let match = false;
-      if (att.type === 'complaint' && isComplaintTarget) match = true;
-      else if (att.type?.startsWith('motion_')) {
-        const mid = att.type.replace('motion_', '');
-        if (doc.id === `motion-${mid}` || doc.id === mid) match = true;
-      } else if (att.type === 'motion' && doc.id.startsWith('motion-')) {
-        match = true;
-      } else if (att.type?.startsWith('evidence') && doc.id === 'witness') {
-        match = true;
-      }
-
-      if (match) {
-        handled.add(att.id);
-        result.push({
-          id: `att-${att.id}`,
-          title: `📎 ${att.headerText || 'เอกสารแนบท้าย'} (${att.filename || 'PDF'})`,
-          isAttachment: true,
-          attachmentData: att,
-          blocks: [],
-        });
-      }
-    }
-  }
-
-  for (const att of atts) {
-    if (!handled.has(att.id)) {
-      result.push({
-        id: `att-${att.id}`,
-        title: `📎 ${att.headerText || 'เอกสารแนบท้าย'} (${att.filename || 'PDF'})`,
-        isAttachment: true,
-        attachmentData: att,
-        blocks: [],
-      });
-    }
-  }
-
-  if (S.ui.attachCurrentPreview) {
-    result.push({
-      id: 'att-current',
-      title: `📎 [กำลังเลือก] ${S.ui.attachCurrentPreview.headerText || 'เอกสารแนบท้าย'} (${S.ui.attachCurrentPreview.filename || 'PDF'})`,
-      isAttachment: true,
-      attachmentData: S.ui.attachCurrentPreview,
-      blocks: [],
-    });
-  }
-
-  return result;
+  return docs;
 }
 
 function renderPreview() {
@@ -698,29 +674,8 @@ function renderPreview() {
     if (!att.signer && S.c) att.signer = resolveCaseSigner(S.c).name;
     sheetsHtml = attachmentDocHtml(att);
   } else {
-    let rawHtml = docHtml(doc, S.data.layout);
-    // แสดงเอกสารแนบต่อท้ายเอกสารที่เลือกในแผงตัวอย่างด้วย
-    const atts = S.c?.attachments || [];
-    const hasPrayer = docs.some((d) => d.id === 'prayer');
-    const isComplaintTarget = hasPrayer ? doc.id === 'prayer' : (doc.id === 'complaint' || doc.id === 'answer');
-    const related = atts.filter((att) => {
-      if (att.type === 'complaint') return isComplaintTarget;
-      if (att.type?.startsWith('motion_')) {
-        const mid = att.type.replace('motion_', '');
-        return doc.id === `motion-${mid}` || doc.id === mid;
-      }
-      if (att.type === 'motion') return doc.id.startsWith('motion-');
-      if (att.type?.startsWith('evidence')) return doc.id === 'witness';
-      return false;
-    });
+    const rawHtml = docHtml(doc, S.data.layout);
     sheetsHtml = paginateHtml(rawHtml);
-    if (related.length) {
-      sheetsHtml += related.map((att) => {
-        const a = { ...att };
-        if (!a.signer && S.c) a.signer = resolveCaseSigner(S.c).name;
-        return attachmentDocHtml(a);
-      }).join('');
-    }
   }
   const sheets = countSheets(sheetsHtml);
   if (same) morphInto(inner, sheetsHtml, { mark: false }); else inner.innerHTML = sheetsHtml;
