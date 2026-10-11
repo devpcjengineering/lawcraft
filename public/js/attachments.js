@@ -653,15 +653,33 @@ export function tabAttachments() {
       </label>
     </div>
 
-    ${group('', `
-      ${field('ข้อความหัวเอกสาร (ขนาด 16)', '@ui.attachHeaderText', { cls: 's8', ph: 'เช่น เอกสารแนบท้ายคำฟ้อง หมายเลข ๑', oninput: 'onAttachSettingChange' })}
-      ${select('ตำแหน่งหัวเอกสาร', '@ui.attachHeaderPos', headerPosOptions, { cls: 's4', onchange: 'onAttachSettingChange' })}
-    `)}
+    <div class="grid">
+      <label class="f s8">
+        <span>ข้อความหัวเอกสาร (ขนาด 16)</span>
+        <input type="text" value="${esc(S.ui.attachHeaderText || '')}" data-bind="@ui.attachHeaderText" data-oninput="onAttachHeaderTextChange" placeholder="เช่น เอกสารแนบท้ายคำฟ้อง หมายเลข ๑">
+      </label>
 
-    ${group('', `
-      ${field('ชื่อผู้ลงนามบนเอกสาร', '@ui.attachName', { cls: 's8', ph: 'ชื่อ-นามสกุล ผู้ลงลายมือชื่อ', oninput: 'onAttachSettingChange' })}
-      ${select('ตำแหน่งลายมือชื่อ', '@ui.attachSignPos', signPosOptions, { cls: 's4', onchange: 'onAttachSettingChange' })}
-    `)}
+      <label class="f s4">
+        <span>ตำแหน่งหัวเอกสาร</span>
+        <select data-bind="@ui.attachHeaderPos" data-onchange="onAttachHeaderPosChange">
+          ${headerPosOptions.map(([val, text]) => `<option value="${esc(val)}" ${String(val) === String(S.ui.attachHeaderPos) ? 'selected' : ''}>${esc(text)}</option>`).join('')}
+        </select>
+      </label>
+    </div>
+
+    <div class="grid">
+      <label class="f s8">
+        <span>ชื่อผู้ลงนามบนเอกสาร</span>
+        <input type="text" value="${esc(S.ui.attachName !== undefined ? S.ui.attachName : autoSigner.name)}" data-bind="@ui.attachName" data-oninput="onAttachNameChange" placeholder="ชื่อ-นามสกุล ผู้ลงลายมือชื่อ">
+      </label>
+
+      <label class="f s4">
+        <span>ตำแหน่งลายมือชื่อ</span>
+        <select data-bind="@ui.attachSignPos" data-onchange="onAttachSignPosChange">
+          ${signPosOptions.map(([val, text]) => `<option value="${esc(val)}" ${String(val) === String(S.ui.attachSignPos) ? 'selected' : ''}>${esc(text)}</option>`).join('')}
+        </select>
+      </label>
+    </div>
   </div>
 
   <div class="attach-panel">
@@ -814,15 +832,63 @@ actions.onAttachNumChange = (el) => {
   if (S.ui.attachCurrentFile) updateAttachPreview(S.ui.attachCurrentFile);
 };
 
-let settingTimer = null;
-actions.onAttachSettingChange = () => {
-  clearTimeout(settingTimer);
-  settingTimer = setTimeout(() => {
+actions.onAttachHeaderPosChange = (el) => {
+  S.ui.attachHeaderPos = el.value;
+  if (S.ui.attachCurrentPreview) {
+    S.ui.attachCurrentPreview.headerPos = el.value;
+  }
+  if (S.ui.attachCurrentFile) {
+    updateAttachPreview(S.ui.attachCurrentFile);
+  } else {
+    hooks.preview();
+  }
+};
+
+actions.onAttachSignPosChange = (el) => {
+  S.ui.attachSignPos = el.value;
+  if (S.ui.attachCurrentPreview) {
+    S.ui.attachCurrentPreview.signPos = el.value;
+  }
+  if (S.ui.attachCurrentFile) {
+    updateAttachPreview(S.ui.attachCurrentFile);
+  } else {
+    hooks.preview();
+  }
+};
+
+let headerTextTimer = null;
+actions.onAttachHeaderTextChange = (el) => {
+  S.ui.attachHeaderText = el.value;
+  if (S.ui.attachCurrentPreview) {
+    S.ui.attachCurrentPreview.headerText = toThaiDigits(el.value);
+  }
+  clearTimeout(headerTextTimer);
+  headerTextTimer = setTimeout(() => {
     if (S.ui.attachCurrentFile) updateAttachPreview(S.ui.attachCurrentFile);
-    else if (S.ui.attachCurrentPreview) {
-      updateAttachPreview(null);
-    }
-  }, 200);
+  }, 120);
+};
+
+let nameTimer = null;
+actions.onAttachNameChange = (el) => {
+  S.ui.attachName = el.value;
+  if (S.ui.attachCurrentPreview) {
+    S.ui.attachCurrentPreview.signer = el.value;
+  }
+  clearTimeout(nameTimer);
+  nameTimer = setTimeout(() => {
+    if (S.ui.attachCurrentFile) updateAttachPreview(S.ui.attachCurrentFile);
+  }, 120);
+};
+
+actions.onAttachSettingChange = (el) => {
+  if (el) {
+    if (el.dataset.bind === '@ui.attachHeaderPos') S.ui.attachHeaderPos = el.value;
+    else if (el.dataset.bind === '@ui.attachSignPos') S.ui.attachSignPos = el.value;
+    else if (el.dataset.bind === '@ui.attachHeaderText') S.ui.attachHeaderText = el.value;
+    else if (el.dataset.bind === '@ui.attachName') S.ui.attachName = el.value;
+  }
+  if (S.ui.attachCurrentFile) updateAttachPreview(S.ui.attachCurrentFile);
+  else hooks.preview();
 };
 
 actions.onFileSelected = async (el) => {
@@ -836,158 +902,174 @@ actions.onFileSelected = async (el) => {
   await updateAttachPreview(file);
 };
 
+let isUpdatingPreview = false;
+let pendingPreviewFile = null;
+
 export async function updateAttachPreview(file) {
   if (!file) return;
-  const typeRaw = S.ui.attachType || 'complaint';
-  const num = S.ui.attachNum || '';
-  const autoSigner = resolveCaseSigner(S.c);
-  const name = S.ui.attachName !== undefined ? S.ui.attachName : autoSigner.name;
-  const headerPos = S.ui.attachHeaderPos || 'center';
-  const signPos = S.ui.attachSignPos || 'top-right';
-  const rawHeaderText = S.ui.attachHeaderText || getDefaultHeader(S.c, typeRaw, num);
-  const headerText = toThaiDigits(rawHeaderText);
-
-  // 1. เด้ง preview ขึ้นมาทันที
-  S.ui.pvOn = true;
-  S.ui.pvDoc = 'att-current';
-
-  if (!S.ui.attachCurrentPreview) {
-    S.ui.attachCurrentPreview = {
-      id: 'current',
-      type: typeRaw,
-      parentLabel: getParentLabel(S.c, typeRaw),
-      num: num,
-      headerText: headerText,
-      headerPos: headerPos,
-      signPos: signPos,
-      filename: file?.name || 'เอกสารแนบ.pdf',
-      signer: name,
-      pageCount: 1,
-      createdAt: new Date().toISOString(),
-      blobUrl: '',
-    };
-  } else {
-    S.ui.attachCurrentPreview.headerText = headerText;
-    S.ui.attachCurrentPreview.headerPos = headerPos;
-    S.ui.attachCurrentPreview.signPos = signPos;
-    S.ui.attachCurrentPreview.signer = name;
-    S.ui.attachCurrentPreview.num = num;
-    S.ui.attachCurrentPreview.parentLabel = getParentLabel(S.c, typeRaw);
-    if (file) S.ui.attachCurrentPreview.filename = file.name;
+  if (isUpdatingPreview) {
+    pendingPreviewFile = file;
+    return;
   }
+  isUpdatingPreview = true;
+  try {
+    const typeRaw = S.ui.attachType || 'complaint';
+    const num = S.ui.attachNum || '';
+    const autoSigner = resolveCaseSigner(S.c);
+    const name = S.ui.attachName !== undefined ? S.ui.attachName : autoSigner.name;
+    const headerPos = S.ui.attachHeaderPos || 'center';
+    const signPos = S.ui.attachSignPos || 'top-right';
+    const rawHeaderText = S.ui.attachHeaderText || getDefaultHeader(S.c, typeRaw, num);
+    const headerText = toThaiDigits(rawHeaderText);
 
-  hooks.preview();
+    // 1. เด้ง preview ขึ้นมาทันที
+    S.ui.pvOn = true;
+    S.ui.pvDoc = 'att-current';
 
-  // 2. ถ้ามีไฟล์ ให้ประทับตราสดในหน่วยความจำ เพื่อให้แสดงตัวอย่างไฟล์จริงทันที
-  if (file) {
-    try {
-      const PDFLib = await loadPdfLib();
-      let pdfDoc;
-      if (file.type === 'application/pdf') {
-        const fileBytes = await file.arrayBuffer();
-        pdfDoc = await PDFLib.PDFDocument.load(fileBytes);
-      } else if (file.type.startsWith('image/')) {
-        pdfDoc = await PDFLib.PDFDocument.create();
-        const imageBytes = await file.arrayBuffer();
-        let image;
-        if (file.type === 'image/jpeg') image = await pdfDoc.embedJpg(imageBytes);
-        else if (file.type === 'image/png') image = await pdfDoc.embedPng(imageBytes);
+    if (!S.ui.attachCurrentPreview) {
+      S.ui.attachCurrentPreview = {
+        id: 'current',
+        type: typeRaw,
+        parentLabel: getParentLabel(S.c, typeRaw),
+        num: num,
+        headerText: headerText,
+        headerPos: headerPos,
+        signPos: signPos,
+        filename: file?.name || 'เอกสารแนบ.pdf',
+        signer: name,
+        pageCount: 1,
+        createdAt: new Date().toISOString(),
+        blobUrl: '',
+      };
+    } else {
+      S.ui.attachCurrentPreview.headerText = headerText;
+      S.ui.attachCurrentPreview.headerPos = headerPos;
+      S.ui.attachCurrentPreview.signPos = signPos;
+      S.ui.attachCurrentPreview.signer = name;
+      S.ui.attachCurrentPreview.num = num;
+      S.ui.attachCurrentPreview.parentLabel = getParentLabel(S.c, typeRaw);
+      if (file) S.ui.attachCurrentPreview.filename = file.name;
+    }
 
-        // วางลงบนหน้ากระดาษ A4 มาตรฐาน (595.28 x 841.89 pt) เพื่อให้ตัวหนังสือขนาด 16 มีขนาดมาตรฐานศาล ไม่เล็กจิ๋ว
-        const a4W = 595.28;
-        const a4H = 841.89;
-        const page = pdfDoc.addPage([a4W, a4H]);
+    hooks.preview();
 
-        const marginX = 36;
-        const topSpace = 125;
-        const bottomMargin = 36;
-        const maxW = a4W - (marginX * 2);
-        const maxH = a4H - topSpace - bottomMargin;
+    // 2. ถ้ามีไฟล์ ให้ประทับตราสดในหน่วยความจำ เพื่อให้แสดงตัวอย่างไฟล์จริงทันที
+    if (file) {
+      try {
+        const PDFLib = await loadPdfLib();
+        let pdfDoc;
+        if (file.type === 'application/pdf') {
+          const fileBytes = await file.arrayBuffer();
+          pdfDoc = await PDFLib.PDFDocument.load(fileBytes);
+        } else if (file.type.startsWith('image/')) {
+          pdfDoc = await PDFLib.PDFDocument.create();
+          const imageBytes = await file.arrayBuffer();
+          let image;
+          if (file.type === 'image/jpeg') image = await pdfDoc.embedJpg(imageBytes);
+          else if (file.type === 'image/png') image = await pdfDoc.embedPng(imageBytes);
 
-        const scale = Math.min(maxW / image.width, maxH / image.height);
-        const imgW = image.width * scale;
-        const imgH = image.height * scale;
-        const imgX = (a4W - imgW) / 2;
-        const imgY = bottomMargin + (maxH - imgH) / 2;
+          // วางลงบนหน้ากระดาษ A4 มาตรฐาน (595.28 x 841.89 pt) เพื่อให้ตัวหนังสือขนาด 16 มีขนาดมาตรฐานศาล ไม่เล็กจิ๋ว
+          const a4W = 595.28;
+          const a4H = 841.89;
+          const page = pdfDoc.addPage([a4W, a4H]);
 
-        page.drawImage(image, { x: imgX, y: imgY, width: imgW, height: imgH });
+          const marginX = 36;
+          const topSpace = 125;
+          const bottomMargin = 36;
+          const maxW = a4W - (marginX * 2);
+          const maxH = a4H - topSpace - bottomMargin;
+
+          const scale = Math.min(maxW / image.width, maxH / image.height);
+          const imgW = image.width * scale;
+          const imgH = image.height * scale;
+          const imgX = (a4W - imgW) / 2;
+          const imgY = bottomMargin + (maxH - imgH) / 2;
+
+          page.drawImage(image, { x: imgX, y: imgY, width: imgW, height: imgH });
+        }
+
+        if (pdfDoc) {
+          pdfDoc.registerFontkit(window.fontkit);
+          const customFont = await pdfDoc.embedFont(await getFontBytes());
+          const pages = pdfDoc.getPages();
+          const firstPage = pages[0];
+          const { width, height } = firstPage.getSize();
+          const textSize = 16;
+          const color = PDFLib.rgb(0, 0, 0);
+
+          const marginR = 40;
+          const hw = customFont.widthOfTextAtSize(headerText, textSize);
+          const line1 = 'สำเนาถูกต้อง';
+          const line2 = 'ลงชื่อ ..........................................';
+          const line3 = name ? `( ${name} )` : '( .......................................... )';
+          const w1 = customFont.widthOfTextAtSize(line1, textSize);
+          const w2 = customFont.widthOfTextAtSize(line2, textSize);
+          const w3 = customFont.widthOfTextAtSize(line3, textSize);
+          const signW = Math.max(w1, w2, w3);
+
+          const hY = height - 36;
+          let hX;
+          if (headerPos === 'center') {
+            hX = (width - hw) / 2;
+          } else {
+            hX = width - hw - marginR;
+          }
+          if (hX < 20) hX = 20;
+
+          firstPage.drawText(headerText, { x: hX, y: hY, size: textSize, font: customFont, color });
+
+          let signBaseX;
+          if (signPos === 'center') {
+            signBaseX = (width - signW) / 2;
+          } else {
+            signBaseX = width - signW - marginR;
+          }
+
+          const x1 = signBaseX + (signW - w1) / 2;
+          const x2 = signBaseX + (signW - w2) / 2;
+          const x3 = signBaseX + (signW - w3) / 2;
+
+          let startY;
+          if (signPos === 'top-right') {
+            // อยู่ใต้หัวเอกสารแนบท้ายเสมอ ห่างลงมา 26pt ไม่ซ้อนทับกัน
+            startY = hY - 26;
+          } else {
+            startY = 115;
+          }
+
+          // ประทับตราสำเนาถูกต้องเฉพาะหน้าแรกตามคำขอ
+          firstPage.drawText(line1, { x: x1, y: startY, size: textSize, font: customFont, color });
+          firstPage.drawText(line2, { x: x2, y: startY - 22, size: textSize, font: customFont, color });
+          firstPage.drawText(line3, { x: x3, y: startY - 44, size: textSize, font: customFont, color });
+
+          const pdfBytes = await pdfDoc.save();
+          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+          if (S.ui.attachCurrentPreview?.blobUrl) {
+            try { URL.revokeObjectURL(S.ui.attachCurrentPreview.blobUrl); } catch (_) {}
+          }
+          const blobUrl = URL.createObjectURL(blob);
+          if (S.ui.attachCurrentPreview) {
+            S.ui.attachCurrentPreview.blobUrl = blobUrl;
+            S.ui.attachCurrentPreview.pageCount = pages.length;
+          }
+
+          // เรนเดอร์แต่ละหน้าเป็นภาพ เพื่อแสดงเป็นแผ่น A4 ในตัวอย่าง ไม่ใช้ iframe เพื่อไม่ให้เกิด scrollbar ซ้อนและไม่ถูก crop
+          const pageImages = await renderPdfToPageImages(pdfBytes);
+          if (S.ui.attachCurrentPreview) {
+            S.ui.attachCurrentPreview.pageImages = pageImages;
+            hooks.preview();
+          }
+        }
+      } catch (err) {
+        console.warn('Live preview stamp error:', err);
       }
-
-      if (pdfDoc) {
-        pdfDoc.registerFontkit(window.fontkit);
-        const customFont = await pdfDoc.embedFont(await getFontBytes());
-        const pages = pdfDoc.getPages();
-        const firstPage = pages[0];
-        const { width, height } = firstPage.getSize();
-        const textSize = 16;
-        const color = PDFLib.rgb(0, 0, 0);
-
-        const marginR = 40;
-        const hw = customFont.widthOfTextAtSize(headerText, textSize);
-        const line1 = 'สำเนาถูกต้อง';
-        const line2 = 'ลงชื่อ ..........................................';
-        const line3 = name ? `( ${name} )` : '( .......................................... )';
-        const w1 = customFont.widthOfTextAtSize(line1, textSize);
-        const w2 = customFont.widthOfTextAtSize(line2, textSize);
-        const w3 = customFont.widthOfTextAtSize(line3, textSize);
-        const signW = Math.max(w1, w2, w3);
-
-        const hY = height - 36;
-        let hX;
-        if (headerPos === 'center') {
-          hX = (width - hw) / 2;
-        } else {
-          hX = width - hw - marginR;
-        }
-        if (hX < 20) hX = 20;
-
-        firstPage.drawText(headerText, { x: hX, y: hY, size: textSize, font: customFont, color });
-
-        let signBaseX;
-        if (signPos === 'center') {
-          signBaseX = (width - signW) / 2;
-        } else {
-          signBaseX = width - signW - marginR;
-        }
-
-        const x1 = signBaseX + (signW - w1) / 2;
-        const x2 = signBaseX + (signW - w2) / 2;
-        const x3 = signBaseX + (signW - w3) / 2;
-
-        let startY;
-        if (signPos === 'top-right') {
-          // อยู่ใต้หัวเอกสารแนบท้ายเสมอ ห่างลงมา 26pt ไม่ซ้อนทับกัน
-          startY = hY - 26;
-        } else {
-          startY = 115;
-        }
-
-        // ประทับตราสำเนาถูกต้องเฉพาะหน้าแรกตามคำขอ
-        firstPage.drawText(line1, { x: x1, y: startY, size: textSize, font: customFont, color });
-        firstPage.drawText(line2, { x: x2, y: startY - 22, size: textSize, font: customFont, color });
-        firstPage.drawText(line3, { x: x3, y: startY - 44, size: textSize, font: customFont, color });
-
-        const pdfBytes = await pdfDoc.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        if (S.ui.attachCurrentPreview?.blobUrl) {
-          try { URL.revokeObjectURL(S.ui.attachCurrentPreview.blobUrl); } catch (_) {}
-        }
-        const blobUrl = URL.createObjectURL(blob);
-        if (S.ui.attachCurrentPreview) {
-          S.ui.attachCurrentPreview.blobUrl = blobUrl;
-          S.ui.attachCurrentPreview.pageCount = pages.length;
-          hooks.preview();
-        }
-
-        // เรนเดอร์แต่ละหน้าเป็นภาพ เพื่อแสดงเป็นแผ่น A4 ในตัวอย่าง ไม่ใช้ iframe เพื่อไม่ให้เกิด scrollbar ซ้อนและไม่ถูก crop
-        const pageImages = await renderPdfToPageImages(pdfBytes);
-        if (S.ui.attachCurrentPreview) {
-          S.ui.attachCurrentPreview.pageImages = pageImages;
-          hooks.preview();
-        }
-      }
-    } catch (err) {
-      console.warn('Live preview stamp error:', err);
+    }
+  } finally {
+    isUpdatingPreview = false;
+    if (pendingPreviewFile) {
+      const nextFile = pendingPreviewFile;
+      pendingPreviewFile = null;
+      updateAttachPreview(nextFile);
     }
   }
 }

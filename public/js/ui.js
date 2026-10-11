@@ -47,7 +47,8 @@ export function select(label, path, options, o = {}) {
     return `<option value="${esc(val)}" ${String(val) === String(v) ? 'selected' : ''}>${esc(text)}</option>`;
   }).join('');
   const aria = !label && o.aria ? `aria-label="${esc(o.aria)}"` : '';
-  return `<label class="f ${o.cls || ''}">${label ? `<span>${esc(label)}</span>` : ''}<select data-bind="${esc(path)}" ${aria} ${o.rerender ? 'data-rerender="1"' : ''}>${o.blank ? '<option value="">— เลือก —</option>' : ''}${opts}</select></label>`;
+  const onch = o.onchange ? `data-onchange="${esc(o.onchange)}"` : '';
+  return `<label class="f ${o.cls || ''}">${label ? `<span>${esc(label)}</span>` : ''}<select data-bind="${esc(path)}" ${onch} ${aria} ${o.rerender ? 'data-rerender="1"' : ''} ${o.attrs || ''}>${o.blank ? '<option value="">— เลือก —</option>' : ''}${opts}</select></label>`;
 }
 
 export function check(label, path, o = {}) {
