@@ -23,6 +23,48 @@ async function getFontBytes() {
   return fontBytes;
 }
 
+// Load PDF.js for rendering PDF pages to images in the preview pane (no iframe, no cropping, no double scrollbars)
+async function loadPdfJs() {
+  if (!window.pdfjsLib) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = '/js/vendor/pdf.min.js';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/vendor/pdf.worker.min.js';
+    }
+  }
+  return window.pdfjsLib;
+}
+
+export async function renderPdfToPageImages(pdfBytes) {
+  try {
+    const pdfjs = await loadPdfJs();
+    const loadingTask = pdfjs.getDocument({ data: pdfBytes });
+    const doc = await loadingTask.promise;
+    const numPages = doc.numPages;
+    const imageUrls = [];
+
+    for (let i = 1; i <= numPages; i++) {
+      const page = await doc.getPage(i);
+      const viewport = page.getViewport({ scale: 1.5 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      imageUrls.push(canvas.toDataURL('image/jpeg', 0.88));
+    }
+    return imageUrls;
+  } catch (err) {
+    console.warn('renderPdfToPageImages error:', err);
+    return [];
+  }
+}
+
 /** ตรวจหาผู้ลงลายมือชื่ออัตโนมัติตามฝั่งคดี (ทนายความ -> ผู้รับมอบอำนาจ -> คู่ความตัวจริง) */
 export function resolveCaseSigner(c) {
   if (!c) return { name: '', role: '', full: '' };
@@ -908,6 +950,13 @@ export async function updateAttachPreview(file) {
           S.ui.attachCurrentPreview.pageCount = pages.length;
           hooks.preview();
         }
+
+        // เรนเดอร์แต่ละหน้าเป็นภาพ เพื่อแสดงเป็นแผ่น A4 ในตัวอย่าง ไม่ใช้ iframe เพื่อไม่ให้เกิด scrollbar ซ้อนและไม่ถูก crop
+        const pageImages = await renderPdfToPageImages(pdfBytes);
+        if (S.ui.attachCurrentPreview) {
+          S.ui.attachCurrentPreview.pageImages = pageImages;
+          hooks.preview();
+        }
       }
     } catch (err) {
       console.warn('Live preview stamp error:', err);
@@ -915,7 +964,7 @@ export async function updateAttachPreview(file) {
   }
 }
 
-actions.viewAttachment = (el) => {
+actions.viewAttachment = async (el) => {
   const id = el.dataset.id;
   const att = (S.c?.attachments || []).find(a => a.id === id);
   if (!att) return;
@@ -924,6 +973,19 @@ actions.viewAttachment = (el) => {
   S.ui.pvDoc = 'att-current';
   hooks.rerender();
   hooks.preview();
+
+  if ((!att.pageImages || !att.pageImages.length) && att.blobUrl) {
+    try {
+      const res = await fetch(att.blobUrl);
+      const buf = await res.arrayBuffer();
+      const pageImages = await renderPdfToPageImages(new Uint8Array(buf));
+      att.pageImages = pageImages;
+      if (S.ui.attachCurrentPreview && S.ui.attachCurrentPreview.id === id) {
+        S.ui.attachCurrentPreview.pageImages = pageImages;
+        hooks.preview();
+      }
+    } catch (_) {}
+  }
 };
 
 actions.resetAttachConfig = () => {
@@ -1086,6 +1148,7 @@ actions.stampAttachment = async (el) => {
       driveUrl: '',
       driveId: '',
       blobUrl: blobUrl,
+      pageImages: S.ui.attachCurrentPreview?.pageImages || [],
     };
 
     if (!Array.isArray(S.c.attachments)) S.c.attachments = [];
