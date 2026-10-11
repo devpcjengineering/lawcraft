@@ -49,6 +49,17 @@ export async function loadLaw() {
   return { data, geo };
 }
 
+const PROVIDER_TOKEN_KEY = 'lawcraft:google:provider_token';
+try {
+  sb.auth.onAuthStateChange((event, session) => {
+    if (session?.provider_token) {
+      try { sessionStorage.setItem(PROVIDER_TOKEN_KEY, session.provider_token); } catch {}
+    } else if (event === 'SIGNED_OUT') {
+      try { sessionStorage.removeItem(PROVIDER_TOKEN_KEY); } catch {}
+    }
+  });
+} catch (_) {}
+
 export const supabaseBackend = {
   mode: 'supabase',
   label: 'Supabase (ฐานข้อมูลออนไลน์)',
@@ -88,6 +99,16 @@ export const supabaseBackend = {
   async claimAdmin() { const { data, error } = await sb.rpc('claim_first_admin'); if (error) throw new Error(error.message); return data === true; },
   async addAdmin(email) { const { data, error } = await sb.rpc('add_admin', { new_email: email }); if (error) throw new Error(error.message); return data === true; },
   async signInWithGoogle() {
+    // บันทึกหน้าที่กำลังใช้งานอยู่ก่อนเริ่ม OAuth redirect เพื่อให้กลับมาที่คดีเดิมหลังล็อกอินเสร็จ
+    try {
+      const here = location.pathname + location.search + location.hash;
+      if (here && here.startsWith('/workspace/') && !here.includes('/workspace/login') && !here.includes('/workspace/setup')) {
+        if (!sessionStorage.getItem('lawcraft:return')) {
+          sessionStorage.setItem('lawcraft:return', here);
+        }
+      }
+    } catch (_) {}
+
     // redirectTo คง /admin/ ไว้ตามรายการ Redirect URLs ใน Supabase Auth (ยังไม่ได้เพิ่ม /workspace/) — public/admin/index.html เด้งต่อโดยพก ?code / #access_token ไปด้วย
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
@@ -103,13 +124,27 @@ export const supabaseBackend = {
         : error.message);
     }
   },
-  async signOut() { role = 'user'; await sb.auth.signOut(); },
+  async signOut() {
+    role = 'user';
+    try { sessionStorage.removeItem(PROVIDER_TOKEN_KEY); } catch {}
+    await sb.auth.signOut();
+  },
   /** id ของบัญชีที่ล็อกอิน (แอดมินใช้แยก “คดีของฉัน” ออกจากคดีของคนอื่น) */
   async sessionUserId() { const { data } = await sb.auth.getSession(); return data.session?.user?.id || ''; },
   /** โทเค็นของผู้ใช้ที่ล็อกอินอยู่ (ส่งให้ /api/pdf บน Vercel ตรวจกับ Supabase Auth) */
   async accessToken() { const { data } = await sb.auth.getSession(); return data.session?.access_token || ''; },
   /** Google OAuth provider token (สำหรับอัปโหลด Google Drive) */
-  async providerToken() { const { data } = await sb.auth.getSession(); return data.session?.provider_token || ''; },
+  async providerToken() {
+    const { data } = await sb.auth.getSession();
+    const token = data.session?.provider_token || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(PROVIDER_TOKEN_KEY) : '') || '';
+    if (data.session?.provider_token) {
+      try { sessionStorage.setItem(PROVIDER_TOKEN_KEY, data.session.provider_token); } catch {}
+    }
+    return token;
+  },
+  clearProviderToken() {
+    try { sessionStorage.removeItem(PROVIDER_TOKEN_KEY); } catch {}
+  },
 
   async loadAll() {
     const { data, geo } = await loadLaw();

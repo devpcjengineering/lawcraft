@@ -1112,6 +1112,18 @@ dialog.modal::backdrop {
   min-height: 44px;
 }
 
+.modal-actions.modal-stacked {
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-actions.modal-stacked .btn {
+  width: 100%;
+  flex: none;
+  min-height: 44px;
+  justify-content: center;
+}
+
 .issue-list {
   margin: 12px 0 0;
   gap: 6px;

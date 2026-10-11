@@ -16,14 +16,14 @@ function ensure() {
  * แสดงกล่องข้อความ คืนค่า Promise ของปุ่มที่กด (ค่า value ของปุ่ม) หรือ null เมื่อปิด/กด Esc
  * opts: { title, message (HTML ปลอดภัยที่ผู้เรียก escape เอง), tone: 'info'|'warn'|'danger'|'ok', buttons: [{label, value, primary, danger}] }
  */
-export function modal({ title = '', message = '', tone = 'info', buttons = [{ label: 'ตกลง', value: true, primary: true }] }) {
+export function modal({ title = '', message = '', tone = 'info', buttons = [{ label: 'ตกลง', value: true, primary: true }], stacked = false }) {
   const d = ensure();
   const icon = svg({ info: 'info', warn: 'alert', danger: 'alert', ok: 'checkCircle' }[tone] || 'info', { stroke: 1.9 });
   d.innerHTML = `<form method="dialog" class="modal-card ${tone}">
     <div class="modal-ico" aria-hidden="true">${icon}</div>
     <h3 id="modal-title">${esc(title)}</h3>
     <div class="modal-body">${message}</div>
-    <div class="modal-actions">${buttons.map((b, i) => `<button class="btn ${b.primary ? 'primary' : ''} ${b.danger ? 'danger-fill' : ''}" value="${i}" ${b.primary ? 'autofocus' : ''}>${esc(b.label)}</button>`).join('')}</div>
+    <div class="modal-actions ${stacked ? 'modal-stacked' : ''}">${buttons.map((b, i) => `<button class="btn ${b.primary ? 'primary' : ''} ${b.danger ? 'danger-fill' : ''} ${b.outline ? 'outline' : ''} ${b.cls || ''}" value="${i}" ${b.primary ? 'autofocus' : ''}>${esc(b.label)}</button>`).join('')}</div>
   </form>`;
   return new Promise((resolve) => {
     const onClose = () => {

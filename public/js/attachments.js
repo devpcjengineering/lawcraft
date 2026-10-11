@@ -3,7 +3,7 @@ import { group, field, select, pageHead } from './ui.js';
 import { icon } from './icons.js';
 import { sideOf, partyLabel, partyName, plaintiffs, defendants } from '/shared/model.js';
 import { toThaiDigits } from '/shared/thai.js';
-import { confirmBox } from './modal.js';
+import { modal, confirmBox } from './modal.js';
 import { backend } from './api.js';
 
 // Load pdf-lib and fontkit lazily
@@ -757,6 +757,11 @@ export function tabAttachments() {
                     <button type="button" class="btn btn-xs outline" data-act="viewAttachment" data-id="${esc(att.id)}" title="ดูตัวอย่างเอกสารนี้" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 9px; font-size: 13px;">
                       ${icon('eye', { size: 14 })} ดู
                     </button>
+                    ${att.blobUrl ? `
+                      <a href="${esc(att.blobUrl)}" download="${esc(att.outputFile || att.name || 'เอกสารแนบท้าย.pdf')}" class="btn btn-xs outline" title="ดาวน์โหลดไฟล์ PDF นี้" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 9px; font-size: 13px; text-decoration: none;">
+                        ${icon('download', { size: 14 })} โหลด
+                      </a>
+                    ` : ''}
                     ${att.driveUrl ? `
                       <a href="${esc(att.driveUrl)}" target="_blank" rel="noopener" class="btn btn-xs primary" title="เปิดดูใน Google Drive" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 9px; font-size: 13px; text-decoration: none;">
                         ${icon('cloud', { size: 14 })} Drive
@@ -1308,11 +1313,12 @@ let gTokenClient;
 const GOOGLE_API_KEY = window.GOOGLE_API_KEY || 'AIzaSyBIRxZF7obWCoLR4Nd7xUUjAGFxiyHHXe8';
 
 async function uploadToGoogleDrive(blob, filename, record) {
+  const b = hooks.api || backend;
   // 1. ดึง provider_token จาก Supabase Auth
   let token = null;
   try {
-    if (backend && backend.providerToken) {
-      token = await backend.providerToken();
+    if (b && b.providerToken) {
+      token = await b.providerToken();
     }
   } catch (err) {
     console.warn('Error reading providerToken:', err);
@@ -1336,18 +1342,14 @@ async function uploadToGoogleDrive(blob, filename, record) {
     return;
   }
 
-  // 3. ขอสิทธิ์ผ่าน Google
-  hooks.toast('ยังไม่ได้รับสิทธิ์เข้าถึง Google Drive');
-  const relogin = confirm('ยังไม่พบสิทธิ์ Google Drive สำหรับบัญชีนี้ (หรือเซสชันหมดอายุ)\n\nต้องการเข้าสู่ระบบด้วย Google อีกครั้งเพื่ออนุญาตสิทธิ์เข้าถึง Google Drive ทันทีหรือไม่?');
-  if (relogin && backend && backend.signInWithGoogle) {
-    await backend.signInWithGoogle();
-  }
+  // 3. ขอสิทธิ์ผ่านหน้าต่างแจ้งเตือนที่สวยงาม พร้อมตัวเลือกดาวน์โหลดทันที
+  await showDriveAuthModal({ blob, filename, record });
 }
 
 function initDriveAuth(blob, filename, record) {
   const CLIENT_ID = window.GOOGLE_CLIENT_ID;
   if (!CLIENT_ID) {
-    hooks.toast('กรุณาระบุ Google Client ID หรือเข้าสู่ระบบด้วย Google ใหม่');
+    showDriveAuthModal({ blob, filename, record, reason: 'กรุณาระบุ Google Client ID หรือเข้าสู่ระบบ Google ใหม่เพื่อเปิดสิทธิ์ Google Drive' });
     return;
   }
 
@@ -1358,11 +1360,84 @@ function initDriveAuth(blob, filename, record) {
       callback: (tokenResponse) => {
         if (tokenResponse && tokenResponse.access_token) {
           executeDriveUpload(tokenResponse.access_token, blob, filename, record);
+        } else {
+          hooks.toast('ไม่ได้รับสิทธิ์เข้าถึง Google Drive');
         }
       },
+      error_callback: (err) => {
+        console.warn('Google Token Client Error:', err);
+        showDriveAuthModal({ blob, filename, record, reason: 'ไม่สามารถเปิดหน้าต่างขอสิทธิ์จาก Google ได้: ' + (err.message || '') });
+      }
     });
   }
   gTokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+/**
+ * กล่องป๊อปอัปแจ้งเตือนสิทธิ์ Google Drive แบบสวยงาม
+ * มีตัวเลือก: ดาวน์โหลดลงเครื่องทันที (ไม่หลุดจากหน้างาน) หรือ เข้าสู่ระบบเพื่อเชื่อมต่อ Drive (จำหน้าเดิมไว้ ไม่เด้งหาย)
+ */
+async function showDriveAuthModal({ blob, filename, record, reason = '' }) {
+  const reasonText = reason || 'บัญชีปัจจุบันยังไม่ได้รับสิทธิ์เข้าถึง <b>Google Drive</b> หรือเซสชันหมดอายุ';
+  const messageHtml = `
+    <div style="text-align: left; font-size: 14.5px; line-height: 1.6; color: #374151;">
+      <p style="margin: 0 0 12px; text-align: center; color: #1e293b;">${reasonText}</p>
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px; margin-bottom: 6px; font-size: 13.5px;">
+        <div style="font-weight: 600; color: #0f172a; margin-bottom: 8px;">ท่านสามารถเลือกดำเนินการได้ดังนี้:</div>
+        <div style="display: flex; flex-direction: column; gap: 8px; color: #475569;">
+          <div style="display: flex; align-items: flex-start; gap: 8px;">
+            <span style="color: #059669; font-weight: bold; line-height: 1.4;">✓</span>
+            <div><b style="color: #0f172a;">ดาวน์โหลดลงเครื่องทันที:</b> รับไฟล์ PDF ที่ประทับตราแล้วลงคอมพิวเตอร์ของคุณทันที โดยไม่ต้องออกจากหน้านี้</div>
+          </div>
+          <div style="display: flex; align-items: flex-start; gap: 8px;">
+            <span style="color: #2563eb; font-weight: bold; line-height: 1.4;">✓</span>
+            <div><b style="color: #0f172a;">เข้าสู่ระบบเพื่อเชื่อมต่อ Google Drive:</b> ระบบจะนำท่านไปยืนยันสิทธิ์ และ<b>พากลับมาที่คดีนี้โดยอัตโนมัติ</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const choice = await modal({
+    title: 'ต้องการสิทธิ์เข้าถึง Google Drive',
+    tone: 'info',
+    message: messageHtml,
+    stacked: true,
+    buttons: [
+      { label: 'ดาวน์โหลดลงเครื่องทันที', value: 'download', primary: true },
+      { label: 'เข้าสู่ระบบเพื่อเชื่อมต่อ Google Drive', value: 'login', outline: true },
+      { label: 'ยกเลิก', value: 'cancel' },
+    ],
+  });
+
+  if (choice === 'download') {
+    const url = record?.blobUrl || URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    hooks.toast('สร้างและดาวน์โหลดไฟล์ลงเครื่องสำเร็จ');
+    return;
+  }
+
+  if (choice === 'login') {
+    const b = hooks.api || backend;
+    try {
+      const here = location.pathname + location.search + location.hash;
+      if (here && here.startsWith('/workspace/')) {
+        sessionStorage.setItem('lawcraft:return', here);
+      }
+    } catch (_) {}
+
+    if (b && b.signInWithGoogle) {
+      hooks.toast('กำลังนำท่านไปเชื่อมต่อสิทธิ์กับ Google...');
+      await b.signInWithGoogle();
+    } else {
+      hooks.toast('ระบบไม่รองรับการเชื่อมต่อ Google ในโหมดนี้');
+    }
+  }
 }
 
 async function executeDriveUpload(accessToken, blob, filename, record) {
@@ -1391,7 +1466,17 @@ async function executeDriveUpload(accessToken, blob, filename, record) {
       }
       hooks.toast('อัปโหลดขึ้น Google Drive สำเร็จ!');
     } else {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
+      if (res.status === 401 || res.status === 403) {
+        try { sessionStorage.removeItem('lawcraft:google:provider_token'); } catch (_) {}
+        const b = hooks.api || backend;
+        if (b && b.clearProviderToken) b.clearProviderToken();
+        await showDriveAuthModal({
+          blob, filename, record,
+          reason: 'เซสชันสิทธิ์ Google Drive หมดอายุหรือไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่ หรือเลือกดาวน์โหลดลงเครื่องแทน'
+        });
+        return;
+      }
       hooks.toast('อัปโหลดไม่สำเร็จ: ' + (err.error?.message || 'Unknown error'));
     }
   } catch (e) {
