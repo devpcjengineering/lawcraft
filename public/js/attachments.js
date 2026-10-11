@@ -106,7 +106,43 @@ export function resolveCaseSigner(c) {
   return { name: '', role: sideWord, full: '' };
 }
 
-/** ดึงชื่อประเภทเอกสารหลัก เช่น คำฟ้อง, คำให้การ, คำร้อง, คำแถลง, คำขอ, พยานเอกสาร */
+/** ดึงชื่อเรียกคำร้อง/คำแถลง/คำขอแบบสมบูรณ์ เช่น คำร้องขอให้ศาลตั้งผู้เชี่ยวชาญของศาล, คำแถลงต่อสู้คดี, คำขอปล่อยชั่วคราว */
+export function getMotionDocName(m) {
+  if (!m) return 'คำร้อง';
+  const kind = (m.kind || (m.title?.startsWith('คำแถลง') ? 'คำแถลง' : m.title?.startsWith('คำขอ') ? 'คำขอ' : 'คำร้อง') || 'คำร้อง').trim();
+  const rawTitle = (m.title || '').trim();
+  if (!rawTitle) return kind;
+
+  // ตัดคำนำหน้าประเภทและเครื่องหมาย : ที่อาจซ้ำ เช่น "คำร้อง: ขอให้..." -> "ขอให้..."
+  let cleanTitle = rawTitle.replace(/^(คำร้อง|คำแถลง|คำขอ)\s*[:：\-]\s*/, '').trim();
+
+  // ถ้าชื่อที่สะอาดแล้ว ขึ้นต้นด้วย คำร้อง/คำแถลง/คำขอ อยู่แล้ว ให้ใช้ชื่อนั้นเลย
+  if (/^(คำร้อง|คำแถลง|คำขอ)/.test(cleanTitle)) {
+    return cleanTitle;
+  }
+
+  // ถ้าขึ้นต้นด้วยวงเล็บ เช่น "(ขอให้ศาล...)" ให้เว้นวรรค
+  if (cleanTitle.startsWith('(')) {
+    return `${kind} ${cleanTitle}`;
+  }
+
+  // ถ้ารูปแบบเป็น "คำขอ" และ cleanTitle ขึ้นต้นด้วย "ขอ" ให้ยุบรวม เช่น "คำขอ" + "ขอออกหมายเรียก..." -> "คำขอออกหมายเรียก..."
+  if (kind === 'คำขอ' && cleanTitle.startsWith('ขอ')) {
+    return `คำขอ${cleanTitle.slice(2)}`;
+  }
+  // ถ้า cleanTitle ขึ้นต้นด้วยตัวอักษรของ kind เช่น "ร้อง..." หรือ "แถลง..."
+  if (kind === 'คำร้อง' && cleanTitle.startsWith('ร้อง')) {
+    return `คำร้อง${cleanTitle.slice(4)}`;
+  }
+  if (kind === 'คำแถลง' && cleanTitle.startsWith('แถลง')) {
+    return `คำแถลง${cleanTitle.slice(4)}`;
+  }
+
+  // เชื่อมประเภทเข้ากับชื่อเรื่อง เช่น "คำร้อง" + "ขอให้ศาลตั้งผู้เชี่ยวชาญของศาล" -> "คำร้องขอให้ศาลตั้งผู้เชี่ยวชาญของศาล"
+  return `${kind}${cleanTitle}`;
+}
+
+/** ดึงชื่อประเภทเอกสารหลัก เช่น คำฟ้อง, คำให้การ, คำร้อง..., คำแถลง..., คำขอ..., พยานเอกสาร */
 export function getDocTypeName(c, typeRaw) {
   const isDef = sideOf(c) === 'defendant';
   if (typeRaw === 'complaint') {
@@ -119,10 +155,7 @@ export function getDocTypeName(c, typeRaw) {
     if (mid === 'request') return 'คำร้อง';
     const m = (c?.motions || []).find(x => x.id === mid);
     if (m) {
-      if (m.kind) return m.kind;
-      if (m.title?.startsWith('คำแถลง')) return 'คำแถลง';
-      if (m.title?.startsWith('คำขอ')) return 'คำขอ';
-      if (m.title?.startsWith('คำร้อง')) return 'คำร้อง';
+      return getMotionDocName(m);
     }
     return 'คำร้อง';
   }
@@ -133,14 +166,21 @@ export function getDocTypeName(c, typeRaw) {
   return 'คำฟ้อง';
 }
 
-/** ข้อความหัวเอกสารเริ่มต้นตามประเภทเอกสารที่ระบุ (คำฟ้อง / คำร้อง / คำแถลง / คำขอ) พร้อมเลขไทย */
+/** ข้อความหัวเอกสารเริ่มต้นตามประเภทเอกสารที่ระบุ (คำฟ้อง / คำร้อง... / คำแถลง... / คำขอ...) พร้อมเลขไทย */
 export function getDefaultHeader(c, typeRaw, num) {
   const docType = getDocTypeName(c, typeRaw);
   const thaiNum = num ? toThaiDigits(num) : '';
+  const numSuffix = thaiNum ? ` หมายเลข ${thaiNum}` : ' หมายเลข ';
   if (docType === 'พยานเอกสาร') {
     return thaiNum ? `พยานเอกสาร หมายเลข ${thaiNum}` : 'พยานเอกสาร หมายเลข ';
   }
-  return thaiNum ? `เอกสารแนบท้าย${docType} หมายเลข ${thaiNum}` : `เอกสารแนบท้าย${docType} หมายเลข `;
+  if (typeRaw.startsWith('evidence_')) {
+    const wid = typeRaw.replace('evidence_', '');
+    const w = (c?.witnesses || []).find(x => x.id === wid);
+    const prefix = w?.kind === 'object' ? 'พยานวัตถุ' : 'พยานเอกสาร';
+    return thaiNum ? `${prefix} หมายเลข ${thaiNum}` : `${prefix} หมายเลข `;
+  }
+  return `เอกสารแนบท้าย${docType}${numSuffix}`;
 }
 
 /** คำอธิบายเอกสารหลักที่เอกสารนี้แนบท้าย */
@@ -155,8 +195,8 @@ export function getParentLabel(c, typeRaw) {
     if (mid === 'petition') return 'คำขอ';
     if (mid === 'request') return 'คำร้อง';
     const m = (c.motions || []).find(x => x.id === mid);
-    const kind = m?.kind || (m?.title?.startsWith('คำแถลง') ? 'คำแถลง' : m?.title?.startsWith('คำขอ') ? 'คำขอ' : 'คำร้อง');
-    return m?.title ? `${kind}: ${m.title}` : kind;
+    if (m) return getMotionDocName(m);
+    return 'คำร้อง';
   }
   if (typeRaw === 'motion') {
     return 'คำร้อง/คำแถลง';
@@ -215,9 +255,8 @@ export function tabAttachments() {
 
   if (c.motions && c.motions.length > 0) {
     c.motions.forEach(m => {
-      const kind = m.kind || (m.title?.startsWith('คำแถลง') ? 'คำแถลง' : m.title?.startsWith('คำขอ') ? 'คำขอ' : 'คำร้อง');
-      const t = m.title ? `${kind}: ${m.title}` : kind;
-      typeOptions.push([`motion_${m.id}`, `แนบท้าย${t}`]);
+      const motionName = getMotionDocName(m);
+      typeOptions.push([`motion_${m.id}`, `แนบท้าย${motionName}`]);
     });
   } else {
     typeOptions.push(['motion_request', 'แนบท้ายคำร้อง']);
@@ -258,12 +297,13 @@ export function tabAttachments() {
   }
 
   // 4. ซิงก์ข้อความหัวเอกสารเริ่มต้น
+  const defHeader = getDefaultHeader(c, S.ui.attachType, S.ui.attachNum);
   if (S.ui.attachLastType !== S.ui.attachType) {
     S.ui.attachLastType = S.ui.attachType;
-    S.ui.attachHeaderText = getDefaultHeader(c, S.ui.attachType, S.ui.attachNum);
+    S.ui.attachHeaderText = defHeader;
   }
-  if (!S.ui.attachHeaderText) {
-    S.ui.attachHeaderText = getDefaultHeader(c, S.ui.attachType, S.ui.attachNum);
+  if (!S.ui.attachHeaderText || /^เอกสารแนบท้าย(คำร้อง|คำแถลง|คำขอ)\s*(หมายเลข.*)?$/.test(S.ui.attachHeaderText.trim())) {
+    S.ui.attachHeaderText = defHeader;
   }
 
   // 5. ตำแหน่งเริ่มต้น: กึ่งกลางหน้ากระดาษ หรือ มุมขวาบน
@@ -899,6 +939,7 @@ export async function updateAttachPreview(file) {
         } else {
           hX = width - hw - marginR;
         }
+        if (hX < 20) hX = 20;
 
         firstPage.drawText(headerText, { x: hX, y: hY, size: textSize, font: customFont, color });
 
@@ -1090,6 +1131,7 @@ actions.stampAttachment = async (el) => {
     } else {
       hX = width - hw - marginR;
     }
+    if (hX < 20) hX = 20;
 
     firstPage.drawText(headerText, { x: hX, y: hY, size: textSize, font: customFont, color });
 
