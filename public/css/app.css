@@ -51,7 +51,7 @@ a { color: var(--blue); }
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
 .toolbar .grow { flex: 1; }
 /* กลุ่มช่องย่อย: หัวข้อเล็ก + grid */
-.grp+.grp, .grp+.more, .grid+.grp, .panel>.grp~.btn-group { margin-top: 24px; }
+.grp+.grp, .grp+.more, .grid+.grp, .grid+.grid, .panel>.grp~.btn-group { margin-top: 24px; }
 .grp-t { grid-column: 1 / -1; font-size: 13px; font-weight: 600; letter-spacing: .02em; color: #6b7280; margin: 0 0 8px; }
 .grid>.grp-t, .agrp>.grp-t { margin-bottom: -4px; }
 .grid { display: grid; gap: 16px; grid-template-columns: repeat(12, minmax(0, 1fr)); }

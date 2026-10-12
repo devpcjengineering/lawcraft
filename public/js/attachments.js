@@ -621,21 +621,60 @@ export function tabAttachments() {
       font-weight: 500;
     }
 
+    /* ตารางฟอร์มตั้งค่าเอกสารแนบ: จัดช่องไฟให้มีระยะห่างชัดเจน ไม่เบียดชิดกัน */
+    .attach-form-grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 20px 16px;
+    }
+    .attach-form-grid .f {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      min-width: 0;
+    }
+    .attach-form-grid .f > span {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: #334155;
+      line-height: 1.4;
+      display: block;
+    }
+    .attach-form-grid .f input,
+    .attach-form-grid .f select {
+      min-height: 46px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1.5px solid #cbd5e1;
+      font-size: 15.5px;
+      width: 100%;
+      box-sizing: border-box;
+      background-color: #fff;
+      color: #1e293b;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .attach-form-grid .f input:focus,
+    .attach-form-grid .f select:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+      outline: none;
+    }
+
     /* ---------- Responsive มือถือ (< 640px) ---------- */
     @media (max-width: 640px) {
       .attach-panel {
-        padding: 16px 14px;
+        padding: 18px 16px;
         border-radius: 14px;
-        margin-bottom: 16px;
+        margin-bottom: 18px;
       }
       .attach-section-title {
-        font-size: 1.08em;
-        margin-bottom: 14px;
+        font-size: 1.1em;
+        margin-bottom: 16px;
         flex-wrap: wrap;
         gap: 8px;
       }
       .attach-title-left {
-        font-size: 1.02em;
+        font-size: 1.05em;
         white-space: nowrap;
         gap: 8px;
       }
@@ -644,41 +683,50 @@ export function tabAttachments() {
         display: none;
       }
       .auto-signer-banner {
-        padding: 12px 14px;
+        padding: 14px 16px;
         gap: 12px;
         border-radius: 12px;
-        margin-bottom: 16px;
+        margin-bottom: 22px;
       }
       .auto-signer-icon {
-        width: 38px;
-        height: 38px;
+        width: 40px;
+        height: 40px;
       }
       .auto-signer-label {
-        font-size: 0.82em;
+        font-size: 0.84em;
       }
       .auto-signer-name {
-        font-size: 1.02em;
+        font-size: 1.05em;
         gap: 6px;
       }
-      /* จัดฟอร์มบนมือถือ: ขยายเต็ม 100% ทุกช่อง ป้องกันฟิลด์แหว่งครึ่งจอ (.s4 orphan) */
-      .attach-panel .grid {
+      /* จัดฟอร์มบนมือถือ: ขยายเต็ม 100% ทุกช่อง เว้นช่องว่างระหว่างแถว 22px ชัดเจน ป้องกันตัวหนังสือชนขอบกล่อง */
+      .attach-form-grid {
         grid-template-columns: 1fr;
-        gap: 14px;
+        gap: 22px;
       }
-      .attach-panel .grid > .f {
+      .attach-form-grid > .f {
         grid-column: 1 / -1 !important;
         width: 100%;
         box-sizing: border-box;
       }
-      .attach-panel .grid > .f input,
-      .attach-panel .grid > .f select {
-        min-height: 44px;
+      .attach-form-grid .f {
+        gap: 8px;
+      }
+      .attach-form-grid .f > span {
+        font-size: 14.5px;
+        font-weight: 600;
+        color: #334155;
+      }
+      .attach-form-grid .f input,
+      .attach-form-grid .f select {
+        min-height: 48px;
         font-size: 16px;
+        padding: 11px 14px;
         width: 100%;
         box-sizing: border-box;
       }
       .upload-box {
-        padding: 22px 14px;
+        padding: 24px 16px;
         border-radius: 12px;
       }
       .upload-icon {
@@ -745,7 +793,7 @@ export function tabAttachments() {
       </div>
     </div>
 
-    <div class="grid">
+    <div class="grid attach-form-grid">
       <label class="f s8">
         <span>ประเภทเอกสารแนบ</span>
         <select data-bind="@ui.attachType" data-onchange="onAttachTypeChange">
@@ -757,9 +805,7 @@ export function tabAttachments() {
         <span>หมายเลข</span>
         <input type="text" value="${esc(S.ui.attachNum || '')}" data-bind="@ui.attachNum" data-oninput="onAttachNumChange" placeholder="เช่น 1">
       </label>
-    </div>
 
-    <div class="grid">
       <label class="f s8">
         <span>ข้อความหัวเอกสาร (ขนาด 16)</span>
         <input type="text" value="${esc(S.ui.attachHeaderText || '')}" data-bind="@ui.attachHeaderText" data-oninput="onAttachHeaderTextChange" placeholder="เช่น เอกสารแนบท้ายคำฟ้อง หมายเลข ๑">
@@ -771,9 +817,7 @@ export function tabAttachments() {
           ${headerPosOptions.map(([val, text]) => `<option value="${esc(val)}" ${String(val) === String(S.ui.attachHeaderPos) ? 'selected' : ''}>${esc(text)}</option>`).join('')}
         </select>
       </label>
-    </div>
 
-    <div class="grid">
       <label class="f s8">
         <span>ชื่อผู้ลงนามบนเอกสาร</span>
         <input type="text" value="${esc(S.ui.attachName !== undefined ? S.ui.attachName : autoSigner.name)}" data-bind="@ui.attachName" data-oninput="onAttachNameChange" placeholder="ชื่อ-นามสกุล ผู้ลงลายมือชื่อ">

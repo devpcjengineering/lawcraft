@@ -69,7 +69,7 @@
 .panel > .panel-note, .panel > h3 + .panel-note { margin: -12px 0 20px; }
 .sec-h { margin: 36px 0 12px; display: flex; align-items: baseline; gap: 8px; }
 .sec-h .cnt { font-size: 14px; font-weight: 500; color: var(--muted-2); background: var(--surface-3); border-radius: 99px; padding: 0 10px; line-height: 1.7; }
-.grp + .grp, .grp + .more, .grid + .grp, .panel > .grp ~ .btn-group { margin-top: 28px; }
+.grp + .grp, .grp + .more, .grid + .grp, .grid + .grid, .panel > .grp ~ .btn-group { margin-top: 28px; }
 .grp-t { display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--muted-2); margin: 0 0 14px; }
 .grp-t::after { content: ''; flex: 1; height: 1px; background: var(--hair); }
 .grid > .grp-t, .agrp > .grp-t { margin-bottom: -2px; }
