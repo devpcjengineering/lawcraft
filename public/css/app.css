@@ -260,7 +260,9 @@ table.simple tr.used td { background: #f5f9ff; }
 /* ---------- Responsive ---------- */
 /* ฟอร์มปรับตามความกว้างของคอลัมน์กลางจริง (container query) */
 @container main (max-width: 560px) {
-  .grid, .agrp { gap: 16px 12px; }
+  .grid, .agrp { gap: 20px 14px; }
+  .f { gap: 6px; }
+  .f > span { margin-bottom: 2px; }
   .f.s5 { grid-column: span 6; }
   .f.s7 { grid-column: span 6; }
   .dt-row { grid-template-columns: 72px minmax(0, 1fr) 96px; }
@@ -298,6 +300,10 @@ table.simple tr.used td { background: #f5f9ff; }
   .main h2 { font-size: 21px; }
   .work.live { grid-template-columns: 1fr; }
   .work.live:not(.showpv) .preview { display: none; } /* เปิดแผงทับด้วยปุ่ม “ตัวอย่างเอกสาร” ได้เหมือนหน้าอื่น */
+  .grid, .agrp { gap: 20px 14px; }
+  .f { gap: 6px; }
+  .f > span { margin-bottom: 2px; }
+  .grp + .grp, .grid + .grp, .grid + .grid { margin-top: 24px; }
   .rows>li { flex-wrap: wrap; gap: 8px 12px; }
   .rows .r-act { margin-left: 36px; }
   .status-bar { padding: 16px; }
