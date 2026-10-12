@@ -268,6 +268,7 @@ table.simple tr.used td { background: #f5f9ff; }
 @container main (max-width: 440px) {
   .f.s2, .f.s3, .f.s4 { grid-column: span 6; }
   .f.s5, .f.s6, .f.s7, .f.s8 { grid-column: span 12; }
+  .f.s8 + .f.s4, .f.s7 + .f.s4, .f.s6 + .f.s4, .f.s8 + .f.s3 { grid-column: span 12; }
   .panel { padding: 16px; }
   details.item>.d-body { padding: 16px; }
   .charge-dl { grid-template-columns: 1fr; gap: 0; }
@@ -357,6 +358,7 @@ a, button, select, input, textarea, label, summary { touch-action: manipulation;
   .main .sub { font-size: 15px; margin-bottom: 18px; }
   .panel { border-radius: 14px; margin-bottom: 12px; }
   .grid, .agrp { gap: 16px 12px; }
+  .grid > .f.s8 + .f.s4, .grid > .f.s7 + .f.s4 { grid-column: span 12; }
   .grp-t, .d-sub, .iss-h { font-size: 13.5px; }
   .item-toolbar select, .lay-form select, .ft-grp select { min-height: 44px; font-size: 16px; }
   .lay-in input[type=number] { width: 84px; min-height: 44px; font-size: 16px; }

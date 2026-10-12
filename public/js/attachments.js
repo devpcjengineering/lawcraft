@@ -615,6 +615,112 @@ export function tabAttachments() {
       margin-left: auto;
       margin-right: auto;
     }
+    .attach-title-right {
+      font-size: 14px;
+      color: var(--text-muted, #64748b);
+      font-weight: 500;
+    }
+
+    /* ---------- Responsive มือถือ (< 640px) ---------- */
+    @media (max-width: 640px) {
+      .attach-panel {
+        padding: 16px 14px;
+        border-radius: 14px;
+        margin-bottom: 16px;
+      }
+      .attach-section-title {
+        font-size: 1.08em;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .attach-title-left {
+        font-size: 1.02em;
+        white-space: nowrap;
+        gap: 8px;
+      }
+      /* ซ่อนชื่อผู้ลงนามบนแถบหัวข้อบนมือถือ เนื่องจากมีการ์ดแถบเขียวระบุชัดเจนด้านล่างอยู่แล้ว */
+      .attach-title-right {
+        display: none;
+      }
+      .auto-signer-banner {
+        padding: 12px 14px;
+        gap: 12px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+      }
+      .auto-signer-icon {
+        width: 38px;
+        height: 38px;
+      }
+      .auto-signer-label {
+        font-size: 0.82em;
+      }
+      .auto-signer-name {
+        font-size: 1.02em;
+        gap: 6px;
+      }
+      /* จัดฟอร์มบนมือถือ: ขยายเต็ม 100% ทุกช่อง ป้องกันฟิลด์แหว่งครึ่งจอ (.s4 orphan) */
+      .attach-panel .grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      .attach-panel .grid > .f {
+        grid-column: 1 / -1 !important;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .attach-panel .grid > .f input,
+      .attach-panel .grid > .f select {
+        min-height: 44px;
+        font-size: 16px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .upload-box {
+        padding: 22px 14px;
+        border-radius: 12px;
+      }
+      .upload-icon {
+        margin-bottom: 8px;
+      }
+      .upload-text {
+        font-size: 1em;
+      }
+      .upload-subtext {
+        font-size: 0.82em;
+        margin-top: 4px;
+      }
+      .attach-actions {
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .attach-actions .btn {
+        width: 100%;
+        flex: 1 1 100%;
+        min-height: 48px;
+        padding: 12px 16px;
+        font-size: 1em;
+      }
+      .att-table th, .att-table td {
+        padding: 10px 8px;
+        font-size: 0.88em;
+      }
+      .badge-att-num {
+        min-width: 28px;
+        height: 28px;
+        font-size: 0.95em;
+      }
+      .badge-att-parent {
+        padding: 4px 8px;
+        font-size: 0.82em;
+      }
+      .att-actions-col .btn-xs {
+        padding: 5px 8px;
+        font-size: 0.82em;
+      }
+    }
   </style>
 
   <div class="attach-panel">
@@ -622,7 +728,7 @@ export function tabAttachments() {
       <div class="attach-title-left">
         ${icon('settings', { size: 22 })} ตั้งค่าเอกสารและคำรับรอง
       </div>
-      <div class="attach-title-right" style="font-size: 14px; color: var(--text-muted, #64748b); font-weight: 500;">
+      <div class="attach-title-right">
         ชื่อผู้ลงนามบนเอกสาร: <b style="color: var(--text, #1e293b);">${esc(autoSigner.name || 'ยังไม่ได้ระบุ')}</b> ${autoSigner.role ? `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 6px; font-size: 12px; margin-left: 4px;">${esc(autoSigner.role)}</span>` : ''}
       </div>
     </div>
