@@ -20,6 +20,7 @@ const must = ({ data, error }) => { if (error) fail(error); return data; };
 let role = 'user';
 const seen = new Map(); // id คดี → updated_at ที่เห็นล่าสุด (ใช้ตรวจว่ามีผู้อื่นบันทึกคดีเดียวกันไปก่อนหรือไม่)
 const PDF_BUCKET = 'case-pdfs';
+const MEDIA_BUCKET = 'media'; // รูปประกอบเนื้อหาเว็บ (สาธารณะ อ่านได้ทุกคน แอดมินเขียน) — ดู uploadMedia
 // ไฟล์ PDF ของคดี: “ไฟล์เดียวต่อคดี” ในความหมายของผู้ใช้ แต่ชื่อวัตถุใน Storage ใหม่ทุกครั้งที่อัปโหลด (<คดี>/bundle-<เวลา>-<สุ่ม>.pdf) แล้วลบตัวเก่าทิ้ง
 // ห้ามอัปโหลดทับชื่อเดิม (upsert): Storage อยู่หลัง CDN (Cloudflare) ที่แคชตามพาธ — หลังทับไฟล์ ผู้อ่านบางรายยังได้ไบต์ของไฟล์เก่า/ปนกับขนาดของไฟล์ใหม่ → PDF เปิดไม่ขึ้นหรือเป็นฉบับเก่า
 // (พบเฉพาะตอนทับด้วยไฟล์ที่เล็กกว่าเดิม; พาธที่ไม่เคยมีมาก่อนไม่มีแคชค้าง) — พาธล่าสุดอยู่ที่ case_pdfs.path; คดีเก่าที่ยังเป็น <คดี>/bundle.pdf ใช้ต่อได้และถูกแทนที่ตอนอัปโหลดครั้งถัดไป
@@ -326,6 +327,25 @@ export const supabaseBackend = {
   async loadContent(key) { const rows = must(await sb.from('law_data').select('data').eq('key', 'content-' + key)); return rows[0]?.data || {}; },
   async saveContent(key, obj) { must(await sb.from('law_data').upsert({ key: 'content-' + key, data: obj, updated_at: new Date().toISOString() }, { onConflict: 'key' })); return { ok: true }; },
   async saveSite(obj) { must(await sb.from('law_data').upsert({ key: 'site', data: obj, updated_at: new Date().toISOString() }, { onConflict: 'key' })); return { ok: true }; },
+  /**
+   * อัปโหลดรูปสำหรับเนื้อหาเว็บ (ภาพปกบทความ / รูปผลงาน) ขึ้น Storage bucket สาธารณะ `media` (เฉพาะแอดมินเขียนได้ — นโยบายใน migration media_bucket)
+   * ชื่อไฟล์ใหม่ทุกครั้ง (ไม่ทับของเดิม — CDN แคชตามพาธ) → คืน { path, url } โดย url เป็นลิงก์สาธารณะถาวรใช้ใส่ใน <img> ได้เลย
+   * blob ควรย่อขนาดมาก่อน (js/media.js prepareImage) — bucket จำกัด 8 MB และรับเฉพาะ image/jpeg|png|webp|gif|avif
+   */
+  async uploadMedia(blob, { folder = 'uploads', ext = '' } = {}) {
+    const type = String(blob?.type || '');
+    const e = (ext || { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif' }[type] || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+    if (!e) throw new Error('รองรับเฉพาะไฟล์รูป JPG, PNG, WebP, GIF หรือ AVIF');
+    const dir = String(folder).replace(/[^a-z0-9_-]/gi, '').toLowerCase() || 'uploads';
+    const path = `${dir}/${new Date().toISOString().slice(0, 10)}-${Date.now().toString(36)}-${(globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)).replace(/-/g, '').slice(0, 8)}.${e}`;
+    const up = await sb.storage.from(MEDIA_BUCKET).upload(path, blob, { upsert: false, contentType: type, cacheControl: '31536000' });
+    if (up.error) {
+      const denied = /row-level security|not authorized|403|policy/i.test(up.error.message || '');
+      const err = new Error(denied ? 'ไม่มีสิทธิ์อัปโหลดรูป (เฉพาะผู้ดูแลระบบ)' : /exceeded|too large|size/i.test(up.error.message || '') ? 'ไฟล์ใหญ่เกินกำหนด (สูงสุด 8 MB)' : (up.error.message || 'อัปโหลดไม่สำเร็จ'));
+      err.status = denied ? 403 : 500; throw err;
+    }
+    return { path, url: `${url}/storage/v1/object/public/${MEDIA_BUCKET}/${path}` };
+  },
 
   async listInquiries() {
     const rows = must(await sb.from('inquiries').select('id,created_at,name,contact,topic,message,consent,status').order('created_at', { ascending: false }).limit(500));

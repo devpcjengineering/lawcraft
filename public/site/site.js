@@ -9,7 +9,7 @@ const fmt = (n) => Number(n).toLocaleString('th-TH');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 document.querySelectorAll('[data-site=name]').forEach((e) => { e.textContent = config.legalName || config.name; });
-document.title = `${config.legalName || config.name} · เพราะทุกปัญหามีทางออก ปรึกษาฟรี`;
+document.title = `${config.legalName || config.name} · ${config.tagline || 'ปรึกษาฟรี ปัญหามีทางออก และทุกทางออกเราออกแบบให้รอบคอบ'}`;
 
 // ท้ายเว็บ + ข้อมูลผู้ให้บริการ (JSON-LD) สร้างโดย /site/footer.js ร่วมกันทุกหน้า
 
@@ -297,7 +297,7 @@ const SITUATIONS = [
         </div>
         <div class="pk-side">
           <p class="pk-time"><b>เรื่องเวลา</b>${esc(s.time)}</p>
-          <a class="btn-pill primary sm" href="/articles/?a=${esc(s.slug)}">อ่านบทความที่เกี่ยวข้อง</a>
+          <a class="btn-pill primary sm" href="/articles/${esc(s.slug)}/">อ่านบทความที่เกี่ยวข้อง</a>
           <a class="btn-pill ghost sm" href="/contact/?topic=${esc(s.topic)}">ปรึกษาเรื่องนี้</a>
         </div>
       </div><p class="fine pk-note">ข้อมูลทั่วไปเพื่อประกอบการตัดสินใจเบื้องต้น ไม่ใช่คำปรึกษาทางกฎหมายและไม่รับประกันผลของคดี ข้อเท็จจริงแต่ละเรื่องต่างกัน ควรปรึกษาทนายความก่อนดำเนินการ</p>`;
@@ -327,7 +327,7 @@ const SITUATIONS = [
   if (!box) return;
   try {
     const list = await (await fetch('/articles-data/index.json')).json();
-    box.innerHTML = list.map((a, i) => `<a class="ar-card" href="/articles/?a=${esc(a.slug)}" style="--i:${i}">
+    box.innerHTML = list.map((a, i) => `<a class="ar-card" href="/articles/${esc(a.slug)}/" style="--i:${i}">
       <span class="ar-cat">${esc(a.category)}</span><h3>${esc(a.title)}</h3><p>${esc(a.subtitle)}</p>
       ${a.refs?.length ? `<span class="ar-refs">${a.refs.map((r) => `<i>${esc(r)}</i>`).join('')}</span>` : ''}<span class="ar-meta">อ่าน ${esc(a.readMinutes)} นาที</span></a>`).join('');
   } catch { box.closest('section').hidden = true; }

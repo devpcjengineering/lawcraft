@@ -82,7 +82,7 @@ export function makeTemplate({ site, chrome }) {
       </nav>
       <nav class="sf-col" aria-label="หัวข้อกฎหมายออนไลน์">
         <h2 class="sf-h">คดีออนไลน์</h2>
-        <ul>${TOPICS.map(([s, t]) => `<li><a href="/articles/?a=${s}">${esc(t)}</a></li>`).join('')}</ul>
+        <ul>${TOPICS.map(([s, t]) => `<li><a href="/articles/${s}/">${esc(t)}</a></li>`).join('')}</ul>
       </nav>
       ${firm ? `<section class="sf-col sf-firm" aria-label="ข้อมูลผู้ให้บริการ">
         <h2 class="sf-h">ติดต่อเรา</h2>
@@ -99,7 +99,11 @@ export function makeTemplate({ site, chrome }) {
 
   const breadcrumbHtml = (crumbs) => `<nav class="bc" aria-label="เส้นทางหน้า"><ol>${crumbs.map(([n, p], i) => (i === crumbs.length - 1 ? `<li><span aria-current="page">${esc(n)}</span></li>` : `<li><a href="${p}">${esc(n)}</a></li>`)).join('')}</ol></nav>`;
 
-  /** หน้าเต็ม — page: {path,title,description,crumbs,nav,main,faq?,lastmod} */
+  /**
+   * หน้าเต็ม — page: {path,title,description,crumbs,nav,main,faq?,lastmod}
+   * ตัวเลือกสำหรับแม่แบบโพสต์ (api/post.js): ogType ('article') · image (URL ภาพ og — สัมบูรณ์ หรือ /พาธ หรือ token @@…@@) · robots · meta (HTML <meta> เพิ่มเติม)
+   *   ldExtra (สตริง token ที่จะถูกแทนด้วยโหนด JSON-LD ตอนเสิร์ฟ) · styles (CSS เพิ่ม) · mainClass / wrapClass (แทน/เพิ่ม class ของ <main> และ .wrap)
+   */
   /** ตาราง → ใส่ data-label ให้ทุกเซลล์ (ชื่อคอลัมน์) เพื่อให้มือถือแสดงเป็นการ์ดซ้อนแนวตั้งแทนการเลื่อนซ้ายขวา (CSS ใน site/seo.css) */
   const stackTables = (html) => html.replace(/<table[\s\S]*?<\/table>/g, (t) => {
     const thead = /<thead[\s\S]*?<\/thead>/.exec(t)?.[0] || '';
@@ -133,8 +137,11 @@ export function makeTemplate({ site, chrome }) {
       },
     ];
     if (page.faq?.length) graph.push({ '@type': 'FAQPage', mainEntity: page.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) });
+    if (page.ldExtra) graph.push(page.ldExtra); // token เช่น "@@PX_LD@@" — api/post.js แทนทั้งสตริง (รวมเครื่องหมายคำพูด) ด้วยโหนดจริง
     const ld = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replace(/</g, '\\u003c');
     const t = esc(page.title), d = esc(page.description);
+    const img = page.image ? (/^(https?:)?\/\/|^@@/.test(page.image) ? page.image : site + page.image) : `${site}/og-image.png`;
+    const defaultImg = !page.image;
     return `<!doctype html>
 <html lang="th">
 <head>
@@ -144,22 +151,22 @@ export function makeTemplate({ site, chrome }) {
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <title>${t}</title>
 <meta name="description" content="${d}">
-<meta name="robots" content="index,follow">
+<meta name="robots" content="${esc(page.robots || 'index,follow')}">
 <link rel="canonical" href="${esc(url)}">
-<meta property="og:type" content="website">
+<meta property="og:type" content="${esc(page.ogType || 'website')}">
 <meta property="og:site_name" content="LawCraft by PKT">
 <meta property="og:locale" content="th_TH">
 <meta property="og:title" content="${t}">
 <meta property="og:description" content="${d}">
 <meta property="og:url" content="${esc(url)}">
-<meta property="og:image" content="${site}/og-image.png">
+<meta property="og:image" content="${esc(img)}">${defaultImg ? `
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="LawCraft by PKT — สำนักงานกฎหมาย ให้คำปรึกษากฎหมายฟรี ฟ้องคดี รับว่าความ">
+<meta property="og:image:alt" content="LawCraft by PKT — สำนักงานกฎหมาย ให้คำปรึกษากฎหมายฟรี ฟ้องคดี รับว่าความ">` : ''}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${t}">
 <meta name="twitter:description" content="${d}">
-<meta name="twitter:image" content="${site}/og-image.png">
+<meta name="twitter:image" content="${esc(img)}">${page.meta ? `\n${page.meta}` : ''}
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="alternate icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -167,15 +174,15 @@ export function makeTemplate({ site, chrome }) {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap"></noscript>
-<link rel="stylesheet" href="/css/bundle-seo.css">
+<link rel="stylesheet" href="/css/bundle-seo.css">${(page.styles || []).map((s) => `\n<link rel="stylesheet" href="${s}">`).join('')}
 <script type="application/ld+json">${ld}</script>
 </head>
 <body>
 <a class="skip" href="#main">ข้ามไปยังเนื้อหา</a>
 ${nav(page.nav)}
 
-<main id="main" class="sp">
-  <div class="wrap">
+<main id="main" class="${esc(page.mainClass || 'sp')}">
+  <div class="wrap${page.wrapClass ? ' ' + esc(page.wrapClass) : ''}">
     ${breadcrumbHtml(crumbs)}
     ${stackTables(page.main)}
   </div>

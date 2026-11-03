@@ -1,17 +1,17 @@
-// หน้าผลงาน: รายการ (/portfolio/) และหน้ารายละเอียด (/portfolio/?p=<slug>) — ข้อมูลจาก law_data 'content-portfolio' ที่แอดมินลงไว้
+// หน้าผลงาน: รายการ (/portfolio/) อย่างเดียว — หน้ารายละเอียดแต่ละชิ้นเป็นหน้า SSR ที่ /portfolio/<slug>/ (api/post.js) · ข้อมูลจาก law_data 'content-portfolio' ที่แอดมินลงไว้
+// ลิงก์เดิมแบบ /portfolio/?p=<slug> ให้ vercel.json ตอบ 301 — ที่นี่มีทางสำรอง: ถ้ายังมี ?p= มาถึง ให้ย้ายไปพาธใหม่เอง
 // แสดงเฉพาะ published && consent (ดู /portfolio/model.js) · ใส่ข้อมูลด้วย esc() เสมอ (ข้อความล้วนจากแอดมิน)
-import config from '/site/config.js';
 import { loadContent } from '/site/content.js';
 import { publicItems, yearLabel } from './model.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const main = $('#main');
-const BRAND = config.legalName || config.name || 'LawCraft by PKT';
 const BASE_TITLE = document.title;
 const BASE_DESC = $('meta[name=description]')?.content || '';
 const HERO = $('.pf-hero')?.outerHTML || '';
 const DISCLAIMER = 'ผลงานที่แสดงเป็นตัวอย่างจากข้อเท็จจริงของแต่ละเรื่อง ผลของคดีขึ้นอยู่กับพยานหลักฐานและข้อเท็จจริงเฉพาะกรณี ไม่ใช่การรับประกันว่าเรื่องของคุณจะได้ผลเช่นเดียวกัน ข้อมูลผู้รับบริการถูกปกปิดและเผยแพร่โดยได้รับความยินยอมแล้ว';
+const itemHref = (slug) => `/portfolio/${esc(slug)}/`;
 
 let listP;
 const getList = () => (listP ||= loadContent('portfolio').then(publicItems).catch(() => []));
@@ -25,8 +25,9 @@ function setMeta(title, desc) {
 const anonHtml = (it) => (it.anonymized ? '<span class="pf-anon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A10.5 10.5 0 0 1 12 5c5 0 9 4 10 7a11 11 0 0 1-2.4 3.6M6.5 6.5C4.2 7.9 2.7 9.9 2 12c1 3 5 7 10 7 1.5 0 2.9-.3 4.1-.9"/></svg>ปกปิดข้อมูลผู้รับบริการ</span>' : '');
 const metaLine = (it) => [it.role, it.court, yearLabel(it.year)].filter(Boolean).map(esc).join(' · ');
 
+// การ์ดเป็นลิงก์ธรรมดาไปหน้า SSR /portfolio/<slug>/ (ไม่ดักคลิก)
 function cardHtml(it, i) {
-  return `<a class="pf-card${it.featured ? ' feat' : ''}" href="/portfolio/?p=${esc(it.slug)}" data-p="${esc(it.slug)}" style="--i:${Math.min(i, 8)}">
+  return `<a class="pf-card${it.featured ? ' feat' : ''}" href="${itemHref(it.slug)}" style="--i:${Math.min(i, 8)}">
     ${it.images[0] ? `<img class="pf-img" src="${esc(it.images[0])}" alt="" loading="lazy">` : ''}
     <span class="pf-top"><span class="pf-cat">${esc(it.category || 'ผลงาน')}</span>${it.featured ? '<span class="pf-feat">ผลงานแนะนำ</span>' : ''}</span>
     <h2>${esc(it.title)}</h2>
@@ -74,75 +75,21 @@ async function showList() {
 
 const ctaHtml = () => `<div class="pf-cta"><div><b>มีเรื่องคล้ายกัน?</b><p>เล่าเรื่องโดยย่อให้เราตรวจสอบเบื้องต้น แล้วติดต่อกลับตามช่องทางที่คุณให้ไว้ — การส่งข้อความไม่ใช่การว่าจ้างทนายความ และไม่ใช่การรับประกันผลของคดี</p></div><a class="btn-pill light" href="/contact/">ปรึกษาเรื่องคล้ายกัน</a></div>`;
 
-// ---------- หน้ารายละเอียด ----------
-async function showItem(slug) {
-  const my = navId;
-  main.innerHTML = '<div class="wrap"><div class="pf-skel" aria-busy="true"><i></i><i></i><i></i></div></div>';
-  const list = await getList();
-  if (my !== navId) return;
-  const i = list.findIndex((x) => x.slug === slug);
-  if (i < 0) return notFound();
-  const it = list[i], prev = i > 0 ? list[i - 1] : null, next = i < list.length - 1 ? list[i + 1] : null;
-  setMeta(`${it.title} · ${BRAND}`, it.summary);
-  main.innerHTML = `<div class="wrap pf-read">
-    <p class="pf-crumb"><a href="/portfolio/" data-list>← ผลงานทั้งหมด</a></p>
-    <header class="pf-head">
-      <span class="pf-top"><span class="pf-cat">${esc(it.category || 'ผลงาน')}</span>${it.featured ? '<span class="pf-feat">ผลงานแนะนำ</span>' : ''}</span>
-      <h1>${esc(it.title)}</h1>
-      ${it.summary ? `<p class="pf-sub">${esc(it.summary)}</p>` : ''}
-      <p class="pf-meta">${metaLine(it)}</p>
-      ${anonHtml(it)}
-    </header>
-    <article class="pf-body">
-      ${it.images.length ? `<div class="pf-gallery">${it.images.map((u) => `<img src="${esc(u)}" alt="" loading="lazy">`).join('')}</div>` : ''}
-      ${it.body.map((p) => `<p>${esc(p)}</p>`).join('')}
-      ${it.outcome ? `<section class="pf-outcome"><h2>ผลลัพธ์</h2><p>${esc(it.outcome)}</p></section>` : ''}
-      ${it.tags.length ? `<p class="pf-tags">${it.tags.map((x) => `<i>${esc(x)}</i>`).join('')}</p>` : ''}
-      <aside class="pf-note" role="note"><b>ข้อมูลทั่วไป ไม่ใช่การรับประกันผล</b><p>${esc(DISCLAIMER)}</p></aside>
-      ${ctaHtml()}
-      <nav class="pf-pn" aria-label="ผลงานอื่น">
-        ${prev ? `<a href="/portfolio/?p=${esc(prev.slug)}" data-p="${esc(prev.slug)}"><small>← ก่อนหน้า</small>${esc(prev.title)}</a>` : '<span></span>'}
-        ${next ? `<a href="/portfolio/?p=${esc(next.slug)}" data-p="${esc(next.slug)}" class="r"><small>ถัดไป →</small>${esc(next.title)}</a>` : '<span></span>'}
-      </nav>
-    </article>
-  </div>`;
-  structuredItem(it);
-}
-
 function structuredList(list) {
   document.getElementById('pf-ld')?.remove();
   const s = document.createElement('script');
   s.type = 'application/ld+json'; s.id = 'pf-ld';
   s.textContent = JSON.stringify({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'ผลงานที่ผ่านมา', numberOfItems: list.length,
-    itemListElement: list.slice(0, 20).map((it, i) => ({ '@type': 'ListItem', position: i + 1, name: it.title, url: `${location.origin}/portfolio/?p=${encodeURIComponent(it.slug)}` })) });
+    itemListElement: list.slice(0, 20).map((it, i) => ({ '@type': 'ListItem', position: i + 1, name: it.title, url: `${location.origin}/portfolio/${encodeURIComponent(it.slug)}/` })) });
   document.head.appendChild(s);
-}
-function structuredItem(it) {
-  document.getElementById('pf-ld')?.remove();
-  const s = document.createElement('script');
-  s.type = 'application/ld+json'; s.id = 'pf-ld';
-  s.textContent = JSON.stringify({ '@context': 'https://schema.org', '@type': 'Article', headline: it.title, description: it.summary, inLanguage: 'th', dateModified: it.updatedAt,
-    about: it.category, author: { '@type': 'Organization', name: BRAND }, publisher: { '@type': 'Organization', name: BRAND } });
-  document.head.appendChild(s);
-}
-
-function notFound() {
-  setMeta(`ไม่พบผลงาน · ${BRAND}`, '');
-  main.innerHTML = '<div class="wrap"><div class="pf-empty"><h1>ไม่พบผลงานนี้</h1><p>ลิงก์อาจผิด หรือผลงานถูกนำออกแล้ว</p><a class="btn-pill primary" href="/portfolio/" data-list>ดูผลงานทั้งหมด</a></div></div>';
 }
 
 // ---------- เส้นทาง ----------
-function route(scroll = true) {
-  navId++;
+function route() {
+  // ลิงก์เดิม /portfolio/?p=<slug> → หน้า SSR /portfolio/<slug>/ (ทางสำรองกรณี redirect ฝั่งเซิร์ฟเวอร์ไม่ทำงาน; คง #hash ไว้)
   const slug = new URLSearchParams(location.search).get('p');
-  (slug ? showItem(slug) : showList()).then(() => { if (scroll) window.scrollTo({ top: 0, behavior: 'auto' }); });
+  if (slug) { location.replace('/portfolio/' + encodeURIComponent(slug) + '/' + location.hash); return; }
+  navId++;
+  showList();
 }
-document.addEventListener('click', (e) => {
-  const a = e.target.closest('a[data-p], a[data-list]');
-  if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
-  e.preventDefault();
-  history.pushState(null, '', a.getAttribute('href'));
-  route();
-});
-window.addEventListener('popstate', () => route(false));
 route();

@@ -3,7 +3,8 @@
 //   { items: [ ผลงาน ], order: [ id ตามลำดับที่แอดมินจัด ] }
 //   ผลงาน = { id, slug, title, category, summary, body: [ย่อหน้า], outcome, court, year (พ.ศ.), role, tags[], images[] (URL),
 //             consent (ผู้รับบริการยินยอมให้เผยแพร่ — ต้อง true จึงเผยแพร่ได้), anonymized (ปกปิดข้อมูลระบุตัว — ค่าเริ่มต้น true),
-//             noGuarantee (ยืนยันว่าไม่มีข้อความรับประกันผล), published, featured, createdAt, updatedAt }
+//             noGuarantee (ยืนยันว่าไม่มีข้อความรับประกันผล), published, featured, createdAt, updatedAt,
+//             seo?: { title (≤120), description (≤320), noindex } — ไม่บังคับ มีเฉพาะเมื่อแอดมินตั้งค่า (หน้า /portfolio/<slug>/ ใช้ผ่าน shared/post-seo.js) }
 // หน้าเว็บแสดงเฉพาะ published && consent — ลำดับ: ผลงานแนะนำ (featured) ก่อน แล้วตาม order ที่แอดมินจัด (ผลงานใหม่ถูกใส่บนสุด = ใหม่ก่อน)
 // ไม่เคยโยนข้อผิดพลาด: ข้อมูลผิดรูปถูกตัดทิ้ง/เติมค่าเริ่มต้นให้
 
@@ -29,7 +30,9 @@ export function cleanItem(raw) {
   const body = Array.isArray(raw.body) ? raw.body.map(t).filter(Boolean)
     : String(raw.body ?? '').split(/\n\s*\n/).map((x) => t(x.replace(/\s+/g, ' '))).filter(Boolean);
   const year = Math.round(+raw.year) || 0;
+  const seo = isObj(raw.seo) ? { title: t(raw.seo.title).slice(0, 120), description: t(raw.seo.description).slice(0, 320), noindex: raw.seo.noindex === true } : null;
   return {
+    ...(seo && (seo.title || seo.description || seo.noindex) ? { seo } : {}),
     id, slug, title: t(raw.title), category: t(raw.category), summary: t(raw.summary), body,
     outcome: t(raw.outcome), court: t(raw.court), year: year >= 2400 && year <= 2700 ? year : (year >= 1900 && year <= 2200 ? year + 543 : 0),
     role: t(raw.role), tags: [...new Set(arr(raw.tags).map(t).filter(Boolean))].slice(0, 20),

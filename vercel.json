@@ -4,8 +4,16 @@
   "installCommand": "npm install --omit=dev --no-audit --no-fund",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "functions": { "api/precedents.js": { "maxDuration": 15 }, "api/precedent.js": { "maxDuration": 15 }, "api/pdf.js": { "maxDuration": 60 }, "api/share-pdf.js": { "maxDuration": 20 } },
+  "functions": { "api/precedents.js": { "maxDuration": 15 }, "api/precedent.js": { "maxDuration": 15 }, "api/post.js": { "maxDuration": 15 }, "api/pdf.js": { "maxDuration": 60 }, "api/share-pdf.js": { "maxDuration": 20 } },
+  "redirects": [
+    { "source": "/articles/", "has": [{ "type": "query", "key": "a", "value": "(?<slug>[a-z0-9][a-z0-9-]{2,60})" }], "destination": "/articles/:slug/", "permanent": true },
+    { "source": "/portfolio/", "has": [{ "type": "query", "key": "p", "value": "(?<slug>[a-z0-9][a-z0-9-]{2,60})" }], "destination": "/portfolio/:slug/", "permanent": true },
+    { "source": "/articles/:slug([a-z0-9][a-z0-9-]{2,60})", "destination": "/articles/:slug/", "permanent": true },
+    { "source": "/portfolio/:slug([a-z0-9][a-z0-9-]{2,60})", "destination": "/portfolio/:slug/", "permanent": true }
+  ],
   "rewrites": [
+    { "source": "/articles/:slug([a-z0-9][a-z0-9-]{2,60})/", "destination": "/api/post?kind=article&slug=:slug" },
+    { "source": "/portfolio/:slug([a-z0-9][a-z0-9-]{2,60})/", "destination": "/api/post?kind=portfolio&slug=:slug" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/sitemap-pages.xml", "destination": "/api/sitemap?part=pages" },
     { "source": "/sitemap-precedents-:n(\\d+).xml", "destination": "/api/sitemap?part=precedents&n=:n" },

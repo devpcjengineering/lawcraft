@@ -261,7 +261,7 @@ export async function buildSeoPages({ root, dist, site }) {
     ${civilExtra}
     ${it.caution ? `<h2>ข้อควรระวัง</h2><div class="note warn"><p>${esc(it.caution)}</p></div>` : ''}
     ${rel.length ? `<h2>มาตราที่เกี่ยวข้อง</h2><ul>${rel.join('')}</ul>` : ''}
-    ${artL.length ? `<h2>บทความที่เกี่ยวข้อง</h2><ul>${artL.map((a) => `<li><a href="/articles/?a=${esc(a.slug)}">${esc(a.title)}</a></li>`).join('')}</ul>` : ''}
+    ${artL.length ? `<h2>บทความที่เกี่ยวข้อง</h2><ul>${artL.map((a) => `<li><a href="/articles/${esc(a.slug)}/">${esc(a.title)}</a></li>`).join('')}</ul>` : ''}
     <h2>แหล่งอ้างอิงและสถานะการตรวจ</h2>
     <p class="sp-src">${badgeV(it.verified)}${it.source ? ` · แหล่งอ้างอิง: ${srcHtml(it.source)}` : ''}</p>
     ${faq.length ? `<h2>คำถามที่พบบ่อย</h2>${qaHtml(faq)}` : ''}
@@ -604,7 +604,7 @@ ${sampleRows.map(([p, r]) => `<tr><th scope="row">${A(provPath(p), esc(p.name))}
     <ul>
       <li><a href="/procedure/">ขั้นตอนฟ้องคดีและวิธีพิจารณาความ</a> — จากยื่นฟ้องถึงคำพิพากษา</li>
       <li><a href="/laws/">ข้อกฎหมายและมาตรา</a> — ระวางโทษ อายุความ องค์ประกอบความผิด</li>
-      ${arts.map((a) => `<li><a href="/articles/?a=${esc(a.slug)}">${esc(a.title)}</a></li>`).join('\n      ')}
+      ${arts.map((a) => `<li><a href="/articles/${esc(a.slug)}/">${esc(a.title)}</a></li>`).join('\n      ')}
     </ul>
     ${ctaBox('เลือกศาลแล้ว ร่างคำฟ้องต่อได้เลย', 'เตรียมคำฟ้องและเอกสารยื่นศาลตามแบบพิมพ์ศาลยุติธรรมในระบบร่างคำฟ้อง หรือส่งเรื่องให้เจ้าหน้าที่ตรวจสอบเบื้องต้นก่อน การส่งข้อความไม่ใช่การว่าจ้างทนายความ', `${btn('/workspace/', 'เข้าสู่ระบบร่างคำฟ้อง')}${btn('/contact/', 'ติดต่อปรึกษากฎหมาย', 'ghost')}`)}
     <div class="note warn"><p><b>ข้อมูลรายอำเภอ/เขตยืนยันอัปเดตล่าสุด ${esc(asOf)}</b> — โปรดตรวจสอบกับศาลหรือสำนักงานศาลยุติธรรมก่อนยื่นฟ้องทุกครั้ง</p></div>
@@ -664,6 +664,19 @@ ${sampleRows.map(([p, r]) => `<tr><th scope="row">${A(provPath(p), esc(p.name))}
     fs.mkdirSync(path.join(dist, '_px'), { recursive: true });
     fs.writeFileSync(path.join(dist, '_px', 'precedent.html'), shell);
   }
+  // ---------- แม่แบบหน้าโพสต์: บทความ /articles/<slug>/ และผลงาน /portfolio/<slug>/ (api/post.js เติมข้อมูลจาก articles-data + law_data ตอนมีคนเปิด) ----------
+  // token เพิ่มจากฎีกา: @@PX_IMAGE@@ (og:image สัมบูรณ์) @@PX_ROBOTS@@ @@PX_META@@ (meta เพิ่ม เช่น article:published_time) @@PX_MOD@@ (dateModified) "@@PX_LD@@" (โหนด JSON-LD ของโพสต์)
+  for (const [kind, o] of Object.entries({
+    article: { base: '/articles/', crumb: 'บทความ', nav: 'articles', styles: ['/articles/articles.css'], mainClass: 'ar-main', wrapClass: 'ar-read' },
+    portfolio: { base: '/portfolio/', crumb: 'ผลงาน', nav: 'portfolio', styles: ['/portfolio/portfolio.css'], mainClass: 'pf-main', wrapClass: 'pf-read' },
+  })) {
+    const shell = T.layout({
+      path: `${o.base}@@PX_SLUG@@/`, title: '@@PX_TITLE@@', description: '@@PX_DESC@@', image: '@@PX_IMAGE@@', ogType: 'article', robots: '@@PX_ROBOTS@@', meta: '@@PX_META@@',
+      crumbs: [[o.crumb, o.base], ['@@PX_CRUMB@@', `${o.base}@@PX_SLUG@@/`]], nav: o.nav, main: '@@PX_MAIN@@', ldExtra: '@@PX_LD@@', lastmod: '@@PX_MOD@@',
+      styles: o.styles, mainClass: o.mainClass, wrapClass: o.wrapClass,
+    });
+    fs.writeFileSync(path.join(dist, '_px', `${kind}.html`), shell);
+  }
   const count = (t) => pages.filter((p) => p.type === t).length;
   const counts = { jurisdictionHub: 1, provinces: count('prov'), lawsHub: 1, laws: count('law'), items: count('item'), procedureHub: 1, procedure: count('proc'), precedentsHub: 1, total: pages.length, skipped: skipped.length };
 
@@ -703,7 +716,7 @@ function injectHome({ dist, site, items, provs, lawIds, lawSlug, lawClean, lawSh
       <p class="actions" style="justify-content:flex-start"><a class="link-arrow" href="/jurisdiction/">เขตอำนาจศาลทุกจังหวัด</a><a class="link-arrow" href="/laws/">ข้อกฎหมายทั้งหมด</a><a class="link-arrow" href="/procedure/">ขั้นตอนฟ้องคดี</a><a class="link-arrow" href="/precedents/">ฎีกาทั้งหมด</a></p>
     </div>
   </section>`;
-  const title = 'LawCraft by PKT · เพราะทุกปัญหามีทางออก ปรึกษาฟรี';
+  const title = 'LawCraft by PKT · ปรึกษาฟรี ปัญหามีทางออก และทุกทางออกเราออกแบบให้รอบคอบ';
   const desc = 'สำนักงานกฎหมาย LawCraft by PKT ให้คำปรึกษากฎหมายฟรี ฟ้องคดี รับว่าความ คดีอาญา คดีแพ่ง และคดีออนไลน์ พร้อมฐานความรู้กฎหมายไทย ประมวลกฎหมาย เขตอำนาจศาล ขั้นตอนฟ้องคดี ฎีกา และระบบร่างคำฟ้องตามแบบพิมพ์ศาลยุติธรรม';
   const head = `<link rel="canonical" href="${site}/">
 <meta name="robots" content="index,follow">

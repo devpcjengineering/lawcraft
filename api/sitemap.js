@@ -1,10 +1,12 @@
 // sitemap แบบสร้างตอนมีคนขอ (Vercel serverless) — เป็น "sitemap index" ชี้ไปยังไฟล์ย่อย (vercel.json rewrite):
 //   /sitemap.xml                 → ดัชนี: sitemap-pages.xml + sitemap-precedents-1..N.xml
-//   /sitemap-pages.xml           → หน้าสาธารณะ + บทความ (ตั้งต้น + ที่แอดมินสร้าง/แก้/ซ่อนใน law_data 'content-articles') + หน้าข้อมูลกฎหมายสถิต (seo-urls.json)
+//   /sitemap-pages.xml           → หน้าสาธารณะ + บทความ /articles/<slug>/ (ตั้งต้น + ที่แอดมินสร้าง/แก้/ซ่อนใน law_data 'content-articles')
+//                                  + ผลงาน /portfolio/<slug>/ (law_data 'content-portfolio' เฉพาะ published && consent) + หน้าข้อมูลกฎหมายสถิต (seo-urls.json)
 //   /sitemap-precedents-N.xml    → หน้าฎีกาแต่ละฉบับ (/precedents/<เลข>-<ปี>-<รหัส>/) จากฐาน Aiven ทีละ PRECEDENTS_PER_FILE รายการ
 // ไม่เคยโยนข้อผิดพลาด — อ่านข้อมูลไม่ได้ = คืนเท่าที่มี (หน้าหลักแบบตายตัว / ไฟล์ฎีกาว่าง)
 // ค่า Supabase ด้านล่างเป็นค่าสาธารณะเดียวกับ public/js/config.js (คีย์ anon อ่านอย่างเดียวผ่าน RLS) — ห้ามใส่ service_role key
 import { mergeIndex } from '../public/articles/merge.js';
+import { publicItems } from '../public/portfolio/model.js';
 import { getPool, precedentPath } from './_aiven.js';
 
 const SB_URL = process.env.SUPABASE_URL || 'https://rertcaxuqeuytleaqqft.supabase.co';
@@ -41,15 +43,26 @@ async function liveArticles() {
     return rows?.[0]?.data || {};
   } catch { return {}; }
 }
+/** ผลงานทั้งหมดจากหลังบ้าน (law_data 'content-portfolio') — คัดเฉพาะที่เผยแพร่ได้ด้วย publicItems() ตอนใช้ (อ่านไม่ได้ = {}) */
+async function livePortfolio() {
+  try {
+    const rows = await getJson(`${SB_URL}/rest/v1/law_data?select=data&key=eq.content-portfolio`, { headers: { apikey: SB_ANON, Authorization: `Bearer ${SB_ANON}` } });
+    return rows?.[0]?.data || {};
+  } catch { return {}; }
+}
 
-/** หน้าสาธารณะ + บทความ + หน้าข้อมูลกฎหมายสถิต (เหมือน sitemap เดิม) */
+/** หน้าสาธารณะ + บทความ + ผลงาน + หน้าข้อมูลกฎหมายสถิต */
 export async function pagesSitemap(host) {
   const today = new Date().toISOString().slice(0, 10);
   const urls = [['/', today, 'weekly', '1.0'], ['/articles/', today, 'weekly', '0.8'], ['/portfolio/', today, 'weekly', '0.7'], ['/contact/', today, 'monthly', '0.6'], ['/privacy/', today, 'yearly', '0.3'], ['/service-fee/', today, 'monthly', '0.7']];
   try {
-    const [idx, live, seo] = await Promise.all([staticIndex(host), liveArticles(), seoUrls(host).catch(() => [])]);
+    const [idx, live, pf, seo] = await Promise.all([staticIndex(host), liveArticles(), livePortfolio(), seoUrls(host).catch(() => [])]);
     for (const a of mergeIndex(idx, live)) {
-      if (a?.slug) urls.push([`/articles/?a=${encodeURIComponent(a.slug)}`, day(a.updated, today), 'monthly', '0.7']);
+      if (a?.slug) urls.push([`/articles/${encodeURIComponent(a.slug)}/`, day(a.updated, today), 'monthly', '0.7']);
+    }
+    // ผลงาน: เฉพาะ published && consent (publicItems คัดให้) — lastmod = วันที่แก้ล่าสุด
+    for (const it of publicItems(pf)) {
+      if (it?.slug) urls.push([`/portfolio/${encodeURIComponent(it.slug)}/`, day(String(it.updatedAt || '').slice(0, 10), today), 'monthly', '0.6']);
     }
     // หน้าสถิตจากชุดข้อมูลกฎหมาย: เรียงตามความสำคัญ (priority มากไปน้อย) ต่อท้ายหน้าหลัก/บทความ
     const have = new Set(urls.map((u) => u[0]));

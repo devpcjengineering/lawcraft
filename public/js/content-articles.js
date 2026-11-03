@@ -5,7 +5,12 @@
 //   items เก็บเฉพาะบทความที่สร้างใหม่หรือแก้ไขแล้ว — บทความตั้งต้นที่ไม่ได้แตะจะไม่ถูกคัดลอกมาเก็บ
 // กันเขียนทับกัน: ทุกครั้งที่บันทึกจะโหลดค่าล่าสุดจากหลังบ้านก่อน แล้วใช้ "การแก้ที่ค้างอยู่" ซ้ำลงไป (ไม่เขียนทับของคนอื่น)
 // ตรรกะรวมกับบทความตั้งต้นอยู่ใน /articles/merge.js (ใช้ร่วมกับหน้าเว็บสาธารณะ — รวมถึงตัวช่วย reviewKind/reviewCanon ของ "สถานะการตรวจ")
+// SEO: หน้าสาธารณะเป็น /articles/<slug>/ (เรนเดอร์ฝั่งเซิร์ฟเวอร์) — ช่อง seo{title,description,noindex} ภาพปก image/imageAlt และวันที่เผยแพร่ date
+//   ตัวอย่างผลค้นหา/รายการตรวจใช้ /shared/post-seo.js (ตัวเดียวกับที่เซิร์ฟเวอร์ใช้สร้าง meta) · อัปโหลดภาพปกผ่าน ctx.api.uploadMedia (bucket media/articles)
 import { SLUG_RE, normLive, isHidden, mergeIndex, refsFor, REVIEW, reviewKind, reviewCanon, reviewInfo } from '../articles/merge.js';
+import { articlePath } from '/shared/post-seo.js';
+import { seoBody, seoMeta, renderSeo } from './content-seo.js';
+import { prepareImage, fmtBytes } from './media.js';
 import { icon } from './icons.js';
 import { urls } from './router.js';
 
@@ -20,7 +25,9 @@ const RV_ICON = { draft: 'pen', checked: 'checkCircle', lawyer: 'shield' };
 
 // ---------- สถานะของโมดูล (ล้างทุกครั้งที่ mount) ----------
 let ctx, box, ac, state, sIdx, sMap, pending, timer, flushP, sel, cur, q, creating, listRaf, staticCache, lawIdx;
-let view, fil, openK, listY, stTxt, stTone;
+let view, fil, openK, listY, stTxt, stTone, upBusy;
+const KIND = 'article';
+const canUpload = () => typeof ctx?.api?.uploadMedia === 'function'; // โหมดไฟล์ในเครื่องไม่มีที่เก็บรูป
 
 const norm = (live) => normLive(live);
 
@@ -65,6 +72,13 @@ async function doFlush() {
 // ---------- ทำความสะอาดข้อมูลก่อนเก็บ ----------
 const t = (s) => String(s ?? '').trim();
 const arr = (x) => (Array.isArray(x) ? x : []);
+const isoDay = (s) => (/^\d{4}-\d{2}-\d{2}$/.test(t(s)) ? t(s) : '');
+/** ช่อง SEO ที่เก็บจริง (null = ว่างทั้งหมด ไม่ต้องเก็บ) */
+function cleanSeo(s) {
+  const o = { title: t(s?.title).slice(0, 120), description: t(s?.description).slice(0, 320), noindex: s?.noindex === true };
+  return o.title || o.description || o.noindex ? o : null;
+}
+const blankSeo = () => ({ title: '', description: '', noindex: false });
 
 /** แปลงโมเดลในฟอร์มเป็นบทความที่เก็บจริง (ตัดช่องว่าง/รายการว่าง และตัด related/precedents ที่ build ใส่ไว้ — หน้าเว็บหาใหม่จาก id) */
 function clean(m) {
@@ -92,6 +106,12 @@ function clean(m) {
     reviewStatus: reviewCanon(m.reviewStatus),
   };
   if (items.length) o.checklist = { title: t(m.checklist?.title) || 'รายการที่ควรเตรียม', items };
+  // SEO/ภาพปก/วันที่เผยแพร่ — เก็บเฉพาะที่มีค่า (บทความตั้งต้นที่ไม่มี date จะไม่ถูกแต่งเติม)
+  if (t(m.image)) o.image = t(m.image);
+  if (t(m.imageAlt)) o.imageAlt = t(m.imageAlt).slice(0, 200);
+  if (isoDay(m.date)) o.date = isoDay(m.date);
+  const seo = cleanSeo(m.seo);
+  if (seo) o.seo = seo;
   const refs = lawIdx ? refsFor(o, ctx.data) : null;
   if (refs) o.refs = refs;
   if (m.published === false) o.published = false;
@@ -103,6 +123,7 @@ const blank = (slug, title) => ({
   slug, title, subtitle: '', category: 'ภาพรวม', tags: [], readMinutes: 5, updated: today(), summary: '', keyPoints: [],
   sections: [{ id: 'sec-1', heading: '', paragraphs: [] }], steps: [], checklist: { title: '', items: [] }, faq: [], relatedItems: [], relatedPrecedents: [],
   sources: [], reviewStatus: REVIEW[0].value, published: false,
+  image: '', imageAlt: '', date: today(), seo: blankSeo(),
 });
 
 /** เติมค่าที่ขาดเพื่อให้ฟอร์มวาดได้ (สถานะการตรวจแปลงเป็นค่ามาตรฐาน 3 แบบ) */
@@ -113,6 +134,9 @@ function forEditor(a) {
   m.sections = m.sections.map((s, i) => ({ ...s, id: s.id || `sec-${i + 1}`, paragraphs: arr(s.paragraphs) }));
   m.checklist = { title: m.checklist?.title || '', items: arr(m.checklist?.items) };
   m.reviewStatus = reviewCanon(m.reviewStatus);
+  m.image = t(m.image); m.imageAlt = t(m.imageAlt);
+  m.seo = { ...blankSeo(), ...(cleanSeo(m.seo) || {}) };
+  if (m.date == null) delete m.date; else m.date = isoDay(m.date); // ไม่มี = ไม่เติมให้ (หน้าเว็บใช้ updated แทน)
   return m;
 }
 
@@ -143,6 +167,8 @@ function badges(r) {
 
 // ---------- หน้ารายการ ----------
 const rows = () => mergeIndex(sIdx, state, { all: true });
+/** ลิงก์เปิดดูหน้าสาธารณะ — ?v= กันแคช CDN ให้แอดมินเห็นฉบับล่าสุดเสมอ */
+const viewUrl = (slug) => `${articlePath(slug)}?v=${Date.now()}`;
 const rowKind = (r) => reviewKind(r.reviewStatus);
 const filterOk = (r) => fil === 'all' || (fil === 'pub' && !r._hidden) || (fil === 'hid' && r._hidden) || fil === rowKind(r);
 
@@ -163,7 +189,7 @@ function rowHtml(r, no, k, total, canMove) {
     <div class="cta-main">
       <h3><button type="button" class="cta-title" data-a="open" data-slug="${slug}">${esc(r.title || r.slug)}</button></h3>
       ${blurb ? `<p class="cta-sub">${esc(blurb)}</p>` : ''}
-      <p class="cta-meta"><span class="cta-cat">${esc(r.category || 'ไม่มีหมวด')}</span>${tags.slice(0, 3).map((x) => `<span class="cta-tag">${esc(x)}</span>`).join('')}${tags.length > 3 ? `<span class="cta-tag more">+${tags.length - 3}</span>` : ''}<span class="cta-dot">${icon('clock', { size: 14 })}อ่าน ${esc(r.readMinutes)} นาที</span>${r.updated ? `<span class="cta-dot">${icon('calendar', { size: 14 })}ปรับปรุง ${esc(shortDate(r.updated))}</span>` : ''}<code class="cta-slug">/${slug}</code></p>
+      <p class="cta-meta"><span class="cta-cat">${esc(r.category || 'ไม่มีหมวด')}</span>${tags.slice(0, 3).map((x) => `<span class="cta-tag">${esc(x)}</span>`).join('')}${tags.length > 3 ? `<span class="cta-tag more">+${tags.length - 3}</span>` : ''}<span class="cta-dot">${icon('clock', { size: 14 })}อ่าน ${esc(r.readMinutes)} นาที</span>${r.updated ? `<span class="cta-dot">${icon('calendar', { size: 14 })}ปรับปรุง ${esc(shortDate(r.updated))}</span>` : ''}<code class="cta-slug">${esc(articlePath(r.slug))}</code></p>
     </div>
     <div class="cta-side">
       <div class="cta-bd">${badges(r)}</div>
@@ -171,7 +197,7 @@ function rowHtml(r, no, k, total, canMove) {
         <button type="button" class="btn sm primary" data-a="open" data-slug="${slug}">${icon('edit')}แก้ไข</button>
         <button type="button" class="btn sm outline" data-a="toggleHide" data-slug="${slug}">${icon(r._hidden ? 'eye' : 'eyeOff')}${r._hidden ? 'เผยแพร่' : 'ซ่อน'}</button>
         <button type="button" class="cta-ib" data-a="dup" data-slug="${slug}" title="ทำสำเนา" aria-label="ทำสำเนา ${esc(r.title || r.slug)}">${icon('copy')}</button>
-        <a class="cta-ib" href="/articles/?a=${encodeURIComponent(r.slug)}" target="_blank" rel="noopener" title="ดูหน้าบทความ" aria-label="ดูหน้าบทความ ${esc(r.title || r.slug)}">${icon('external')}</a>
+        <a class="cta-ib" href="${esc(viewUrl(r.slug))}" target="_blank" rel="noopener" title="ดูหน้าบทความ" aria-label="ดูหน้าบทความ ${esc(r.title || r.slug)}">${icon('external')}</a>
         ${mv('up', 'arrowUp', canMove ? 'ย้ายขึ้น' : 'ล้างคำค้นและตัวกรองก่อนจึงจะย้ายลำดับได้', !canMove || k === 0)}
         ${mv('down', 'arrowDown', canMove ? 'ย้ายลง' : 'ล้างคำค้นและตัวกรองก่อนจึงจะย้ายลำดับได้', !canMove || k === total - 1)}
       </div>
@@ -261,6 +287,48 @@ function sectionBlock(s, i, n) {
     </div></details>`;
 }
 
+/** ภาพปก: ตัวอย่างรูป + ลิงก์/alt + ปุ่มอัปโหลด (วาดใหม่ทั้งกล่องหลังอัปโหลด/เอารูปออก — ตอนพิมพ์ลิงก์อัปเดตแค่ตัวอย่าง) */
+const coverPv = (url) => (url ? `<img src="${esc(url)}" alt="" loading="lazy" decoding="async">` : `<span class="cta-cover-ph">${icon('upload', { size: 26 })}<small>ยังไม่มีภาพปก</small></span>`);
+function coverHtml(m) {
+  const can = canUpload();
+  return `<div class="cta-sub-h"><b>ภาพปก</b><span class="hint">แสดงบนหน้าบทความและเป็นภาพตอนแชร์ลิงก์ (แนะนำแนวนอน 1200×630)</span></div>
+    <div class="cta-cover-row">
+      <div class="cta-cover-pv" id="cta-cover-pv">${coverPv(m.image)}</div>
+      <div class="cta-cover-f">
+        ${field('ลิงก์รูป (https://…) — หรือกดอัปโหลดด้านล่าง', `<input type="text" inputmode="url" data-p="image" value="${esc(m.image)}" autocomplete="off" spellcheck="false" placeholder="https://…">`)}
+        ${field('คำอธิบายภาพ (alt — ไม่บังคับ ช่วยผู้พิการทางสายตาและเสิร์ชเอนจิน)', inp('imageAlt', m.imageAlt, 'placeholder="เช่น ภาพประกอบ การแจ้งความคดีออนไลน์"'))}
+        <div class="ct-actions cta-up">
+          <button type="button" class="btn sm outline" data-a="upload"${can && !upBusy ? '' : ' disabled'}${can ? '' : ' title="อัปโหลดรูปได้เมื่อใช้ Supabase"'}>${icon('upload')}อัปโหลดรูป</button>
+          ${m.image ? `<button type="button" class="btn sm outline" data-a="rmImage"${upBusy ? ' disabled' : ''}>${icon('x')}เอารูปออก</button>` : ''}
+          <input type="file" id="cta-file" accept="image/*" hidden>
+          <span class="hint" id="cta-upst" role="status">${can ? '' : 'อัปโหลดรูปได้เมื่อใช้ Supabase — ตอนนี้ใส่ได้เฉพาะลิงก์รูป'}</span>
+        </div>
+      </div>
+    </div>`;
+}
+function renderCover() { const el = box.querySelector('#cta-cover'); if (el && cur) el.innerHTML = coverHtml(cur); }
+const upStatus = (txt) => { const e = box.querySelector('#cta-upst'); if (e) e.textContent = txt; };
+
+/** อัปโหลดภาพปก: ย่อรูป → ส่งขึ้น Storage → ใส่ URL ในบทความ (ถ้าสลับบทความไประหว่างรอ จะไม่ใส่ผิดเรื่อง) */
+async function uploadCover(file) {
+  if (!file || !cur || !canUpload() || upBusy) return;
+  const slug = cur.slug;
+  upBusy = true; renderCover();
+  try {
+    upStatus('กำลังย่อรูป…');
+    const blob = await prepareImage(file, { max: 1600 });
+    upStatus(`กำลังอัปโหลด… (${fmtBytes(blob.size)})`);
+    const { url } = await ctx.api.uploadMedia(blob, { folder: 'articles' });
+    upBusy = false;
+    if (!cur || cur.slug !== slug) return;
+    cur.image = url; touch('image'); renderCover();
+    upStatus('อัปโหลดแล้ว');
+  } catch (e) {
+    upBusy = false; renderCover();
+    ctx.notify({ type: 'error', message: 'อัปโหลดรูปไม่สำเร็จ: ' + (e?.message || e) });
+  }
+}
+
 const rvSelect = (status) => {
   const k = reviewKind(status);
   return `<label class="f cta-rvf" data-rv="${k}"><span>สถานะการตรวจ <small>(แสดงใต้ชื่อบทความบนเว็บ)</small></span>
@@ -291,7 +359,11 @@ function editorHtml() {
     </div>
     ${field('แท็ก (คั่นด้วยเครื่องหมายจุลภาค ,)', inp('tags', arr(m.tags).join(', '), 'data-t="tags"'))}
     ${field('สรุป (แสดงใต้ชื่อในหน้าอ่านและใช้เป็นคำอธิบายในผลค้นหา)', area('summary', m.summary, rowsFor(m.summary, 3, 10)))}
-    ${field('ปรับปรุงล่าสุด', `<input type="date" id="cta-updated" data-p="updated" value="${esc(m.updated)}">`, 'cta-date')}`;
+    <div class="ct-row2 cta-dates">
+      ${field('วันที่เผยแพร่ <small>(แสดงในผลค้นหา — ว่าง = ใช้วันปรับปรุง)</small>', `<input type="date" data-p="date" value="${esc(m.date || '')}">`, 'cta-date')}
+      ${field('ปรับปรุงล่าสุด', `<input type="date" id="cta-updated" data-p="updated" value="${esc(m.updated)}">`, 'cta-date')}
+    </div>
+    <div class="cta-cover" id="cta-cover">${coverHtml(m)}</div>`;
 
   const content = `
     <div class="cta-sub-h"><b>ใจความสำคัญ</b></div>${listBody('keyPoints', '', kp, 'เพิ่มข้อ')}
@@ -328,8 +400,9 @@ function editorHtml() {
     ${dsec('faq', 'info', 'คำถามที่พบบ่อย (FAQ)', `${m.faq.length} ข้อ`, listBody('faq', '', faq, 'เพิ่มคำถาม'))}
     ${dsec('refs', 'scale', 'มาตราและฎีกาที่เกี่ยวข้อง', `${m.relatedItems.length} มาตรา · ${m.relatedPrecedents.length} ฎีกา`, refsBody)}
     ${dsec('sources', 'link', 'แหล่งอ้างอิง', `${m.sources.length} แหล่ง`, listBody('sources', '', src, 'เพิ่มแหล่งอ้างอิง'))}
+    ${dsec('seo', 'globe', 'SEO · ผลค้นหา', seoMeta(KIND, m), seoBody(KIND, m, 'cta', { title: 'ใช้ชื่อบทความ + | LawCraft by PKT', description: 'ใช้สรุป' }))}
     ${dsec('manage', 'settings', 'จัดการบทความ', 'สำเนา · ลำดับ · คืนค่าเดิม · ลบ', manage)}
-    <p class="hint cta-foot">บันทึกอัตโนมัติทุกครั้งที่แก้ · วันที่ปรับปรุงล่าสุดจะเปลี่ยนเป็นวันนี้เองเมื่อแก้เนื้อหา</p>`;
+    <p class="hint cta-foot">บันทึกอัตโนมัติทุกครั้งที่แก้ · วันที่ปรับปรุงล่าสุดจะเปลี่ยนเป็นวันนี้เองเมื่อแก้เนื้อหา<br>หน้าสาธารณะอยู่ที่ <code>${esc(articlePath(slug))}</code> — เสิร์ชเอนจินเก็บหน้านี้ได้โดยตรง (ฉบับที่แก้ขึ้นเว็บภายในไม่กี่นาที)</p>`;
 }
 
 /** แถบหัวติดบนของหน้าแก้ไข */
@@ -337,10 +410,10 @@ function barHtml() {
   const m = cur, slug = m.slug, isStatic = sMap.has(slug), hid = isHidden(state, slug);
   return `<button type="button" class="btn sm outline cta-back" data-a="back">${icon('arrowLeft')}<span>บทความทั้งหมด</span></button>
     <div class="cta-bar-t"><b>${esc(m.title || '(ยังไม่มีชื่อ)')}</b>
-      <div class="cta-bar-bd">${rvBadge(m.reviewStatus)}${isStatic ? (state.items[slug] ? '<span class="ct-badge warn">แก้ไขแล้ว</span>' : '') : '<span class="ct-badge">ใหม่</span>'}<small>/${esc(slug)}</small></div></div>
+      <div class="cta-bar-bd">${rvBadge(m.reviewStatus)}${isStatic ? (state.items[slug] ? '<span class="ct-badge warn">แก้ไขแล้ว</span>' : '') : '<span class="ct-badge">ใหม่</span>'}<small>${esc(articlePath(slug))}</small></div></div>
     <span class="save-state cta-state" id="cta-st" data-tone="${esc(stTone)}">${esc(stTxt)}</span>
     <button type="button" class="cta-sw" role="switch" aria-checked="${hid ? 'false' : 'true'}" data-a="toggleHide" data-slug="${esc(slug)}"><span class="cta-sw-k" aria-hidden="true"></span><span>${hid ? 'ซ่อนอยู่' : 'เผยแพร่'}</span></button>
-    <a class="btn sm outline cta-view" href="/articles/?a=${encodeURIComponent(slug)}" target="_blank" rel="noopener">${icon('external')}<span>ดูหน้าบทความ</span></a>`;
+    <a class="btn sm outline cta-view" href="${esc(viewUrl(slug))}" target="_blank" rel="noopener">${icon('external')}<span>ดูหน้าบทความ</span></a>`;
 }
 function renderBar() {
   const bar = box.querySelector('#cta-bar');
@@ -442,7 +515,7 @@ const readVal = (el) => {
 /** มีการแก้เนื้อหา: อัปเดตวันที่ + ลงทะเบียนบันทึก */
 function touch(path) {
   if (!cur) return;
-  const meta = path === 'updated' || path === 'reviewStatus'; // ไม่นับเป็นการแก้เนื้อหา
+  const meta = path === 'updated' || path === 'reviewStatus' || path === 'date' || path.startsWith('seo.'); // ไม่นับเป็นการแก้เนื้อหา
   if (!meta) {
     cur.updated = today();
     const d = box.querySelector('#cta-updated');
@@ -453,6 +526,8 @@ function touch(path) {
   if (first || path === 'title' || path === 'reviewStatus') renderBar();
   const hm = /^sections\.(\d+)\.heading$/.exec(path);
   if (hm) { const b = box.querySelector(`.cta-h[data-sec="${hm[1]}"] summary b`); if (b) b.textContent = cur.sections[+hm[1]].heading || '(ยังไม่มีหัวข้อ)'; }
+  if (path === 'image') { const pv = box.querySelector('#cta-cover-pv'); if (pv) pv.innerHTML = coverPv(cur.image); }
+  renderSeo(box, KIND, cur, 'cta'); // ตัวอย่างผลค้นหา + รายการตรวจ (ไม่วาดฟอร์มทั้งหมดใหม่)
 }
 
 const NEW_ITEM = {
@@ -506,7 +581,7 @@ async function onAction(btn) {
       const bad = slugProblem(s);
       if (bad) { const m = box.querySelector('#cta-nmsg'); if (m) { m.textContent = bad; m.classList.add('cta-err'); } return; }
       const model = creating?.src
-        ? { ...forEditor(clean(creating.src)), slug: s, title: ti || s, updated: today(), reviewStatus: REVIEW[0].value, published: false }
+        ? { ...forEditor(clean(creating.src)), slug: s, title: ti || s, updated: today(), date: today(), reviewStatus: REVIEW[0].value, published: false }
         : blank(s, ti || s);
       creating = null; renderCreate();
       cur = model; sel = s;
@@ -517,9 +592,11 @@ async function onAction(btn) {
     }
     case 'toggleHide': {
       setHidden(slug, !isHidden(state, slug));
-      if (view === 'edit') renderBar(); else renderList();
+      if (view === 'edit') { renderBar(); renderSeo(box, KIND, cur, 'cta'); } else renderList();
       return;
     }
+    case 'upload': box.querySelector('#cta-file')?.click(); return;
+    case 'rmImage': if (cur) { cur.image = ''; touch('image'); renderCover(); } return;
     case 'del': {
       if (!await ctx.confirmBox(`ลบบทความ “${cur.title || slug}” ถาวร?\nคนที่มีลิงก์จะเปิดไม่ได้อีก`, { title: 'ลบบทความ', okText: 'ลบ', danger: true })) return;
       apply('item:' + slug, (s) => { delete s.items[slug]; });
@@ -566,7 +643,7 @@ async function onAction(btn) {
 export default {
   id: 'articles',
   label: 'บทความ',
-  hint: 'สร้าง แก้ ซ่อน และจัดลำดับบทความในหน้า /articles/',
+  hint: 'สร้าง แก้ ซ่อน และจัดลำดับบทความในหน้า /articles/ (แต่ละบทความอยู่ที่ /articles/<slug>/ พร้อม SEO และภาพปก)',
   async mount(b, c) {
     box = b;
     stTxt = ''; stTone = '';
@@ -581,7 +658,7 @@ export default {
       },
     };
     state = norm({}); sIdx = []; sMap = new Map(); pending = new Map(); timer = null; flushP = Promise.resolve();
-    sel = null; cur = null; q = ''; creating = null; staticCache = new Map(); lawIdx = buildLawIdx();
+    sel = null; cur = null; q = ''; creating = null; staticCache = new Map(); lawIdx = buildLawIdx(); upBusy = false;
     view = 'list'; fil = 'all'; openK = new Map(); listY = 0;
     if (!document.getElementById('cta-css')) {
       const l = document.createElement('link'); l.rel = 'stylesheet'; l.id = 'cta-css'; l.href = '/css/content-articles.css';
@@ -639,6 +716,7 @@ export default {
     }, sig);
     box.addEventListener('change', (e) => {
       const el = e.target;
+      if (el.id === 'cta-file') { const f = el.files?.[0]; el.value = ''; if (f) uploadCover(f); return; }
       if (el.dataset?.a === 'calloutType' && cur) {
         const s = cur.sections[+el.dataset.i];
         s.callout = el.value ? { type: el.value, text: s.callout?.text || '' } : undefined;

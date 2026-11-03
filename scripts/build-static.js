@@ -37,7 +37,7 @@ const seo = await (await import('./build-seo-pages.js')).buildSeoPages({ root, d
   const today = new Date().toISOString().slice(0, 10);
   const urls = [
     ['/', today, 'weekly', '1.0'], ['/articles/', today, 'weekly', '0.8'], ['/portfolio/', today, 'weekly', '0.7'], ['/contact/', today, 'monthly', '0.6'], ['/privacy/', today, 'yearly', '0.3'], ['/service-fee/', today, 'monthly', '0.7'],
-    ...packArticles().index.map((a) => [`/articles/?a=${encodeURIComponent(a.slug)}`, /^\d{4}-\d{2}-\d{2}$/.test(a.updated || '') ? a.updated : today, 'monthly', '0.7']),
+    ...packArticles().index.map((a) => [`/articles/${encodeURIComponent(a.slug)}/`,/^\d{4}-\d{2}-\d{2}$/.test(a.updated || '') ? a.updated : today, 'monthly', '0.7']),
     ...seo.urls.map((u) => [u.path, u.lastmod, 'monthly', u.priority]),
   ];
   const x = (s) => s.replace(/&/g, '&amp;');
@@ -97,7 +97,7 @@ const minifyCss = await (async () => { try { const { minify } = await import('cs
 
 ## บทความ
 
-${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/?a=${encodeURIComponent(a.slug)}): ${one(a.summary || a.subtitle).slice(0, 160)}`).join('\n')}
+${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/${encodeURIComponent(a.slug)}/):${one(a.summary || a.subtitle).slice(0, 160)}`).join('\n')}
 
 ## Optional
 
@@ -111,7 +111,7 @@ ${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/?a=${encodeURIComponent(
     const md = [];
     md.push(`# LawCraft by PKT — เนื้อหาบทความฉบับเต็ม\n\n> ข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมาย บทความทุกบทเป็นฉบับร่างหรือผ่านการตรวจตามสถานะที่ระบุ ควรตรวจกับแหล่งทางการและนักกฎหมายก่อนนำไปใช้ · ภาพรวมเว็บ: ${SITE}/llms.txt\n`);
     for (const a of Object.values(all)) {
-      md.push(`\n---\n\n# ${one(a.title)}\n\nURL: ${SITE}/articles/?a=${encodeURIComponent(a.slug)}\nหมวด: ${one(a.category)} · ปรับปรุง: ${one(a.updated)} · สถานะการตรวจ: ${one(a.reviewStatus || 'ร่าง')}\n`);
+      md.push(`\n---\n\n# ${one(a.title)}\n\nURL: ${SITE}/articles/${encodeURIComponent(a.slug)}/\nหมวด: ${one(a.category)} · ปรับปรุง: ${one(a.updated)} · สถานะการตรวจ: ${one(a.reviewStatus || 'ร่าง')}\n`);
       if (a.subtitle) md.push(`\n> ${one(a.subtitle)}\n`);
       if (a.summary) md.push(`\n${a.summary}\n`);
       if ((a.keyPoints || []).length) md.push(`\n## ประเด็นสำคัญ\n\n${a.keyPoints.map((k) => `- ${one(k)}`).join('\n')}\n`);
@@ -212,11 +212,11 @@ ${sb.url && sb.anonKey ? `- API อ่านอย่างเดียว (Supa
       queries: ['บทความเรื่องฟ้องหมิ่นประมาทออนไลน์', 'วิธีเก็บหลักฐานแชตเพื่อฟ้องคดี', 'ถูกข่มขู่ทางออนไลน์ทำอย่างไร'],
       body: `## วิธีใช้
 1. ดึง ${SITE}/llms-full.txt (Markdown ไฟล์เดียว ${arts.length} บทความ) — แต่ละบทความขึ้นต้นด้วยหัวข้อระดับ 1 ตามด้วยบรรทัด URL: และสถานะการตรวจ
-2. ค้นหัวข้อที่ตรงคำถาม อ่านเฉพาะบทความนั้น แล้วอ้างอิงด้วย URL ของบทความ (รูปแบบ ${SITE}/articles/?a=<slug>)
+2. ค้นหัวข้อที่ตรงคำถาม อ่านเฉพาะบทความนั้น แล้วอ้างอิงด้วย URL ของบทความ (รูปแบบ ${SITE}/articles/<slug>/)
 3. บทความที่สถานะเป็น "ร่าง" ยังไม่ผ่านการตรวจ ให้บอกผู้ใช้
 
 ## รายการบทความ
-${arts.map((a) => `- ${one(a.title)} — ${SITE}/articles/?a=${encodeURIComponent(a.slug)}`).join('\n')}
+${arts.map((a) => `- ${one(a.title)} — ${SITE}/articles/${encodeURIComponent(a.slug)}/`).join('\n')}
 
 ## ข้อจำกัด
 ${CAVEAT}`,

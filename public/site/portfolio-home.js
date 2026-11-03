@@ -10,7 +10,7 @@ if (sec && grid) {
   loadContent('portfolio').then((raw) => {
     const items = homeItems(raw, 3);
     if (!items.length) { sec.hidden = true; return; }
-    grid.innerHTML = items.map((it, i) => `<a class="pf-card${it.featured ? ' feat' : ''}" href="/portfolio/?p=${esc(it.slug)}" style="--i:${i}">
+    grid.innerHTML = items.map((it, i) => `<a class="pf-card${it.featured ? ' feat' : ''}" href="/portfolio/${esc(it.slug)}/" style="--i:${i}">
       ${it.images[0] ? `<img class="pf-img" src="${esc(it.images[0])}" alt="" loading="lazy">` : ''}
       <span class="pf-top"><span class="pf-cat">${esc(it.category || 'ผลงาน')}</span>${it.featured ? '<span class="pf-feat">ผลงานแนะนำ</span>' : ''}</span>
       <h3>${esc(it.title)}</h3><p>${esc(it.summary)}</p>

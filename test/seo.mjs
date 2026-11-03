@@ -98,6 +98,9 @@ const exists = (u) => {
   let p = decodeURIComponent(u.split('#')[0].split('?')[0]);
   if (p.startsWith('/workspace/') || p.startsWith('/admin/') || p === '/workspace' || p === '/admin') return true; // vercel rewrite → /workspace/index.html
   if (p === '/sitemap.xml') return true; // rewrite → /api/sitemap
+  // หน้าโพสต์ SSR (rewrite → /api/post): บทความต้องมีไฟล์ข้อมูลตั้งต้น · ผลงานมาจาก Supabase ตอนรัน (ตรวจรูปแบบพาธอย่างเดียว)
+  const post = /^\/(articles|portfolio)\/([a-z0-9][a-z0-9-]*)\/$/.exec(p);
+  if (post) return post[1] === 'portfolio' || fs.existsSync(path.join(dist, 'articles-data', `${post[2]}.json`));
   const f = path.join(dist, p);
   if (fs.existsSync(f) && fs.statSync(f).isFile()) return true;
   return fs.existsSync(path.join(f, 'index.html'));

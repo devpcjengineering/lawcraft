@@ -3,11 +3,19 @@
 // ที่เก็บ (key 'portfolio' → law_data 'content-portfolio' หรือ data/content/portfolio.json): { items: [ผลงาน], order: [id] } — ดู /portfolio/model.js
 // กติกาเผยแพร่: สวิตช์ "เผยแพร่" กดได้ต่อเมื่อ consent = true (ผู้รับบริการยินยอมให้เผยแพร่) — หน้าเว็บก็กรอง published && consent ซ้ำอีกชั้น
 // กันเขียนทับกัน: ทุกครั้งที่บันทึกจะโหลดค่าล่าสุดจากหลังบ้านก่อน แล้วใช้ "การแก้ที่ค้างอยู่" ซ้ำลงไป (เหมือน content-articles.js)
+// SEO: หน้าสาธารณะเป็น /portfolio/<slug>/ (เรนเดอร์ฝั่งเซิร์ฟเวอร์) — ช่อง seo{title,description,noindex} · รูปแรกใน images = ภาพปก/ภาพตอนแชร์ลิงก์
+//   ตัวอย่างผลค้นหา/รายการตรวจใช้ /shared/post-seo.js · อัปโหลดรูปผ่าน ctx.api.uploadMedia (bucket media/portfolio) ย่อก่อนด้วย js/media.js
 import { SLUG_RE, CATEGORIES, ROLES, GUARANTEE_RE, normPortfolio, orderedItems, cleanItem, canPublish, isLive, newId, yearLabel } from '../portfolio/model.js';
+import { portfolioPath } from '/shared/post-seo.js';
+import { seoBody, seoMeta, renderSeo } from './content-seo.js';
+import { prepareImage, fmtBytes } from './media.js';
 import { icon } from './icons.js';
 import { urls } from './router.js';
 
 const KEY = 'portfolio';
+const KIND = 'portfolio';
+const MAX_IMAGES = 12; // ตรงกับ cleanItem
+const isHttp = (u) => /^https?:\/\/\S+$/i.test(String(u || ''));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const t = (s) => String(s ?? '').trim();
@@ -20,7 +28,10 @@ const CUR_YEAR = new Date().getFullYear() + 543;
 
 // ---------- สถานะของโมดูล (ล้างทุกครั้งที่ mount) ----------
 let ctx, box, ac, state, pending, timer, flushP, sel, cur, q, creating, listRaf, slugErr;
-let view, fil, openK, listY, stTxt, stTone;
+let view, fil, openK, listY, stTxt, stTone, upBusy;
+const canUpload = () => typeof ctx?.api?.uploadMedia === 'function'; // โหมดไฟล์ในเครื่องไม่มีที่เก็บรูป
+/** ลิงก์เปิดดูหน้าสาธารณะ — ?v= กันแคช CDN ให้แอดมินเห็นฉบับล่าสุดเสมอ */
+const viewUrl = (slug) => `${portfolioPath(slug)}?v=${Date.now()}`;
 
 // ---------- บันทึกแบบสะสม (ops) ----------
 function apply(key, fn) { pending.delete(key); pending.set(key, fn); fn(state); schedule(); }
@@ -56,7 +67,15 @@ const setItemOp = (id, model) => apply('item:' + id, (s) => {
 const blank = (id, slug, title) => ({
   id, slug, title, category: CATEGORIES[0], summary: '', body: [], outcome: '', court: '', year: CUR_YEAR, role: ROLES[0], tags: [], images: [],
   consent: false, anonymized: true, noGuarantee: false, published: false, featured: false, createdAt: nowIso(), updatedAt: nowIso(),
+  seo: { title: '', description: '', noindex: false },
 });
+/** โมเดลสำหรับฟอร์ม: cleanItem ตัด seo ที่ว่างทิ้ง จึงเติมกลับให้ช่องกรอกอ้างถึงได้ */
+const forEditor = (it) => ({ ...clone(it), seo: { title: '', description: '', noindex: false, ...(it.seo || {}) } });
+/** ตั้งค่าตามพาธ a.b.c (สร้างออบเจ็กต์กลางทางให้) */
+function setAt(o, path, v) {
+  const ks = path.split('.'), last = ks.pop();
+  ks.reduce((a, k) => (a[k] ??= {}), o)[last] = v;
+}
 const slugTaken = (slug, exceptId) => state.items.some((x) => x.id !== exceptId && (x.slug === slug || x.id === slug));
 const slugProblem = (s, exceptId) => (!SLUG_RE.test(s) ? 'slug ต้องเป็น a-z 0-9 และ - (ขึ้นต้นด้วยตัวอักษรหรือตัวเลข ยาว 3–61 ตัว)' : slugTaken(s, exceptId) ? 'slug นี้มีอยู่แล้ว' : '');
 /** ข้อความที่อาจเข้าข่ายรับประกันผล (ให้ทนายตรวจ) */
@@ -89,7 +108,7 @@ function rowHtml(r, no, k, total, canMove) {
     <div class="cpf-main">
       <h3><button type="button" class="cpf-title" data-a="open" data-id="${id}">${esc(r.title || '(ยังไม่มีชื่อ)')}</button></h3>
       ${r.summary ? `<p class="cpf-sub">${esc(r.summary)}</p>` : ''}
-      <p class="cpf-meta"><span class="cpf-cat">${esc(r.category || 'ไม่มีหมวด')}</span>${r.year ? `<span class="cpf-dot">${icon('calendar', { size: 14 })}${esc(yearLabel(r.year))}</span>` : ''}${r.role ? `<span class="cpf-dot">${icon('user', { size: 14 })}${esc(r.role)}</span>` : ''}${r.court ? `<span class="cpf-dot">${icon('building', { size: 14 })}${esc(r.court)}</span>` : ''}${arr(r.tags).slice(0, 3).map((x) => `<span class="cpf-tag">${esc(x)}</span>`).join('')}${r.updatedAt ? `<span class="cpf-dot">${icon('clock', { size: 14 })}แก้ ${esc(shortDate(r.updatedAt))}</span>` : ''}<code class="cpf-slug">/portfolio/?p=${esc(r.slug)}</code></p>
+      <p class="cpf-meta"><span class="cpf-cat">${esc(r.category || 'ไม่มีหมวด')}</span>${r.year ? `<span class="cpf-dot">${icon('calendar', { size: 14 })}${esc(yearLabel(r.year))}</span>` : ''}${r.role ? `<span class="cpf-dot">${icon('user', { size: 14 })}${esc(r.role)}</span>` : ''}${r.court ? `<span class="cpf-dot">${icon('building', { size: 14 })}${esc(r.court)}</span>` : ''}${arr(r.tags).slice(0, 3).map((x) => `<span class="cpf-tag">${esc(x)}</span>`).join('')}${r.updatedAt ? `<span class="cpf-dot">${icon('clock', { size: 14 })}แก้ ${esc(shortDate(r.updatedAt))}</span>` : ''}<code class="cpf-slug">${esc(portfolioPath(r.slug))}</code></p>
     </div>
     <div class="cpf-side">
       <div class="cpf-bd">${badges(r)}</div>
@@ -98,7 +117,7 @@ function rowHtml(r, no, k, total, canMove) {
         <button type="button" class="btn sm outline" data-a="togglePub" data-id="${id}"${pubOff ? ' disabled title="ต้องติ๊ก “ได้รับความยินยอมแล้ว” ในหน้าแก้ไขก่อน"' : ''}>${icon(r.published ? 'eyeOff' : 'eye')}${r.published ? 'ซ่อน' : 'เผยแพร่'}</button>
         <button type="button" class="cpf-ib${r.featured ? ' on' : ''}" data-a="toggleFeat" data-id="${id}" title="${r.featured ? 'เอาออกจากผลงานแนะนำ' : 'ตั้งเป็นผลงานแนะนำ'}" aria-pressed="${r.featured}" aria-label="ผลงานแนะนำ ${esc(r.title)}">${icon('sparkle')}</button>
         <button type="button" class="cpf-ib" data-a="dup" data-id="${id}" title="ทำสำเนา" aria-label="ทำสำเนา ${esc(r.title)}">${icon('copy')}</button>
-        <a class="cpf-ib" href="/portfolio/?p=${encodeURIComponent(r.slug)}" target="_blank" rel="noopener" title="ดูหน้าผลงาน" aria-label="ดูหน้าผลงาน ${esc(r.title)}">${icon('external')}</a>
+        <a class="cpf-ib" href="${esc(viewUrl(r.slug))}" target="_blank" rel="noopener" title="ดูหน้าผลงาน" aria-label="ดูหน้าผลงาน ${esc(r.title)}">${icon('external')}</a>
         ${mv('up', 'arrowUp', canMove ? 'ย้ายขึ้น' : 'ล้างคำค้นและตัวกรองก่อนจึงจะย้ายลำดับได้', !canMove || k === 0)}
         ${mv('down', 'arrowDown', canMove ? 'ย้ายลง' : 'ล้างคำค้นและตัวกรองก่อนจึงจะย้ายลำดับได้', !canMove || k === total - 1)}
       </div>
@@ -175,6 +194,51 @@ function checklistHtml(m) {
 }
 function renderChecklist() { const el = box.querySelector('#cpf-ck'); if (el && cur) el.innerHTML = checklistHtml(cur); }
 
+/** รูปภาพ: รูปย่อพร้อมปุ่มลบ (รูปแรก = ปก) + ปุ่มอัปโหลดหลายรูป + ช่องลิงก์ */
+function thumbsHtml(m) {
+  const imgs = arr(m.images);
+  return imgs.filter(isHttp).length ? imgs.map((u, i) => (isHttp(u) ? `<figure class="cpf-img"><img src="${esc(u)}" alt="" loading="lazy" decoding="async">${i === 0 ? '<span class="cpf-img-cover">ปก</span>' : ''}<button type="button" class="cpf-img-rm" data-a="rmImg" data-i="${i}" title="ลบรูปนี้" aria-label="ลบรูปที่ ${i + 1}"${upBusy ? ' disabled' : ''}>${icon('x', { size: 16, stroke: 2.4 })}</button></figure>` : '')).join('') : '';
+}
+function imagesHtml(m) {
+  const can = canUpload(), full = arr(m.images).length >= MAX_IMAGES;
+  return `<p class="hint">รูปแรกใช้เป็นภาพปกบนการ์ดและภาพตอนแชร์ลิงก์ (OG) · สูงสุด ${MAX_IMAGES} รูป · ห้ามใช้ภาพที่เห็นหน้า ชื่อ หรือเอกสารของลูกความ</p>
+    <div class="ct-actions cpf-up">
+      <button type="button" class="btn sm outline" data-a="upload"${can && !upBusy && !full ? '' : ' disabled'}${can ? (full ? ` title="ครบ ${MAX_IMAGES} รูปแล้ว"` : '') : ' title="อัปโหลดรูปได้เมื่อใช้ Supabase"'}>${icon('upload')}อัปโหลดรูป (เลือกได้หลายรูป)</button>
+      <input type="file" id="cpf-file" accept="image/*" multiple hidden>
+      <span class="hint" id="cpf-upst" role="status">${can ? '' : 'อัปโหลดรูปได้เมื่อใช้ Supabase — ตอนนี้ใส่ได้เฉพาะลิงก์รูป'}</span>
+    </div>
+    <div class="cpf-imgs" id="cpf-imgs">${thumbsHtml(m)}</div>
+    ${field('ลิงก์รูปภาพ (https://… บรรทัดละ 1 รูป — เรียงลำดับใหม่ได้ที่นี่)', area('images', m.images.join('\n'), rowsFor(m.images.join('\n'), 2, 8), 'lines'))}`;
+}
+function renderImages() {
+  const el = box.querySelector('#cpf-imgsec'); if (el && cur) el.innerHTML = imagesHtml(cur);
+  const s = box.querySelector('.cpf-d[data-k="images"] > summary small'); if (s && cur) s.textContent = `${cur.images.length} รูป`;
+}
+const upStatus = (txt) => { const e = box.querySelector('#cpf-upst'); if (e) e.textContent = txt; };
+
+/** อัปโหลดรูปทีละไฟล์: ย่อ → ส่งขึ้น Storage → ต่อท้าย images (ถ้าสลับผลงานไประหว่างรอ จะไม่ใส่ผิดเรื่อง) */
+async function uploadImages(files) {
+  if (!files.length || !cur || !canUpload() || upBusy) return;
+  const id = cur.id, errs = [];
+  upBusy = true; renderImages();
+  for (let k = 0; k < files.length; k++) {
+    if (!cur || cur.id !== id) break;
+    if (cur.images.length >= MAX_IMAGES) { errs.push(`ครบ ${MAX_IMAGES} รูปแล้ว — รูปที่เหลือไม่ได้อัปโหลด`); break; }
+    const n = files.length > 1 ? ` ${k + 1}/${files.length}` : '';
+    try {
+      upStatus(`กำลังย่อรูป${n}…`);
+      const blob = await prepareImage(files[k], { max: 1600 });
+      upStatus(`กำลังอัปโหลด${n}… (${fmtBytes(blob.size)})`);
+      const { url } = await ctx.api.uploadMedia(blob, { folder: 'portfolio' });
+      if (!cur || cur.id !== id) break;
+      cur.images.push(url); touch('images');
+    } catch (e) { errs.push(`${files[k]?.name || 'รูป'}: ${e?.message || e}`); }
+  }
+  upBusy = false;
+  if (cur && cur.id === id) { renderImages(); upStatus(errs.length ? '' : `อัปโหลดแล้ว ${files.length - errs.length} รูป`); }
+  if (errs.length) ctx.notify({ type: 'error', message: 'อัปโหลดรูปไม่สำเร็จ: ' + errs.join(' · ') });
+}
+
 function editorHtml() {
   const m = cur;
   const order = rows().map((r) => r.id), pos = order.indexOf(m.id);
@@ -192,14 +256,11 @@ function editorHtml() {
     </div>
     ${field('สรุปสั้น (แสดงบนการ์ดและผลค้นหา)', area('summary', m.summary, rowsFor(m.summary, 2, 6)))}
     ${field('แท็ก (คั่นด้วยเครื่องหมายจุลภาค ,)', inp('tags', m.tags.join(', '), 'data-t="tags"'))}
-    ${field('slug ใช้ในลิงก์ /portfolio/?p=…', `<input type="text" data-p="slug" value="${esc(m.slug)}" autocomplete="off" spellcheck="false"><small class="hint cpf-err" id="cpf-slugerr">${esc(slugErr || '')}</small>`, 'cpf-slugf')}`;
+    ${field('slug ใช้ในลิงก์ /portfolio/&lt;slug&gt;/ (เปลี่ยนแล้วลิงก์เดิมที่เคยแชร์จะเปิดไม่ได้)', `<input type="text" data-p="slug" value="${esc(m.slug)}" autocomplete="off" spellcheck="false"><small class="hint cpf-err" id="cpf-slugerr">${esc(slugErr || '')}</small>`, 'cpf-slugf')}`;
   const content = `
     ${field('รายละเอียด (เว้นบรรทัดว่าง 1 บรรทัด = ขึ้นย่อหน้าใหม่) — เล่าข้อเท็จจริงโดยย่อ ประเด็นกฎหมาย และสิ่งที่ทำ', area('body', body, rowsFor(body, 6, 20), 'paras'))}
     ${field('ผลลัพธ์ (เล่าตามจริง ไม่รับประกันว่าคดีอื่นจะได้ผลเดียวกัน)', area('outcome', m.outcome, rowsFor(m.outcome, 2, 8)))}`;
-  const images = `
-    <p class="hint">ใส่ลิงก์รูป (https://…) บรรทัดละ 1 รูป — รูปแรกใช้เป็นภาพปก ห้ามใช้ภาพที่เห็นหน้า ชื่อ หรือเอกสารของลูกความ</p>
-    ${field('ลิงก์รูปภาพ', area('images', m.images.join('\n'), rowsFor(m.images.join('\n'), 2, 8), 'lines'))}
-    ${m.images.length ? `<div class="cpf-imgs">${m.images.map((u) => `<img src="${esc(u)}" alt="" loading="lazy">`).join('')}</div>` : ''}`;
+  const images = `<div id="cpf-imgsec" class="cpf-imgsec">${imagesHtml(m)}</div>`;
   const manage = `
     <p class="hint">ลำดับที่ ${pos + 1} จาก ${order.length} · สร้าง ${esc(shortDate(m.createdAt))} · แก้ล่าสุด ${esc(shortDate(m.updatedAt))} · id <code>${esc(m.id)}</code></p>
     <label class="chk cpf-chk"><input type="checkbox" data-p="featured" data-t="bool"${m.featured ? ' checked' : ''}><span>ผลงานแนะนำ — ขึ้นก่อนในหน้า /portfolio/ และแสดงบนหน้าแรก (สูงสุด 3 รายการ)</span></label>
@@ -216,8 +277,9 @@ function editorHtml() {
         ${dsec('content', 'fileText', 'รายละเอียดและผลลัพธ์', `${m.body.length} ย่อหน้า${m.outcome ? ' · มีผลลัพธ์' : ''}`, content, true)}
         ${dsec('check', 'shield', 'ความยินยอมและมรรยาททนายความ', `${[m.anonymized, m.noGuarantee, m.consent].filter(Boolean).length}/3 ข้อ`, `<div id="cpf-ck">${checklistHtml(m)}</div>`, true)}
         ${dsec('images', 'paperclip', 'รูปภาพ (ไม่บังคับ)', `${m.images.length} รูป`, images)}
+        ${dsec('seo', 'globe', 'SEO · ผลค้นหา', seoMeta(KIND, m), seoBody(KIND, m, 'cpf', { title: 'ใช้ชื่อผลงาน + | ผลงาน LawCraft by PKT', description: 'ใช้สรุปสั้น' }))}
         ${dsec('manage', 'settings', 'จัดการผลงาน', 'แนะนำ · สำเนา · ลำดับ · ลบ', manage)}
-        <p class="hint cpf-foot">บันทึกอัตโนมัติทุกครั้งที่แก้ · เว็บแสดงเฉพาะผลงานที่เผยแพร่และได้รับความยินยอมแล้ว</p>
+        <p class="hint cpf-foot">บันทึกอัตโนมัติทุกครั้งที่แก้ · เว็บแสดงเฉพาะผลงานที่เผยแพร่และได้รับความยินยอมแล้ว<br>หน้าสาธารณะอยู่ที่ <code>${esc(portfolioPath(m.slug))}</code> — เสิร์ชเอนจินเก็บหน้านี้ได้โดยตรง (ฉบับที่แก้ขึ้นเว็บภายในไม่กี่นาที)</p>
       </div>
       <aside class="cpf-pv" id="cpf-pv" aria-label="ตัวอย่าง">${previewHtml(m)}</aside>
     </div>`;
@@ -227,10 +289,10 @@ function barHtml() {
   const m = cur, ok = canPublish(m), live = isLive(m);
   return `<button type="button" class="btn sm outline cpf-back" data-a="back">${icon('arrowLeft')}<span>ผลงานทั้งหมด</span></button>
     <div class="cpf-bar-t"><b>${esc(m.title || '(ยังไม่มีชื่อ)')}</b>
-      <div class="cpf-bar-bd">${badges(m)}<small>/portfolio/?p=${esc(m.slug)}</small></div></div>
+      <div class="cpf-bar-bd">${badges(m)}<small>${esc(portfolioPath(m.slug))}</small></div></div>
     <span class="save-state cpf-state" id="cpf-st" data-tone="${esc(stTone)}">${esc(stTxt)}</span>
     <button type="button" class="cpf-sw" role="switch" aria-checked="${live ? 'true' : 'false'}" data-a="togglePub" data-id="${esc(m.id)}"${ok ? '' : ' disabled title="ต้องติ๊ก “ได้รับความยินยอมแล้ว” ก่อนเผยแพร่"'}><span class="cpf-sw-k" aria-hidden="true"></span><span>${live ? 'เผยแพร่' : ok ? 'ยังไม่เผยแพร่' : 'รอความยินยอม'}</span></button>
-    <a class="btn sm outline cpf-view" href="/portfolio/?p=${encodeURIComponent(m.slug)}" target="_blank" rel="noopener">${icon('external')}<span>ดูหน้าผลงาน</span></a>`;
+    <a class="btn sm outline cpf-view" href="${esc(viewUrl(m.slug))}" target="_blank" rel="noopener">${icon('external')}<span>ดูหน้าผลงาน</span></a>`;
 }
 function renderBar() {
   const bar = box.querySelector('#cpf-bar');
@@ -268,7 +330,7 @@ function openItem(id) {
   if (view === 'edit' && cur?.id === id) return true;
   const it = byId(id);
   if (!it) { ctx.notify({ type: 'error', message: 'ไม่พบผลงานนี้' }); return false; }
-  cur = clone(it); sel = id; slugErr = '';
+  cur = forEditor(it); sel = id; slugErr = '';
   listY = window.scrollY;
   setView('edit'); renderEditor();
   window.scrollTo({ top: 0, behavior: 'auto' });
@@ -301,7 +363,12 @@ function touch(path) {
     const s = box.querySelector('.cpf-d[data-k="check"] summary small');
     if (s) s.textContent = `${[cur.anonymized, cur.noGuarantee, cur.consent].filter(Boolean).length}/3 ข้อ`;
   }
+  if (path === 'images') { // พิมพ์ลิงก์ในช่อง → อัปเดตเฉพาะรูปย่อ (ไม่แตะช่องที่กำลังพิมพ์)
+    const g = box.querySelector('#cpf-imgs'); if (g) g.innerHTML = thumbsHtml(cur);
+    const s = box.querySelector('.cpf-d[data-k="images"] > summary small'); if (s) s.textContent = `${cur.images.length} รูป`;
+  }
   renderPreview();
+  renderSeo(box, KIND, cur, 'cpf'); // ตัวอย่างผลค้นหา + รายการตรวจ SEO
 }
 
 function setPublished(id, on) {
@@ -353,13 +420,19 @@ async function onAction(btn) {
       // สำเนา: เริ่มเป็นร่าง ยังไม่ยินยอม/ยังไม่แนะนำ (ต้องยืนยันใหม่ทุกครั้ง)
       const model = creating?.src ? { ...creating.src, id: nid, slug: s, title: ti || creating.src.title, consent: false, noGuarantee: false, published: false, featured: false, createdAt: nowIso(), updatedAt: nowIso() } : blank(nid, s, ti);
       creating = null; renderCreate();
-      cur = clean(model); sel = nid; slugErr = '';
+      cur = forEditor(clean(model)); sel = nid; slugErr = '';
       setItemOp(nid, cur); flushNow();
       listY = window.scrollY;
       setView('edit'); renderEditor('title'); window.scrollTo({ top: 0, behavior: 'auto' });
       return;
     }
-    case 'togglePub': { const it = cur?.id === id ? cur : byId(id); setPublished(id, !it?.published); if (view === 'edit') { renderBar(); renderPreview(); } else renderList(); return; }
+    case 'togglePub': { const it = cur?.id === id ? cur : byId(id); setPublished(id, !it?.published); if (view === 'edit') { renderBar(); renderPreview(); renderSeo(box, KIND, cur, 'cpf'); } else renderList(); return; }
+    case 'upload': box.querySelector('#cpf-file')?.click(); return;
+    case 'rmImg': {
+      const i = +btn.dataset.i;
+      if (!cur || !(i >= 0 && i < cur.images.length)) return;
+      cur.images.splice(i, 1); touch('images'); renderImages(); return;
+    }
     case 'toggleFeat': { const it = cur?.id === id ? cur : byId(id); setFeatured(id, !it?.featured); if (view === 'edit') renderEditor(); else renderList(); return; }
     case 'del': {
       if (!await ctx.confirmBox(`ลบผลงาน “${cur.title || id}” ถาวร?\nคนที่มีลิงก์จะเปิดไม่ได้อีก`, { title: 'ลบผลงาน', okText: 'ลบ', danger: true })) return;
@@ -374,7 +447,7 @@ async function onAction(btn) {
 export default {
   id: KEY,
   label: 'ผลงาน',
-  hint: 'ลงผลงาน/คดีที่ผ่านมา (ปกปิดข้อมูลลูกความ + ต้องได้รับความยินยอมก่อนเผยแพร่) แสดงที่ /portfolio/ และหน้าแรก',
+  hint: 'ลงผลงาน/คดีที่ผ่านมา (ปกปิดข้อมูลลูกความ + ต้องได้รับความยินยอมก่อนเผยแพร่) แสดงที่ /portfolio/ และหน้าแรก — แต่ละชิ้นอยู่ที่ /portfolio/<slug>/ พร้อม SEO และรูป',
   async mount(b, c) {
     box = b; stTxt = ''; stTone = '';
     ctx = {
@@ -387,7 +460,7 @@ export default {
       },
     };
     state = normPortfolio({}); pending = new Map(); timer = null; flushP = Promise.resolve();
-    sel = null; cur = null; q = ''; creating = null; slugErr = '';
+    sel = null; cur = null; q = ''; creating = null; slugErr = ''; upBusy = false;
     view = 'list'; fil = 'all'; openK = new Map(); listY = 0;
     if (!document.getElementById('cpf-css')) {
       const l = document.createElement('link'); l.rel = 'stylesheet'; l.id = 'cpf-css'; l.href = '/css/content-portfolio.css';
@@ -438,11 +511,12 @@ export default {
         cur.slug = s; touch('slug'); return;
       }
       const v = readVal(el);
-      if (p === 'year') cur.year = v; else cur[p] = v;
+      if (p === 'year') cur.year = v; else setAt(cur, p, v); // รองรับพาธซ้อน เช่น seo.title
       touch(p);
     }, sig);
-    box.addEventListener('change', (e) => { // select / checkbox (บาง browser ไม่ยิง input)
+    box.addEventListener('change', (e) => { // select / ไฟล์รูป (checkbox ยิง input อยู่แล้ว)
       const el = e.target;
+      if (el.id === 'cpf-file') { const fs = [...(el.files || [])]; el.value = ''; if (fs.length) uploadImages(fs); return; }
       if (!el.dataset?.p || !cur || el.tagName !== 'SELECT') return;
       cur[el.dataset.p] = el.value; touch(el.dataset.p);
     }, sig);
