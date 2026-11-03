@@ -172,7 +172,7 @@ async function checkUpdate() {
       document.body.insertAdjacentHTML('beforeend', `
       <div id="version-update-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.75);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#1e293b;display:flex;align-items:center;justify-content:center;z-index:999999;padding:20px;font-family:'Noto Sans Thai',-apple-system,BlinkMacSystemFont,sans-serif;animation:vFadeIn .25s ease;">
         <div style="background:#ffffff;border-radius:24px;padding:36px 28px;max-width:440px;width:100%;text-align:center;box-shadow:0 25px 60px -15px rgba(0,0,0,0.3);border:1px solid rgba(226,232,240,0.8);animation:vSlideUp .3s cubic-bezier(0.16,1,0.3,1);">
-          <div style="width:64px;height:64px;margin:0 auto 20px;border-radius:20px;background:linear-gradient(135deg,#eff6ff,#dbeafe);display:flex;align-items:center;justify-content:center;color:#2563eb;box-shadow:0 8px 16px -4px rgba(37,99,235,0.2);">
+          <div style="width:64px;height:64px;margin:0 auto 20px;border-radius:20px;background:linear-gradient(135deg,#eff6ff,#dbeafe);display:flex;align-items:center;justify-content:center;color:#ea580c;box-shadow:0 8px 16px -4px rgba(37,99,235,0.2);">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19"/></svg>
           </div>
           <h2 style="font-size:22px;font-weight:700;color:#0f172a;margin:0 0 10px;line-height:1.3;letter-spacing:-.01em;">พบระบบเวอร์ชันใหม่</h2>
@@ -181,7 +181,7 @@ async function checkUpdate() {
             <span>v.${vText}</span>
           </div>
           <p style="font-size:15px;color:#475569;line-height:1.6;margin:0 0 24px;">กรุณารีเฟรชหรือล้างแคชหน้าเว็บเพื่อเข้าใช้งาน<br><span style="color:#64748b;font-size:13.5px;">เพื่อป้องกันปัญหารระบบขัดข้อง</span></p>
-          <button type="button" onclick="location.reload(true)" style="width:100%;padding:14px 24px;font-size:16px;font-weight:600;font-family:inherit;color:#ffffff;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:14px;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,0.35);transition:all .2s ease;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <button type="button" onclick="location.reload(true)" style="width:100%;padding:14px 24px;font-size:16px;font-weight:600;font-family:inherit;color:#ffffff;background:linear-gradient(135deg,#ea580c,#c2410c);border:none;border-radius:14px;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,0.35);transition:all .2s ease;display:flex;align-items:center;justify-content:center;gap:8px;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
             รีเฟรชหน้าเว็บ
           </button>

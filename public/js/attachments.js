@@ -360,7 +360,7 @@ export function tabAttachments() {
     .attach-section-title {
       font-size: 1.15em;
       font-weight: 600;
-      color: var(--primary, #2563eb);
+      color: var(--primary, #ea580c);
       margin-bottom: 20px;
       display: flex;
       align-items: center;
@@ -376,7 +376,7 @@ export function tabAttachments() {
       font-size: 0.8em;
       font-weight: 500;
       background: #eff6ff;
-      color: #2563eb;
+      color: #ea580c;
       padding: 4px 12px;
       border-radius: 999px;
       border: 1px solid #bfdbfe;
@@ -443,7 +443,7 @@ export function tabAttachments() {
     }
     .upload-box:hover, .upload-box.drag-over {
       background: #dbeafe;
-      border-color: var(--primary, #2563eb);
+      border-color: var(--primary, #ea580c);
       transform: translateY(-2px);
     }
     .upload-box input[type="file"] {
@@ -452,7 +452,7 @@ export function tabAttachments() {
       opacity: 0; cursor: pointer;
     }
     .upload-icon {
-      color: var(--primary, #2563eb);
+      color: var(--primary, #ea580c);
       margin-bottom: 12px;
       transition: transform 0.3s ease;
     }
@@ -485,7 +485,7 @@ export function tabAttachments() {
       transition: all 0.2s ease;
     }
     .attach-actions .btn.primary {
-      background: linear-gradient(135deg, var(--primary, #2563eb), #1d4ed8);
+      background: linear-gradient(135deg, var(--primary, #ea580c), #c2410c);
       color: white;
       border: none;
     }
@@ -538,7 +538,7 @@ export function tabAttachments() {
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      color: #1d4ed8;
+      color: #c2410c;
       background: #eff6ff;
       border: 1px solid #bfdbfe;
       min-width: 32px;
@@ -655,7 +655,7 @@ export function tabAttachments() {
     }
     .attach-form-grid .f input:focus,
     .attach-form-grid .f select:focus {
-      border-color: #2563eb;
+      border-color: #ea580c;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
       outline: none;
     }
@@ -1540,7 +1540,7 @@ async function showDriveAuthModal({ blob, filename, record, reason = '' }) {
             <div><b style="color: #0f172a;">ดาวน์โหลดลงเครื่องทันที:</b> รับไฟล์ PDF ที่ประทับตราแล้วลงคอมพิวเตอร์ของคุณทันที โดยไม่ต้องออกจากหน้านี้</div>
           </div>
           <div style="display: flex; align-items: flex-start; gap: 8px;">
-            <span style="color: #2563eb; font-weight: bold; line-height: 1.4;">✓</span>
+            <span style="color: #ea580c; font-weight: bold; line-height: 1.4;">✓</span>
             <div><b style="color: #0f172a;">เข้าสู่ระบบเพื่อเชื่อมต่อ Google Drive:</b> ระบบจะนำท่านไปยืนยันสิทธิ์ และ<b>พากลับมาที่คดีนี้โดยอัตโนมัติ</b></div>
           </div>
         </div>

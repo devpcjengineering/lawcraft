@@ -3,15 +3,15 @@
 .nt { position: relative; overflow: hidden; pointer-events: auto; display: grid; grid-template-columns: 28px 1fr 24px; gap: 10px; align-items: start; padding: 12px 12px 14px 14px; border-radius: 14px; background: rgba(255,255,255,.96); backdrop-filter: blur(14px); box-shadow: 0 10px 34px rgba(20,25,40,.2), 0 0 0 1px rgba(20,25,40,.07); transform: translateY(14px) scale(.97); opacity: 0; transition: transform .26s cubic-bezier(.2,.9,.3,1.15), opacity .22s; }
 .nt.in { transform: none; opacity: 1; }
 .nt.out { transform: translateX(24px); opacity: 0; transition: transform .22s ease-in, opacity .2s; }
-.nt-ico { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 800; color: #fff; background: #0071e3; margin-top: 1px; }
-.nt-success .nt-ico { background: #1f7a4d; } .nt-error .nt-ico { background: #d93025; } .nt-warn .nt-ico { background: #e08a00; font-size: 11px; } .nt-info .nt-ico { background: #0071e3; }
+.nt-ico { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 800; color: #fff; background: #f26b1d; margin-top: 1px; }
+.nt-success .nt-ico { background: #1f7a4d; } .nt-error .nt-ico { background: #d93025; } .nt-warn .nt-ico { background: #e08a00; font-size: 11px; } .nt-info .nt-ico { background: #f26b1d; }
 .nt-body b { display: block; font-size: 15px; line-height: 1.35; color: #1d1d1f; }
 .nt-body p { margin: 2px 0 0; font-size: 14px; line-height: 1.45; color: #4a4a52; overflow-wrap: anywhere; }
 .nt-act { margin-top: 8px; border: 0; background: #eef4fd; color: #0057b8; font-weight: 600; font-size: 13.5px; padding: 4px 12px; border-radius: 99px; cursor: pointer; }
 .nt-act:hover { background: #dbe9fb; }
 .nt-x { border: 0; background: transparent; color: #8a8a93; cursor: pointer; font-size: 13px; border-radius: 6px; width: 24px; height: 24px; line-height: 1; }
 .nt-x:hover { background: #ececf0; color: #333; }
-.nt-bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: currentColor; opacity: .5; transform-origin: left; animation: nt-bar linear forwards; color: #0071e3; }
+.nt-bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: currentColor; opacity: .5; transform-origin: left; animation: nt-bar linear forwards; color: #f26b1d; }
 .nt-success .nt-bar { color: #1f7a4d; } .nt-error .nt-bar { color: #d93025; } .nt-warn .nt-bar { color: #e08a00; }
 .nt.paused .nt-bar { animation-play-state: paused; }
 @keyframes nt-bar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
@@ -23,7 +23,7 @@
 .nt-bmsg { flex: 1; min-width: 0; }
 .nt-b-error { background: #fdecea; color: #7a1710; } .nt-b-error .nt-ico { background: #d93025; }
 .nt-b-warn { background: #fff4de; color: #6b4300; } .nt-b-warn .nt-ico { background: #e08a00; }
-.nt-b-info { background: #e8f1fd; color: #0b3d7a; } .nt-b-info .nt-ico { background: #0071e3; }
+.nt-b-info { background: #e8f1fd; color: #0b3d7a; } .nt-b-info .nt-ico { background: #f26b1d; }
 .nt-bact { border: 0; background: rgba(0,0,0,.08); color: inherit; font-weight: 600; padding: 4px 14px; border-radius: 99px; cursor: pointer; font-size: 13.5px; }
 .nt-bact:hover { background: rgba(0,0,0,.14); }
 

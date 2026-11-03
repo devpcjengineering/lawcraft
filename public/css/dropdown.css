@@ -45,7 +45,7 @@ input[list]::-webkit-calendar-picker-indicator, input[data-combo]::-webkit-calen
 .dd-opt.blank[aria-selected="true"].on { background: var(--surface-3); }
 .dd-opt[aria-disabled="true"] { color: #a3a8b3; cursor: not-allowed; font-weight: 400; background: transparent; }
 .dd-opt[aria-disabled="true"] .dd-ck { display: none; }
-.dd-opt mark { background: rgba(0, 113, 227, .16); color: inherit; border-radius: 3px; padding: 0 1px; margin: 0 -1px; }
+.dd-opt mark { background: rgba(242, 107, 29, .16); color: inherit; border-radius: 3px; padding: 0 1px; margin: 0 -1px; }
 .dd-grp { padding: 10px 10px 4px; font-size: 12.5px; font-weight: 600; letter-spacing: .02em; color: var(--muted); }
 .dd-grp:first-child { padding-top: 4px; }
 .dd-empty { padding: 14px 10px; font-size: 14px; color: var(--muted); text-align: center; }

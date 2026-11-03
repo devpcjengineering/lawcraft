@@ -7,7 +7,7 @@
 /* ค่าพื้นฐานที่ย้ายมาจาก app.css (ส่วนที่ไม่มีใน “ชุดเดิม” ซึ่งลบออกแล้ว) */
 .steps .nav-item { display: flex; width: 100%; align-items: center; text-align: left; border: 0; background: transparent; cursor: pointer; line-height: 1.3; transition: background-color .12s, color .12s; }
 .nav-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
-.nav-head small { white-space: nowrap; font-weight: 500; border-radius: 99px; padding: 0 8px; color: #0a5bb5; }
+.nav-head small { white-space: nowrap; font-weight: 500; border-radius: 99px; padding: 0 8px; color: #a8450c; }
 .nav-ico { display: grid; place-items: center; flex: none; }
 .nav-count { border-radius: 99px; font-weight: 700; }
 .steps .badge { background: var(--err); color: #fff; border-radius: 99px; font-weight: 700; }
@@ -27,14 +27,14 @@
 .nav-head small { background: var(--blue-soft); }
 .steps .nav-item { gap: 10px; min-height: 38px; padding: 3px 10px; border-radius: var(--r-ctl); font-size: 15px; font-weight: 500; color: var(--ink-2); }
 .steps .nav-item:hover { background: var(--surface-3); }
-.steps .nav-item.on { background: var(--blue-soft); color: #0a5bb5; font-weight: 600; box-shadow: none; }
+.steps .nav-item.on { background: var(--blue-soft); color: #a8450c; font-weight: 600; box-shadow: none; }
 .steps .nav-item:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
 .nav-ico { width: 24px; height: 24px; border-radius: 8px; background: transparent; color: #7b8190; font-size: 18px; }
 .nav-ico .ico { width: 19px; height: 19px; }
 .nav-item:hover .nav-ico { color: var(--ink-2); }
 .nav-item.on .nav-ico { background: transparent; color: var(--blue); }
 .nav-count { font-size: 13px; background: var(--surface-3); color: var(--ink-2); padding: 0 8px; min-width: 22px; text-align: center; }
-.nav-item.on .nav-count { background: #fff; color: #0a5bb5; }
+.nav-item.on .nav-count { background: #fff; color: #a8450c; }
 .steps .badge { font-size: 13px; padding: 0 7px; }
 .nav-item.locked { opacity: 1; color: #6b7280; }
 .nav-item.locked .nav-ico { color: #b1b6c1; }
@@ -128,10 +128,10 @@ details.more { margin-top: 28px; }
 details.more > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px 0 10px; margin-left: 0; border-radius: 99px; background: var(--blue-soft); transition: background-color .15s; }
 details.more > summary:hover { background: #dcebfd; }
 details.more > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-.more-t { font-size: 14px; color: #0a5bb5; }
+.more-t { font-size: 14px; color: #a8450c; }
 details.more > summary .hint { margin-left: 4px; color: #5a6b85; font-size: 13px; }
 details.more > .d-body { margin-top: 20px; }
-details.more > summary::before { border-color: #0a5bb5; }
+details.more > summary::before { border-color: #a8450c; }
 .grid > details.more { margin-top: 8px; }
 
 /* สมุดรายชื่อ */
@@ -202,8 +202,8 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
 .wiz-btns > :last-child { justify-self: end; }
 .wiz-btns .btn { max-width: 100%; }
 .wiz-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.wiz-btns .btn.primary.is-locked { background: #9cc6f2; border-color: #9cc6f2; box-shadow: none; opacity: 1; cursor: not-allowed; }
-.wiz-btns .btn.primary.is-locked:hover { background: #9cc6f2; border-color: #9cc6f2; }
+.wiz-btns .btn.primary.is-locked { background: #f8c7a6; border-color: #f8c7a6; box-shadow: none; opacity: 1; cursor: not-allowed; }
+.wiz-btns .btn.primary.is-locked:hover { background: #f8c7a6; border-color: #f8c7a6; }
 .wiz-prog { display: grid; gap: 6px; justify-items: center; min-width: 120px; }
 .wiz-prog-t { font-size: 13px; font-weight: 500; color: var(--muted-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .wiz-prog-bar { display: block; width: 100%; height: 4px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
@@ -287,7 +287,7 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
 .fee-sum { gap: 8px; }
 .fee-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .fee-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2, #f7f7f9); }
-.fee-total { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 14px; border-radius: 10px; background: var(--blue-soft, #eaf3fe); color: var(--ink); font-weight: 600; }
+.fee-total { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 14px; border-radius: 10px; background: var(--blue-soft, #fff1e8); color: var(--ink); font-weight: 600; }
 .fee-total output { font-size: 20px; }
 /* ---------- หลังยื่นฟ้อง (เลขคดี · ป้าย “ฟ้องแล้ว” · กลุ่มเอกสารหลังยื่นฟ้อง) ---------- */
 .filed-chip { flex: none; display: inline-flex; align-items: center; min-height: 28px; padding: 0 12px; margin-left: 4px; border-radius: 99px; background: var(--ok-bg); color: var(--ok); font-size: 13.5px; font-weight: 700; line-height: 1.4; white-space: nowrap; }
@@ -467,9 +467,9 @@ input[type=date]::-webkit-datetime-edit, input[type=time]::-webkit-datetime-edit
 .fee-off .hint { flex: 1 1 100%; margin: 0; overflow-wrap: anywhere; }
 @media (max-width: 760px) { .fee-off .btn, .fee-off .fee-amt input { min-height: 44px; font-size: 16px; } .fee-off .fee-amt { flex: 1 1 140px; } }
 /* ปุ่ม “ถัดไป” ที่ยังไปต่อไม่ได้ (กรอกไม่ครบ): ตัวหนังสือต้องอ่านออก (เดิมขาวบนฟ้าอ่อน ตัดกันเพียง 1.8:1) */
-.wiz-btns .btn.primary.is-locked, .wiz-btns .btn.primary.is-locked:hover { background: #e3edf9; border-color: #bcd2ee; color: #3d5f8c; }
+.wiz-btns .btn.primary.is-locked, .wiz-btns .btn.primary.is-locked:hover { background: #fde9dc; border-color: #f4bf9b; color: #8a3f12; }
 /* ลิงก์แหล่งอ้างอิงในหน้าคำฟ้อง: น้ำเงินเข้มขึ้นเล็กน้อยให้ตัดกับพื้นเทาได้ ≥ 4.5:1 */
-.src-line a { color: #0063c9; }
+.src-line a { color: #b9480c; }
 /* มือถือ: ป้ายปุ่มขั้นตอนยาว (เช่น “คำให้การ & สัญญา”) ขึ้นบรรทัดใหม่ได้แทนที่จะถูกตัดเป็น … */
 @media (max-width: 760px) {
   .wiz-btns .btn .wiz-t { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }

@@ -35,7 +35,7 @@
 .pv-select select:hover { background: var(--surface-2); border: 0; }
 .pv-select select:focus-visible { outline: none; box-shadow: none; border: 0; }
 .pv-count { flex: none; padding: 0 6px 0 2px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.pv-pages { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border-radius: 99px; font-size: 13px; font-weight: 600; line-height: 1; color: #0a58b5; background: var(--blue-soft); white-space: nowrap; box-shadow: none; }
+.pv-pages { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border-radius: 99px; font-size: 13px; font-weight: 600; line-height: 1; color: #a8450c; background: var(--blue-soft); white-space: nowrap; box-shadow: none; }
 .pv-pages .ico { width: 14px; height: 14px; }
 .pv-pct { flex: none; min-width: 56px; height: 34px; padding: 0 6px; border: 0; border-radius: 9px; background: transparent; font-size: 13.5px; font-weight: 600; color: var(--ink); cursor: pointer; font-variant-numeric: tabular-nums; }
 
@@ -99,7 +99,7 @@ body.viewer-open { overflow: hidden; }
 .doc-pick { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
 .doc-pick .chk { padding: 12px 14px; align-items: center; gap: 12px; border-radius: 12px; background: var(--surface-2); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06); font-size: 14.5px; line-height: 1.45; transition: background .12s, box-shadow .12s; }
 .doc-pick .chk:hover { background: var(--surface-3); }
-.doc-pick .chk:has(input:checked) { background: var(--blue-soft); box-shadow: inset 0 0 0 1.5px rgba(0, 113, 227, .5); }
+.doc-pick .chk:has(input:checked) { background: var(--blue-soft); box-shadow: inset 0 0 0 1.5px rgba(242, 107, 29, .5); }
 .doc-pick .chk input { margin: 0; }
 
 .dl-main { padding: 20px; border-radius: 14px; background: var(--surface-2); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .04); margin-bottom: 24px; }
@@ -127,7 +127,7 @@ body.viewer-open { overflow: hidden; }
 .ref-item, .ref-item:first-child { padding: 16px 20px; border: 0; border-radius: 16px; background: var(--card); box-shadow: 0 0 0 1px rgba(0, 0, 0, .05); }
 .ref-item > div { margin-top: 0; }
 .ref-h { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
-.ref-tag { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 99px; background: var(--blue-soft); color: #0a58b5; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.ref-tag { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 99px; background: var(--blue-soft); color: #a8450c; font-size: 13px; font-weight: 600; white-space: nowrap; }
 .ref-t { font-size: 15.5px; font-weight: 600; line-height: 1.45; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
 .ref-text { margin: 8px 0 0; font-size: 14.5px; line-height: 1.75; color: #3f4654; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
 .ref-item.open .ref-text { display: block; -webkit-line-clamp: unset; line-clamp: unset; }
@@ -214,8 +214,8 @@ table.simple.forms-tbl tr.used:hover td { background: #eaf2ff; }
 .lay-line input[type=range]:hover::-webkit-slider-thumb { box-shadow: 0 1px 6px rgba(0, 0, 0, .36); }
 .lay-line input[type=range]:active::-webkit-slider-thumb { transform: scale(1.08); }
 .lay-line input[type=range]:focus-visible { outline: none; }
-.lay-line input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgba(0, 113, 227, .35), 0 1px 4px rgba(0, 0, 0, .28); border-color: var(--blue); }
-.lay-line input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px rgba(0, 113, 227, .35); border-color: var(--blue); }
+.lay-line input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgba(242, 107, 29, .35), 0 1px 4px rgba(0, 0, 0, .28); border-color: var(--blue); }
+.lay-line input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px rgba(242, 107, 29, .35); border-color: var(--blue); }
 
 /* ============================================================
    6) ย่อ/ขยายตามจอ

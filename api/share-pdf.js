@@ -68,7 +68,7 @@ html, body {
 .header-left { display: flex; align-items: center; gap: 12px; overflow: hidden; }
 .logo-icon {
   width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #3b82f6, #2563eb); border-radius: 8px; color: #fff; flex-shrink: 0;
+  background: linear-gradient(135deg, #3b82f6, #ea580c); border-radius: 8px; color: #fff; flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(37,99,235,0.4);
 }
 .title-group { display: flex; flex-direction: column; overflow: hidden; white-space: nowrap; }

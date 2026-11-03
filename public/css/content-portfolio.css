@@ -3,7 +3,7 @@
 .cpf-app { min-width: 0; }
 .cpf-app [hidden] { display: none !important; }
 .cpf-intro { margin: 0 0 14px; padding: 12px 16px; border-radius: 12px; background: var(--blue-soft); }
-.cpf-intro .hint { margin: 0; color: #0b57b3; }
+.cpf-intro .hint { margin: 0; color: #a8450c; }
 .cpf-intro a { color: inherit; font-weight: 600; }
 
 /* ---------- ป้าย ---------- */
@@ -21,8 +21,8 @@
 .cpf-fc i { font-style: normal; font-size: 12.5px; font-weight: 600; min-width: 24px; padding: 0 7px; border-radius: 99px; background: var(--surface-3); color: var(--muted); text-align: center; line-height: 22px; }
 .cpf-fc:hover { border-color: #b9c6e0; }
 .cpf-fc:focus-visible { outline: none; box-shadow: var(--ah-ring); }
-.cpf-fc[aria-pressed=true] { background: var(--blue-soft); border-color: rgba(0, 113, 227, .55); color: #0b57b3; }
-.cpf-fc[aria-pressed=true] i { background: #fff; color: #0b57b3; }
+.cpf-fc[aria-pressed=true] { background: var(--blue-soft); border-color: rgba(242, 107, 29, .55); color: #a8450c; }
+.cpf-fc[aria-pressed=true] i { background: #fff; color: #a8450c; }
 .cpf-tools > .hint { margin: 0; }
 #cpf-create { margin-top: 12px; }
 #cpf-create:empty { display: none; }
@@ -35,7 +35,7 @@
 .cpf-list .empty { margin: 24px 0; text-align: center; }
 .cpf-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 8px 20px; align-items: start; padding: 18px 20px; background: #fff; border: 1px solid var(--ah-edge); border-radius: 14px; box-shadow: var(--ah-lift); transition: border-color .15s, box-shadow .15s; }
 .cpf-row:hover { border-color: #b9c6e0; }
-.cpf-row.on { border-color: rgba(0, 113, 227, .55); box-shadow: 0 0 0 3px rgba(0, 113, 227, .1); }
+.cpf-row.on { border-color: rgba(242, 107, 29, .55); box-shadow: 0 0 0 3px rgba(242, 107, 29, .1); }
 .cpf-no { padding-top: 2px; font-size: 15px; font-weight: 700; color: #9aa0ab; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 .cpf-main { min-width: 0; }
 .cpf-main h3 { margin: 0; font-size: inherit; font-weight: inherit; }
@@ -45,7 +45,7 @@
 .cpf-row.is-off .cpf-title, .cpf-row.is-off .cpf-sub { color: #6b7280; }
 .cpf-sub { margin: 4px 0 0; font-size: 14.5px; line-height: 1.6; color: #4b5563; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .cpf-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 10px 0 0; font-size: 13px; color: var(--muted); }
-.cpf-cat { display: inline-flex; align-items: center; min-height: 22px; padding: 0 10px; border-radius: 99px; background: var(--blue-soft); color: #0b57b3; font-weight: 600; }
+.cpf-cat { display: inline-flex; align-items: center; min-height: 22px; padding: 0 10px; border-radius: 99px; background: var(--blue-soft); color: #a8450c; font-weight: 600; }
 .cpf-tag { display: inline-flex; align-items: center; min-height: 22px; padding: 0 9px; border-radius: 99px; border: 1px solid var(--ah-edge-2); color: #4b5563; }
 .cpf-dot { display: inline-flex; align-items: center; gap: 5px; }
 .cpf-dot .ico { color: #9aa0ab; }
@@ -130,12 +130,12 @@ details[open] > summary > .cpf-d-c { transform: rotate(180deg); }
 .cpf-pv-card.feat { box-shadow: 0 0 0 2px #ffb020 inset; }
 .cpf-pv-img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; background: #e5e5ea; }
 .cpf-pv-top { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.cpf-pv-cat { font-size: 12.5px; font-weight: 600; color: #fff; background: #0071e3; padding: 2px 11px; border-radius: 99px; }
+.cpf-pv-cat { font-size: 12.5px; font-weight: 600; color: #fff; background: #f26b1d; padding: 2px 11px; border-radius: 99px; }
 .cpf-pv-feat { font-size: 12.5px; font-weight: 600; color: #8a5a00; background: #fff4d6; padding: 2px 10px; border-radius: 99px; }
 .cpf-pv-card h3 { margin: 0; font-size: 19px; line-height: 1.35; letter-spacing: -.01em; overflow-wrap: anywhere; }
 .cpf-pv-card p { margin: 0; color: #636366; font-size: 14.5px; line-height: 1.55; overflow-wrap: anywhere; }
 .cpf-pv-out { color: #1d1d1f !important; }
-.cpf-pv-out b { color: #0b57b3; margin-right: 4px; font-weight: 600; }
+.cpf-pv-out b { color: #a8450c; margin-right: 4px; font-weight: 600; }
 .cpf-pv-meta { font-size: 13px; color: #8e8e93; }
 .cpf-pv-anon { display: inline-flex; align-items: center; gap: 5px; align-self: flex-start; font-size: 12px; color: #636366; padding: 2px 9px; border-radius: 99px; box-shadow: 0 0 0 1px #d2d2d7 inset; }
 

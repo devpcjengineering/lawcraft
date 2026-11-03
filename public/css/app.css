@@ -3,7 +3,7 @@
    หลัก: พื้นหลังต่างระดับแทนเส้นขอบ · กริด 8px · หัวข้อสม่ำเสมอ · พับส่วนที่ไม่จำเป็น
    (toast / banner / popup แจ้งเตือน อยู่ใน notify.css)
    ============================================================ */
-:root { /* สีหลัก (ชื่อเดิมคงไว้เพราะไฟล์อื่นอ้างอิง) */ --navy: #1d1d1f; --navy-2: #0071e3; --gold: #0071e3; --gold-soft: #eaf3fe; --bg: #f5f5f7; --card: #ffffff; --ink: #1d2433; --muted: #5a6477; --line: #d5d7de; --ok: #1a7a49; --warn: #94560a; --err: #b42318; --info: #1d5fa8; --r: 12px; --shadow: none; /* ชั้นพื้นผิว */ --surface-2: #f7f7f9; --surface-3: #efeff3; --hair: #ececf0; --blue: #0071e3; --blue-soft: #eaf3fe; --ok-bg: #e6f4ec; --warn-bg: #fdf1dc; --err-bg: #fdeae7; --info-bg: #e8f1fb; --focus: 0 0 0 3px rgba(0, 113, 227, .22); --nav-w: 224px; }
+:root { /* สีหลัก (ชื่อเดิมคงไว้เพราะไฟล์อื่นอ้างอิง) */ --navy: #1d1d1f; --navy-2: #f26b1d; --gold: #f26b1d; --gold-soft: #fff1e8; --bg: #f5f5f7; --card: #ffffff; --ink: #1d2433; --muted: #5a6477; --line: #d5d7de; --ok: #1a7a49; --warn: #94560a; --err: #b42318; --info: #1d5fa8; --r: 12px; --shadow: none; /* ชั้นพื้นผิว */ --surface-2: #f7f7f9; --surface-3: #efeff3; --hair: #ececf0; --blue: #f26b1d; --blue-soft: #fff1e8; --ok-bg: #e6f4ec; --warn-bg: #fdf1dc; --err-bg: #fdeae7; --info-bg: #e8f1fb; --focus: 0 0 0 3px rgba(242, 107, 29, .22); --nav-w: 224px; }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 html { overflow-y: scroll; scrollbar-gutter: stable; }
@@ -197,7 +197,7 @@ em.own { font-style: normal; font-size: 12px; background: var(--blue-soft); colo
 .presets { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
 .presets .hint { margin-right: 4px; }
 .lay-reset { margin-left: auto; }
-.page.lay-flash { outline: 2px solid rgba(0, 113, 227, .35); outline-offset: -2px; transition: outline-color .3s; }
+.page.lay-flash { outline: 2px solid rgba(242, 107, 29, .35); outline-offset: -2px; transition: outline-color .3s; }
 @media (min-width: 900px) {
   /* ความกว้างเมนู/ตัวอย่างต้องเท่ากับทุกหน้า (var(--nav-w) · 40%) — ห้ามหด/ขยายเมื่อสลับหน้า; หน้านี้ต่างแค่ “เปิดแผงตัวอย่างเสมอ” บนจอแคบ */
   .work.live { grid-template-columns: var(--nav-w) minmax(0, 1fr) 40%; }
