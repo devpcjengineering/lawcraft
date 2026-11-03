@@ -1,5 +1,5 @@
 // ท้ายเว็บ (footer) ร่วมของทุกหน้าสาธารณะ — วางแค่ <footer id="siteFooter" class="foot"> แล้วโหลดโมดูลนี้
-// ข้อมูลสำนักงาน/ช่องทางติดต่อดึงจาก /site/config.js (ช่องทางติดต่อที่ไม่ได้ตั้งค่าจะไม่แสดง — ห้ามสมมติเบอร์/ไลน์/อีเมล)
+// ข้อมูลผู้ให้บริการ/ช่องทางติดต่อดึงจาก /site/config.js (ช่องทางติดต่อที่ไม่ได้ตั้งค่าจะไม่แสดง — ห้ามสมมติเบอร์/ไลน์/อีเมล)
 import { cachedSite, loadSite, defaultSite } from '/site/live-config.js';
 import { morphInto } from '/js/morph.js';
 
@@ -15,6 +15,7 @@ const QUICK = [
   ['/service-fee/', 'เช็กค่านำหมาย'],
   ['/precedents/', 'ฎีกา'],
   ['/articles/', 'บทความ'],
+  ['/portfolio/', 'ผลงานที่ผ่านมา'],
   ['/#drafting', 'ร่างคำฟ้อง'],
   ['/contact/', 'ติดต่อปรึกษา'],
 ];
@@ -31,28 +32,25 @@ const MARK = '<svg class="sf-mark" viewBox="0 0 48 48" fill="none" stroke="curre
 
 const nameOf = () => config.legalName || config.name;
 
+/** ข้อมูลผู้ให้บริการ: ที่อยู่/เลขทะเบียนแสดงเฉพาะเมื่อตั้งค่าไว้ (ค่าเริ่มต้นไม่แสดง) — ช่องทางติดต่อ/เวลาติดต่อจากหลังบ้าน */
 function firmBlock() {
-  const o = config.office;
+  const o = config.office && config.office.entity ? config.office : null;
   const contacts = (config.contacts || []).filter((c) => c && c.value);
-  const addr = o ? `<address class="sf-addr"><b>${esc(o.label)}</b><span>${esc(o.entity)}</span><span>${esc([o.street, o.district, o.province].filter(Boolean).join(' '))}</span>${o.regNo ? `<span>ทะเบียนนิติบุคคลเลขที่ ${esc(o.regNo)}</span>` : ''}</address>` : '';
+  const addr = o ? `<address class="sf-addr"><b>${esc(o.label || 'ผู้ดำเนินการเว็บไซต์')}</b><span>${esc(o.entity)}</span>${[o.street, o.district, o.province].filter(Boolean).length ? `<span>${esc([o.street, o.district, o.province].filter(Boolean).join(' '))}</span>` : ''}${o.regNo ? `<span>ทะเบียนนิติบุคคลเลขที่ ${esc(o.regNo)}</span>` : ''}</address>` : '';
   const list = contacts.length
     ? `<ul class="sf-contacts">${contacts.map((c) => `<li>${c.href ? `<a href="${esc(c.href)}"><span>${esc(c.label)}</span> ${esc(c.value)}</a>` : `<span>${esc(c.label)}</span> ${esc(c.value)}`}</li>`).join('')}</ul>`
     : '';
-  const hours = config.hours ? `<p class="sf-hours"><b>เวลาทำการ</b><br>${esc(config.hours).replace(/\n/g, '<br>')}</p>` : '';
+  const hours = config.hours ? `<p class="sf-hours"><b>เวลาติดต่อ</b><br>${esc(config.hours).replace(/\n/g, '<br>')}</p>` : '';
   return `${addr}${list}${hours}`;
 }
 
 function structuredData() {
-  const o = config.office;
-  if (!o) return;
   document.querySelector('script[data-sf-ld]')?.remove();
   const ld = document.createElement('script');
   ld.type = 'application/ld+json'; ld.dataset.sfLd = '1';
-  const data = {
-    '@context': 'https://schema.org', '@type': 'LegalService', name: nameOf(), alternateName: config.name,
-    legalName: o.entity, identifier: o.regNo,
-    address: { '@type': 'PostalAddress', streetAddress: o.street, addressLocality: o.district, addressRegion: o.province, addressCountry: 'TH' },
-  };
+  const o = config.office && config.office.entity ? config.office : null;
+  const data = { '@context': 'https://schema.org', '@type': 'LegalService', name: nameOf(), alternateName: config.name, url: location.origin + '/', areaServed: 'TH' };
+  if (o) { data.legalName = o.entity; if (o.regNo) data.identifier = o.regNo; if (o.street || o.district || o.province) data.address = { '@type': 'PostalAddress', streetAddress: o.street, addressLocality: o.district, addressRegion: o.province, addressCountry: 'TH' }; }
   const tel = (config.contacts || []).find((c) => /^tel:/.test(c.href || ''));
   if (tel) data.telephone = tel.href.slice(4);
   ld.textContent = JSON.stringify(data);
@@ -63,10 +61,10 @@ function footerHtml() {
   const name = nameOf();
   return `<div class="wrap">
     <div class="sf-grid">
-      <section class="sf-brand" aria-label="เกี่ยวกับสำนักงาน">
-        <a class="sf-logo" href="/" aria-label="${esc(name)}">${MARK}<span class="logo-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span></a>
+      <section class="sf-brand" aria-label="เกี่ยวกับ LawCraft">
+        <a class="sf-logo" href="/" aria-label="${esc(name)}">${MARK}<span class="logo-text"><span class="lt-th">LawCraft</span><span class="lt-en">by PKT</span></span></a>
         <p class="sf-desc">${esc(config.footerDesc || DEFAULT_DESC)}</p>
-        <a class="btn-pill primary sm sf-cta" href="/contact/">ติดต่อปรึกษากฎหมาย</a>
+        <a class="btn-pill primary sm sf-cta" href="/contact/">ปรึกษาทีมทนายฟรี</a>
       </section>
       <nav class="sf-col" aria-label="ลิงก์ด่วน">
         <h2 class="sf-h">ลิงก์ด่วน</h2>
@@ -76,20 +74,20 @@ function footerHtml() {
         <h2 class="sf-h">คดีออนไลน์</h2>
         <ul>${TOPICS.map(([s, t]) => `<li><a href="/articles/?a=${s}">${esc(t)}</a></li>`).join('')}</ul>
       </nav>
-      <section class="sf-col sf-firm" aria-label="ข้อมูลสำนักงาน">
-        <h2 class="sf-h">ข้อมูลสำนักงาน</h2>
+      ${firmBlock() ? `<section class="sf-col sf-firm" aria-label="ข้อมูลผู้ให้บริการ">
+        <h2 class="sf-h">ติดต่อเรา</h2>
         ${firmBlock()}
-      </section>
+      </section>` : ''}
     </div>
     <div class="sf-bottom">
-      <p class="sf-copy">© ${new Date().getFullYear()} Law Craft Legal Consultants</p>
+      <p class="sf-copy">© ${new Date().getFullYear()} ${esc(name)} — ลอว์คราฟต์ โดยสำนักงานกฎหมาย PKT</p>
       <p class="sf-legal">ข้อมูลในเว็บไซต์นี้เป็นข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมาย และอาจไม่ทันต่อการแก้ไขกฎหมายล่าสุด ควรตรวจสอบตัวบทฉบับปัจจุบันและปรึกษาทนายความก่อนดำเนินคดี แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม สำนักงานศาลยุติธรรม</p>
       <p class="sf-links"><a href="/privacy/">นโยบายความเป็นส่วนตัว</a><a href="/workspace/" class="sf-admin">เข้าสู่ระบบร่างคำฟ้อง</a></p>
     </div>
   </div>`;
 }
 
-const DEFAULT_DESC = 'ฐานความรู้กฎหมายไทย เครื่องมือค้นหามาตรา ตรวจเขตอำนาจศาล และบริการร่างคำฟ้องตามแบบพิมพ์ศาลยุติธรรม สำหรับผู้เสียหายและผู้ที่ต้องการเข้าใจทางเลือกของตนเอง พร้อมรับฟ้องคดี ทั้งคดีอาญาที่ราษฎรเป็นโจทก์ คดีแพ่ง และคดีออนไลน์ ตั้งแต่ปรึกษาเบื้องต้น ตรวจเขตอำนาจศาล ไปจนถึงจัดเตรียมคำฟ้องและเอกสารยื่นศาล';
+const DEFAULT_DESC = 'สำนักงานกฎหมาย LawCraft by PKT — เพราะทุกปัญหามีทางออก และทุกทางออกเราออกแบบให้รัดกุมที่สุด ให้คำปรึกษากฎหมายฟรี ฟ้องคดี รับว่าความ ทั้งคดีอาญา คดีแพ่ง และคดีออนไลน์ ตั้งแต่ประเมินความเสี่ยง วางกลยุทธ์ ร่างคำฟ้องและเอกสารยื่นศาลตามแบบพิมพ์ศาลยุติธรรม ไปจนถึงติดตามคดีจนถึงคำพิพากษา พร้อมฐานความรู้กฎหมายไทยให้ค้นมาตรา เขตอำนาจศาล และฎีกาได้เอง';
 
 /** ประกาศบนหัวเว็บ (ตั้งจากหลังบ้าน: เช่น วันหยุด/แจ้งข่าว) ปิดได้และจำไว้ในแท็บนี้ */
 function announce() {

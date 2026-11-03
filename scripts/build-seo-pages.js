@@ -12,7 +12,7 @@ import { esc, one, plain, trunc, fit, loadChrome, makeTemplate } from './seo-tem
 import { JURISDICTION_RULES as RULES } from '../public/site/jurisdiction-rules.js';
 import { applyProcedureEdits } from '../shared/procedure-merge.js';
 
-const BRAND = ' | Law Craft';
+const BRAND = ' | LawCraft by PKT';
 const MIN_MAIN_TEXT = 300; // หน้าที่ข้อความหลักสั้นกว่านี้ถือว่าบาง → ไม่เผยแพร่
 const MIN_DATA = { item: 120, proc: 90 }; // ข้อความจากข้อมูลจริงขั้นต่ำ (ไม่นับข้อความแม่แบบ)
 const DISCLAIMER = 'ข้อมูลเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมาย และไม่รับประกันผลของคดี กฎหมายอาจถูกแก้ไขภายหลัง ควรตรวจกับตัวบทฉบับปัจจุบันและปรึกษาทนายความก่อนดำเนินคดี';
@@ -703,12 +703,12 @@ function injectHome({ dist, site, items, provs, lawIds, lawSlug, lawClean, lawSh
       <p class="actions" style="justify-content:flex-start"><a class="link-arrow" href="/jurisdiction/">เขตอำนาจศาลทุกจังหวัด</a><a class="link-arrow" href="/laws/">ข้อกฎหมายทั้งหมด</a><a class="link-arrow" href="/procedure/">ขั้นตอนฟ้องคดี</a><a class="link-arrow" href="/precedents/">ฎีกาทั้งหมด</a></p>
     </div>
   </section>`;
-  const title = 'Law Craft · สำนักงานกฎหมาย ลอว์คราฟต์ Law Craft Legal Consultants';
-  const desc = 'ฐานความรู้กฎหมายไทย ประมวลกฎหมาย เขตอำนาจศาล ขั้นตอนฟ้องคดี และบริการร่างคำฟ้องตามแบบพิมพ์ศาลยุติธรรม';
+  const title = 'LawCraft by PKT · เพราะทุกปัญหามีทางออก ปรึกษาฟรี';
+  const desc = 'สำนักงานกฎหมาย LawCraft by PKT ให้คำปรึกษากฎหมายฟรี ฟ้องคดี รับว่าความ คดีอาญา คดีแพ่ง และคดีออนไลน์ พร้อมฐานความรู้กฎหมายไทย ประมวลกฎหมาย เขตอำนาจศาล ขั้นตอนฟ้องคดี ฎีกา และระบบร่างคำฟ้องตามแบบพิมพ์ศาลยุติธรรม';
   const head = `<link rel="canonical" href="${site}/">
 <meta name="robots" content="index,follow">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Law Craft Legal Consultants">
+<meta property="og:site_name" content="LawCraft by PKT">
 <meta property="og:locale" content="th_TH">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(desc)}">
@@ -716,12 +716,12 @@ function injectHome({ dist, site, items, provs, lawIds, lawSlug, lawClean, lawSh
 <meta property="og:image" content="${site}/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="สำนักงานกฎหมาย ลอว์คราฟต์ — ให้คำปรึกษากฎหมาย ฟ้องคดี รับว่าความ">
+<meta property="og:image:alt" content="LawCraft by PKT — สำนักงานกฎหมาย ให้คำปรึกษากฎหมายฟรี ฟ้องคดี รับว่าความ">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${site}/og-image.png">
-<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebSite', name: 'Law Craft Legal Consultants', alternateName: 'สำนักงานกฎหมาย ลอว์คราฟต์', url: `${site}/`, inLanguage: 'th-TH' })}</script>`;
+<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebSite', name: 'LawCraft by PKT', alternateName: 'LawCraft', url: `${site}/`, inLanguage: 'th-TH' })}</script>`;
   const had = html.includes('<!--SEO-DIRECTORY-->') && html.includes('<!--SEO-HEAD-->');
   if (!had) console.warn('seo: public/index.html ไม่มีจุดแทรก <!--SEO-HEAD--> / <!--SEO-DIRECTORY-->');
   html = html.replace('<!--SEO-HEAD-->', () => head).replace('<!--SEO-DIRECTORY-->', () => directory);

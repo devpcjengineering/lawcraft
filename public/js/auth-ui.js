@@ -95,7 +95,7 @@ export async function showLogin(msg = '', { reset = false } = {}) {
     <div class="conn-row">${connHtml()}</div></div>
     <button type="button" class="g-btn" data-act="googleLogin">${G_SVG}เข้าสู่ระบบด้วย Google</button>
     <div class="login-err" role="alert">${esc(msg)}</div>
-    <div class="login-note">${icon('shield')}<p><b>ต้องเข้าสู่ระบบก่อนใช้งาน</b> ข้อมูลคดีถือเป็นข้อมูลส่วนบุคคลบริษัทจะไม่เปิดเผยทุกกรณี </p></div>
+    <div class="login-note">${icon('shield')}<p><b>ต้องเข้าสู่ระบบก่อนใช้งาน</b> ข้อมูลคดีถือเป็นข้อมูลส่วนบุคคล ผู้ให้บริการจะไม่เปิดเผยทุกกรณี</p></div>
     <a class="login-back" href="/">${icon('arrowLeft')}กลับเว็บไซต์</a></form></div>`; app.querySelector('#loginForm').addEventListener('submit', (e) => e.preventDefault());
 }
 

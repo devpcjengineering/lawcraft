@@ -36,7 +36,7 @@ const seo = await (await import('./build-seo-pages.js')).buildSeoPages({ root, d
   const { packArticles } = await import('../server/articles-pack.js');
   const today = new Date().toISOString().slice(0, 10);
   const urls = [
-    ['/', today, 'weekly', '1.0'], ['/articles/', today, 'weekly', '0.8'], ['/contact/', today, 'monthly', '0.6'], ['/privacy/', today, 'yearly', '0.3'], ['/service-fee/', today, 'monthly', '0.7'],
+    ['/', today, 'weekly', '1.0'], ['/articles/', today, 'weekly', '0.8'], ['/portfolio/', today, 'weekly', '0.7'], ['/contact/', today, 'monthly', '0.6'], ['/privacy/', today, 'yearly', '0.3'], ['/service-fee/', today, 'monthly', '0.7'],
     ...packArticles().index.map((a) => [`/articles/?a=${encodeURIComponent(a.slug)}`, /^\d{4}-\d{2}-\d{2}$/.test(a.updated || '') ? a.updated : today, 'monthly', '0.7']),
     ...seo.urls.map((u) => [u.path, u.lastmod, 'monthly', u.priority]),
   ];
@@ -53,7 +53,7 @@ const minifyCss = await (async () => { try { const { minify } = await import('cs
 // เร่งความเร็วหน้าสาธารณะ: รวมไฟล์ CSS หลายไฟล์ที่ <head> เป็นไฟล์เดียวต่อหน้า (ลดคำขอที่บล็อกการแสดงผล)
 {
   const crypto = await import('node:crypto');
-  for (const page of ['index.html', 'articles/index.html', 'contact/index.html', 'privacy/index.html', 'service-fee/index.html']) {
+  for (const page of ['index.html', 'articles/index.html', 'portfolio/index.html', 'contact/index.html', 'privacy/index.html', 'service-fee/index.html']) {
     const hp = path.join(dist, page);
     let html = fs.readFileSync(hp, 'utf8');
     const re = /<link rel="stylesheet" href="(\/[^"?#]+\.css)">\r?\n?/g;
@@ -76,15 +76,16 @@ const minifyCss = await (async () => { try { const { minify } = await import('cs
   const { packArticles } = await import('../server/articles-pack.js');
   const arts = packArticles().index;
   const one = (t) => String(t || '').replace(/\s+/g, ' ').trim();
-  const llms = `# Law Craft Legal Consultants (สำนักงานกฎหมาย ลอว์คราฟต์)
+  const llms = `# LawCraft by PKT
 
-> เว็บไซต์ภาษาไทยให้ความรู้กฎหมายไทยสำหรับผู้เสียหายและประชาชน (คดีออนไลน์ ซื้อขายออนไลน์ ฉ้อโกง หมิ่นประมาท ข่มขู่ ภาพส่วนตัว) พร้อมเครื่องมือร่างคำฟ้อง คำร้อง และเอกสารยื่นศาลตามแบบพิมพ์ของศาลยุติธรรม เนื้อหาเป็นข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมายหรือการรับประกันผลของคดี ควรตรวจสอบกับแหล่งทางการและนักกฎหมายก่อนยื่นต่อศาล
+> สำนักงานกฎหมาย LawCraft by PKT ให้คำปรึกษากฎหมายฟรี ฟ้องคดี รับว่าความ คดีอาญา คดีแพ่ง และคดีออนไลน์ (ซื้อขายออนไลน์ ฉ้อโกง หมิ่นประมาท ข่มขู่ ภาพส่วนตัว) ร่างคำฟ้องและเอกสารยื่นศาล พร้อมฐานความรู้กฎหมายไทยสำหรับผู้เสียหายและประชาชน และระบบร่างคำฟ้อง คำร้อง และเอกสารยื่นศาลตามแบบพิมพ์ของศาลยุติธรรม เนื้อหาความรู้เป็นข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมายหรือการรับประกันผลของคดี ควรตรวจสอบกับแหล่งทางการและนักกฎหมายก่อนยื่นต่อศาล
 
 ## หน้าหลัก
 
 - [หน้าแรก](${SITE}/): ค้นหามาตราและข้อกฎหมาย ตรวจเขตอำนาจศาล ขั้นตอนฟ้องคดี และทางเข้าระบบร่างคำฟ้อง
 - [บทความกฎหมายคดีออนไลน์](${SITE}/articles/): รวมบทความอธิบายสิทธิ ขั้นตอน และการเก็บหลักฐาน
-- [ติดต่อปรึกษากฎหมาย](${SITE}/contact/): ส่งเรื่องให้เจ้าหน้าที่ตรวจสอบเบื้องต้น
+- [ผลงานที่ผ่านมา](${SITE}/portfolio/): ตัวอย่างคดีและงานที่ปรึกษาที่ผ่านมา (ปกปิดข้อมูลผู้รับบริการ เผยแพร่โดยได้รับความยินยอม ไม่ใช่การรับประกันผลคดี)
+- [ติดต่อปรึกษากฎหมาย](${SITE}/contact/): เล่าเหตุการณ์ให้ทีมทนายประเมินเบื้องต้นฟรี ฟ้องคดี รับว่าความ
 - [นโยบายความเป็นส่วนตัว](${SITE}/privacy/): ข้อมูลที่เก็บ วัตถุประสงค์ และสิทธิของเจ้าของข้อมูลตาม PDPA
 
 ## ข้อมูลกฎหมาย (หน้า HTML แยกรายการ)
@@ -108,7 +109,7 @@ ${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/?a=${encodeURIComponent(
   {
     const all = packArticles().articles;
     const md = [];
-    md.push(`# Law Craft Legal Consultants — เนื้อหาบทความฉบับเต็ม\n\n> ข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมาย บทความทุกบทเป็นฉบับร่างหรือผ่านการตรวจตามสถานะที่ระบุ ควรตรวจกับแหล่งทางการและนักกฎหมายก่อนนำไปใช้ · ภาพรวมเว็บ: ${SITE}/llms.txt\n`);
+    md.push(`# LawCraft by PKT — เนื้อหาบทความฉบับเต็ม\n\n> ข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมาย บทความทุกบทเป็นฉบับร่างหรือผ่านการตรวจตามสถานะที่ระบุ ควรตรวจกับแหล่งทางการและนักกฎหมายก่อนนำไปใช้ · ภาพรวมเว็บ: ${SITE}/llms.txt\n`);
     for (const a of Object.values(all)) {
       md.push(`\n---\n\n# ${one(a.title)}\n\nURL: ${SITE}/articles/?a=${encodeURIComponent(a.slug)}\nหมวด: ${one(a.category)} · ปรับปรุง: ${one(a.updated)} · สถานะการตรวจ: ${one(a.reviewStatus || 'ร่าง')}\n`);
       if (a.subtitle) md.push(`\n> ${one(a.subtitle)}\n`);
@@ -139,8 +140,8 @@ ${arts.map((a) => `- [${one(a.title)}](${SITE}/articles/?a=${encodeURIComponent(
   const SKILLS = [
     {
       name: 'law-craft-site-overview',
-      displayName: 'Law Craft — ภาพรวมเว็บไซต์และรายการบทความ',
-      description: 'ใช้เมื่อต้องการภาพรวมของเว็บ Law Craft (ความรู้กฎหมายไทยสำหรับประชาชนและระบบร่างคำฟ้อง) และรายการหน้า/บทความทั้งหมดก่อนเจาะลึก',
+      displayName: 'LawCraft by PKT — ภาพรวมเว็บไซต์และรายการบทความ',
+      description: 'ใช้เมื่อต้องการภาพรวมของเว็บ LawCraft by PKT (สำนักงานกฎหมาย ให้คำปรึกษากฎหมายฟรี ฟ้องคดี รับว่าความ คดีอาญา คดีแพ่ง คดีออนไลน์ พร้อมฐานความรู้กฎหมายไทยสำหรับประชาชนและระบบร่างคำฟ้อง) และรายการหน้า/บทความทั้งหมดก่อนเจาะลึก',
       queries: ['ฟ้องหมิ่นประมาทออนไลน์ทำอย่างไร', 'ถูกโกงซื้อของออนไลน์ ฟ้องคดีอาญาเองได้ไหม', 'เก็บหลักฐานดิจิทัลสำหรับคดีออนไลน์'],
       body: `## วิธีใช้
 1. อ่าน ${SITE}/llms.txt (Markdown) — ภาพรวมเว็บ รายการหน้าหลัก ข้อมูลกฎหมาย และบทความทุกบทพร้อมลิงก์
@@ -157,7 +158,7 @@ ${CAVEAT}`,
     },
     {
       name: 'law-craft-legal-data',
-      displayName: 'Law Craft — ข้อกฎหมาย เขตอำนาจศาล ขั้นตอนฟ้องคดี และฎีกา',
+      displayName: 'LawCraft by PKT — ข้อกฎหมาย เขตอำนาจศาล ขั้นตอนฟ้องคดี และฎีกา',
       description: `ค้นตัวบท ระวางโทษ อายุความของ ${seo.counts.items} มาตรา/ข้อหา (ป.อ. ป.พ.พ. กฎหมายพิเศษ) ศาลที่มีเขตอำนาจรายอำเภอ/เขตทั้ง ${seo.counts.provinces} จังหวัด ขั้นตอนฟ้องคดีอาญาโดยราษฎร และคลังคำพิพากษาศาลฎีกา`,
       queries: ['หมิ่นประมาท มาตรา 326 โทษและอายุความ', 'ฟ้องคดีที่จังหวัดชัยภูมิต้องฟ้องศาลไหน', 'ขั้นตอนฟ้องคดีอาญาโดยราษฎร', 'ฎีกาเกี่ยวกับฉ้อโกงออนไลน์'],
       body: `## รูปแบบ URL (หน้า HTML สถิต อ่านได้โดยไม่ต้องล็อกอิน)
@@ -179,7 +180,7 @@ ${CAVEAT}`,
     },
     {
       name: 'law-craft-service-fee',
-      displayName: 'Law Craft — เช็กอัตราค่านำหมายของศาลทั่วประเทศ',
+      displayName: 'LawCraft by PKT — เช็กอัตราค่านำหมายของศาลทั่วประเทศ',
       description: 'ตรวจอัตราค่านำหมาย (ค่าส่งหมายศาล) ของศาลทั่วประเทศรายจังหวัด อำเภอ/เขต ตำบล/แขวง และหมู่ ตามตารางของสำนักงานศาลยุติธรรม รวมทางเลือกไปรษณีย์ตอบรับด่วนพิเศษ (80 บาท) และส่งเอง (ไม่มีค่าใช้จ่าย)',
       queries: ['ค่านำหมายศาลจังหวัดเชียงรายเท่าไร', 'ส่งหมายข้ามเขตคิดค่านำหมายอย่างไร', 'ค่านำหมายตำบลรอบเวียง อำเภอเมืองเชียงราย'],
       body: `## วิธีใช้
@@ -206,8 +207,8 @@ ${sb.url && sb.anonKey ? `- API อ่านอย่างเดียว (Supa
     },
     {
       name: 'law-craft-articles',
-      displayName: 'Law Craft — เนื้อหาบทความฉบับเต็ม (Markdown)',
-      description: 'อ่านบทความกฎหมายคดีออนไลน์ของ Law Craft ฉบับเต็มทุกบทในไฟล์เดียว (ซื้อขายออนไลน์ ฉ้อโกง หมิ่นประมาท ข่มขู่ ภาพส่วนตัว การเก็บหลักฐาน ขั้นตอนฟ้องเอง) อนุญาตให้ดึงข้อมูล อ้างอิง และนำไปฝึกได้',
+      displayName: 'LawCraft by PKT — เนื้อหาบทความฉบับเต็ม (Markdown)',
+      description: 'อ่านบทความกฎหมายคดีออนไลน์ของสำนักงานกฎหมาย LawCraft by PKT ฉบับเต็มทุกบทในไฟล์เดียว (ซื้อขายออนไลน์ ฉ้อโกง หมิ่นประมาท ข่มขู่ ภาพส่วนตัว การเก็บหลักฐาน ขั้นตอนฟ้องเอง) อนุญาตให้ดึงข้อมูล อ้างอิง และนำไปฝึกได้',
       queries: ['บทความเรื่องฟ้องหมิ่นประมาทออนไลน์', 'วิธีเก็บหลักฐานแชตเพื่อฟ้องคดี', 'ถูกข่มขู่ทางออนไลน์ทำอย่างไร'],
       body: `## วิธีใช้
 1. ดึง ${SITE}/llms-full.txt (Markdown ไฟล์เดียว ${arts.length} บทความ) — แต่ละบทความขึ้นต้นด้วยหัวข้อระดับ 1 ตามด้วยบรรทัด URL: และสถานะการตรวจ
@@ -228,7 +229,7 @@ ${CAVEAT}`,
   }
   const catalog = {
     specVersion: '1.0',
-    host: { displayName: 'Law Craft Legal Consultants', identifier: `did:web:${host}` },
+    host: { displayName: 'LawCraft by PKT', identifier: `did:web:${host}` },
     entries: SKILLS.map((sk) => ({
       identifier: `urn:air:${host}:skills:${sk.name}`,
       displayName: sk.displayName,

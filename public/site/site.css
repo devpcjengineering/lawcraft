@@ -297,9 +297,10 @@ dialog article { position: relative; background: var(--card); width: min(680px, 
 
 .nav-in { height: auto; min-height: 48px; padding-top: 4px; padding-bottom: 4px; }
 
+/* ล็อกอัปโลโก้ 2 บรรทัด: บรรทัดแรก "Lawcraft" (semibold) · บรรทัดสอง "by ทนายเพ็ชไพศาณ" (สีจาง) */
 .logo-text { font-weight: 500; letter-spacing: -.01em; display: flex; flex-direction: column; line-height: 1.15; }
-.logo-text .lt-th { font-size: 14px; font-weight: 600; white-space: nowrap; }
-.logo-text .lt-en { font-size: 10.5px; font-weight: 400; letter-spacing: .03em; color: var(--ink-2); white-space: nowrap; }
+.logo-text .lt-th { font-size: 16px; font-weight: 600; letter-spacing: -.015em; line-height: 1.1; white-space: nowrap; }
+.logo-text .lt-en { font-size: 12px; font-weight: 400; letter-spacing: 0; line-height: 1.3; color: var(--ink-2); white-space: nowrap; }
 .logo-text b { font-weight: 700; background: linear-gradient(92deg, #0071e3, #8e5af7 60%, #e0428b); -webkit-background-clip: text; background-clip: text; color: transparent; margin-left: 1px; }
 .logo { gap: 9px; }
 
@@ -320,7 +321,7 @@ select, input { transition: box-shadow .2s, background-color .2s; }
 .court-out > * { animation: sf-pop .45s var(--ease) both; }
 @media (prefers-reduced-motion: reduce) { .cards .card.pop, .cards .card.skel, #results[aria-busy=false], #steps, #steps li, .rules, .court-out, .court-out > * { animation: none; } }
 
-/* โลโก้/ชื่อสำนักงาน: ขาว-ดำตามโหมด คนละบรรทัด (ไทย / อังกฤษ) */
+/* โลโก้/ชื่อแบรนด์: ขาว-ดำตามโหมด คนละบรรทัด (Lawcraft / by ทนายเพ็ชไพศาณ) */
 .logo-text .lt-th, .sf-logo .lt-th { color: var(--ink); }
 .logo-text .lt-en, .sf-logo .lt-en { color: var(--ink-2); }
 .sf-logo { color: var(--ink); }
@@ -349,8 +350,8 @@ a, button, select, input, textarea, label, summary { touch-action: manipulation;
   .nav-in { min-height: 56px; gap: 6px; padding: 4px max(var(--gut), env(safe-area-inset-right)) 4px max(var(--gut), env(safe-area-inset-left)); }
   .logo { min-width: 0; min-height: 44px; gap: 8px; flex: 0 1 auto; }
   .logo-mark { --logo-h: 24px; flex: none; }
-  .logo-text .lt-th { font-size: 14px; }
-  .logo-text .lt-en { font-size: 11px; }
+  .logo-text .lt-th { font-size: 16px; }
+  .logo-text .lt-en { font-size: 12px; }
   .nav-cta { position: relative; margin-left: auto; flex: none; font-size: 13px; padding: 5px 14px; line-height: 1.5; }
   .nav-cta::before { content: ''; position: absolute; inset: -8px -3px; } /* ขยายพื้นที่กดเป็น 44px โดยไม่เปลี่ยนหน้าตา */
   .nav-burger { width: 44px; height: 44px; margin-right: -10px; flex: none; }
@@ -454,7 +455,8 @@ a, button, select, input, textarea, label, summary { touch-action: manipulation;
 }
 @keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
 @media (max-width: 400px) {
-  .logo-text .lt-th { font-size: 13.5px; }
+  .logo-text .lt-th { font-size: 15px; }
+  .logo-text .lt-en { font-size: 11.5px; }
   .nav-cta { padding: 5px 11px; }
   .stat b { font-size: 30px; }
 }
@@ -494,7 +496,7 @@ a, button, select, input, textarea, label, summary { touch-action: manipulation;
 @media (min-width: 761px) and (max-width: 940px) {
   .nav-in { gap: 14px; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
   .nav-links { gap: 14px; }
-  .logo-text .lt-th { font-size: 13.5px; }
+  .logo-text .lt-th { font-size: 15px; }
   .logo { gap: 7px; }
 }
 /* 761–840px: 7 เมนู + ปุ่มเข้าสู่ระบบ ยังล้นขอบ → ลดช่องไฟ/ขนาดตัวอักษรอีกขั้น (ไม่ซ่อนเมนู ไม่ตัดบรรทัด) */
@@ -503,12 +505,13 @@ a, button, select, input, textarea, label, summary { touch-action: manipulation;
   .nav-links { gap: 9px; }
   .nav-links a { font-size: 12.5px; }
   .nav-cta { padding-left: 11px; padding-right: 11px; }
-  .logo-text .lt-th { font-size: 13px; }
+  .logo-text .lt-th { font-size: 14.5px; }
+  .logo-text .lt-en { font-size: 11.5px; }
 }
 
 /* ตราชั่งหัวหน้า: พ้นจอแล้วหยุดโยก (site.js สลับคลาส .off) */
 .scales-wrap.off .scales.play .beam, .scales-wrap.off .scales.play .pan, .scales-wrap.off .scales.play .dish { animation-play-state: paused; }
-/* ประกาศบนหัวเว็บ (แอดมินตั้งจากหลังบ้าน) และเวลาทำการท้ายเว็บ */
+/* ประกาศบนหัวเว็บ (แอดมินตั้งจากหลังบ้าน) และเวลาติดต่อท้ายเว็บ */
 .announce { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 8px 16px; background: var(--ink); color: var(--bg); font-size: 14px; line-height: 1.5; text-align: center; }
 .announce p { margin: 0; }
 .announce a { color: inherit; text-decoration: underline; font-weight: 600; }

@@ -383,7 +383,7 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
   .wit-panel > h3 > .chk { flex: 1 1 100%; }
   .main .wit-panel .rows .r-act { justify-self: stretch; }
   .wit-panel .rows .r-act .btn { width: 100%; min-height: 44px; }
-  /* แถบบนของคดี: ปุ่มเมนูเพิ่มมา 1 ปุ่ม → ชื่อสำนักงานย่อด้วย … แทนการล้นไปทับปุ่มด้านขวา */
+  /* แถบบนของคดี: ปุ่มเมนูเพิ่มมา 1 ปุ่ม → ชื่อแบรนด์ย่อด้วย … แทนการล้นไปทับปุ่มด้านขวา */
   .topbar:has(.nav-toggle) .brand { overflow: hidden; margin-left: 0; padding-left: 4px; }
   .topbar:has(.nav-toggle) .brand-text { min-width: 0; overflow: hidden; }
   .topbar:has(.nav-toggle) .brand-text > span { overflow: hidden; text-overflow: ellipsis; }
@@ -394,14 +394,14 @@ details.prec { margin-top: 20px; background: var(--surface-2); border-radius: 12
 .f.wit-deliver > .seg label { width: 100%; min-width: 0; padding: 0 4px; text-align: center; white-space: normal; }
 @media (max-width: 760px) { .f.wit-deliver > .seg label { font-size: 14px; } }
 
-/* มือถือ: แถบบนของคดี (มีปุ่มเมนู 4 ขีด) — ลดขนาดตัวอักษรชื่อสำนักงานให้เห็นฉบับเต็ม ไม่ตัดด้วย … */
+/* มือถือ: แถบบนของคดี (มีปุ่มเมนู 4 ขีด) — ลดขนาดตัวอักษรชื่อแบรนด์ให้เห็นฉบับเต็ม ไม่ตัดด้วย … */
 @media (max-width: 760px) {
   .topbar:has(.nav-toggle) { gap: 2px; padding-inline: max(8px, env(safe-area-inset-left, 0px)) max(8px, env(safe-area-inset-right, 0px)); }
   .topbar:has(.nav-toggle) .brand { gap: 5px; padding-left: 2px; overflow: visible; --brand-h: 22px; }
   .topbar:has(.nav-toggle) .brand-text { overflow: visible; min-width: max-content; }
   .topbar:has(.nav-toggle) .brand-text > span { overflow: visible; text-overflow: clip; }
-  .topbar:has(.nav-toggle) .brand-text .lt-th { font-size: clamp(10px, 3.05vw, 12px); letter-spacing: -.02em; }
-  .topbar:has(.nav-toggle) .brand-text .lt-en { font-size: clamp(8.5px, 2.5vw, 10px); letter-spacing: 0; }
+  .topbar:has(.nav-toggle) .brand-text .lt-th { font-size: clamp(12px, 3.6vw, 14.5px); letter-spacing: -.015em; }
+  .topbar:has(.nav-toggle) .brand-text .lt-en { font-size: clamp(10px, 2.9vw, 11.5px); letter-spacing: 0; }
   .topbar:has(.nav-toggle) .grow { flex: 1 1 0; min-width: 0; } /* ดันกลุ่มปุ่มขวา (สถานะ/ตัวอย่าง/คดีทั้งหมด) ชิดขอบขวาตามความกว้างจอ */
   .topbar:has(.nav-toggle) > .btn, .topbar:has(.nav-toggle) > .btn:has(> .tb-i), .topbar:has(.nav-toggle) .ready-chip { min-width: 40px; padding: 0 8px; }
 }

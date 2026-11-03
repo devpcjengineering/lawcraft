@@ -2,6 +2,7 @@
 // ไม่มี AIVEN_READER_URL = ข้ามส่วนที่ต้องใช้ฐาน (เหลือทดสอบ buildFilter ที่ไม่ใช้เครือข่าย)
 import assert from 'node:assert/strict';
 import { loadEnv } from '../scripts/load-env.mjs';
+import { getPool } from '../api/_aiven.js';
 loadEnv();
 const { default: handler, buildFilter } = await import('../api/precedents.js');
 
@@ -12,7 +13,7 @@ f = buildFilter({ q: 'ฎีกาที่ ๑๐๐๒๙/๒๕๖๐' });
 assert.ok(f.where.includes('case_no =') && f.params.includes('10029') && f.params.includes(2560) && !f.tsq, 'เลขฎีกา/ปี (เลขไทยได้) ค้นตรงเลข ไม่ผ่าน FTS');
 f = buildFilter({ q: "'; drop table precedents_full; --", year: '1', type: 'x', sec: '' });
 assert.ok(!f.where.includes('drop') && !f.params.some((p) => p === 1) && !f.where.includes("type"), 'ค่าผิดปกติถูกทิ้ง/ส่งเป็นพารามิเตอร์เท่านั้น');
-assert.equal(buildFilter({}).where, 'true');
+assert.equal(buildFilter({}).where, 'canonical', 'ไม่มีเงื่อนไข = เฉพาะระเบียนหลัก');
 assert.equal(buildFilter({ q: 'a'.repeat(5000) }).params.length <= 1, true);
 
 if (!process.env.AIVEN_READER_URL) { console.log('precedents-api: ไม่มี AIVEN_READER_URL — ข้ามส่วนที่ใช้ฐาน'); process.exit(0); }
@@ -58,6 +59,19 @@ assert.equal(it.id, first.id); assert.ok(it.headnote && Array.isArray(it.litigan
 assert.ok(r.headers['cache-control'].includes('s-maxage=86400'));
 assert.equal((await call('/api/precedents?id=999999999')).status, 404);
 assert.equal((await call('/api/precedents?id=abc')).status, 400);
+// ระเบียนหลัก: ผลค้นหา/รายการล่าสุดไม่มีเลขฎีกา+ปีซ้ำกัน (ระบบศาลมีคดีเดียวกันหลายเวอร์ชัน) และ facets นับเฉพาะระเบียนหลัก
+{
+  const latest = (await call('/api/precedents?year=2519&page=1')).body;
+  const keys = latest.items.map((x) => `${x.caseNo}/${x.year}`);
+  assert.equal(new Set(keys).size, keys.length, 'รายการปี 2519 ต้องไม่มีเลขฎีกาซ้ำ: ' + keys.join(','));
+  const dup = await getPool().query("select source_doc_id, canonical_doc_id, case_no, year from precedents_full where not canonical limit 1");
+  if (dup.rowCount) {
+    const d = dup.rows[0];
+    const one = (await call('/api/precedents?doc=' + d.source_doc_id)).body;
+    assert.equal(one.item.canonical, false);
+    assert.ok(one.item.path.endsWith(`-${d.canonical_doc_id}/`), 'path ของระเบียนซ้ำต้องชี้ไประเบียนหลัก');
+  }
+}
 assert.equal((await call('/api/precedents?q=x', 'POST')).status, 405);
 
 // สิทธิ์: บทบาทอ่านอย่างเดียวห้ามเขียน

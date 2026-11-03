@@ -283,7 +283,7 @@ async function showHome() {
     <div class="cards">
       ${act('', 'data-act="openInbox"', ico2('inbox'), 'กล่องข้อความปรึกษา', 'ข้อความที่ผู้เยี่ยมชมส่งจากหน้า “ติดต่อปรึกษากฎหมาย” ของเว็บไซต์ — ตรวจสอบ ติดต่อกลับ และทำเครื่องหมายว่าจัดการแล้ว', ' <span class="ib-badge" data-inbox-badge hidden></span>', '/workspace/inbox')}
       ${act('', 'data-act="openContent"', ico2('newspaper'), 'จัดการเนื้อหา', 'เขียน/แก้บทความ ข้อกฎหมาย (มาตรา โทษ อายุความ) และข้อความบนเว็บไซต์ เช่น นโยบายความเป็นส่วนตัว', '', '/workspace/content/articles')}
-      ${act('', 'data-act="openSite"', ico2('globe'), 'จัดการเว็บไซต์', 'แก้ช่องทางติดต่อ เวลาทำการ ประกาศบนหัวเว็บ ข้อมูลสำนักงาน และข้อความท้ายเว็บ', '', '/workspace/site')}
+      ${act('', 'data-act="openSite"', ico2('globe'), 'จัดการเว็บไซต์', 'แก้ช่องทางติดต่อ เวลาติดต่อ ประกาศบนหัวเว็บ ข้อมูลผู้ให้บริการ และข้อความท้ายเว็บ', '', '/workspace/site')}
     </div></section>
     <section class="home-sec" aria-labelledby="hs-cases"><div class="sec-bar"><h2 class="section-title" id="hs-cases">คดีที่บันทึกไว้ <span class="sec-count">${list.length}</span></h2><div class="sec-tools">${authUi.caseToolbar()}<label class="btn sm import-btn" title="เลือกไฟล์ที่ส่งออกจากระบบนี้ เพื่อเปิดต่อหรือย้ายข้อมูลคดีมาไว้ที่นี่">${ico2('upload')}นำเข้าข้อมูลคดี (.json)<input type="file" id="importFile" accept=".json,application/json" class="vh"></label></div></div>
     ${list.length ? `<div class="cards">${list.map((x) => `<div class="card case-item">

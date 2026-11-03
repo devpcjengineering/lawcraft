@@ -18,7 +18,7 @@ function landing(token, { ok = true, title = 'ชุดเอกสารคด�
 
   if (!ok) {
     return `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ไม่พบเอกสาร · Law Craft</title>
+<title>ไม่พบเอกสาร · LawCraft by PKT</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500&display=swap');
 body{margin:0;min-height:100vh;background:#0f172a;color:#f8fafc;font-family:'Noto Sans Thai',sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;}
@@ -32,12 +32,12 @@ a{color:#64748b;text-decoration:none;font-size:14px;}
   // สำหรับบอทแสดงภาพตัวอย่าง
   if (isBot) {
     return `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow"><title>${displayTitle} · Law Craft</title>
-<meta name="description" content="เปิดดูชุดเอกสารคดี (PDF) ที่แชร์จากระบบร่างคำฟ้อง Law Craft — ดูได้โดยไม่ต้องล็อกอิน ไฟล์ล่าสุดเสมอ">
-<meta property="og:type" content="website"><meta property="og:site_name" content="Law Craft Legal Consultants"><meta property="og:locale" content="th_TH">
-<meta property="og:title" content="${displayTitle} · Law Craft"><meta property="og:description" content="เอกสารยื่นศาลตามแบบพิมพ์ศาลยุติธรรม — แตะเพื่อเปิดดูไฟล์ล่าสุด (ไม่ต้องล็อกอิน)">
+<meta name="robots" content="noindex, nofollow"><title>${displayTitle} · LawCraft by PKT</title>
+<meta name="description" content="เปิดดูชุดเอกสารคดี (PDF) ที่แชร์จากระบบร่างคำฟ้องของ LawCraft by PKT — ดูได้โดยไม่ต้องล็อกอิน ไฟล์ล่าสุดเสมอ">
+<meta property="og:type" content="website"><meta property="og:site_name" content="LawCraft by PKT"><meta property="og:locale" content="th_TH">
+<meta property="og:title" content="${displayTitle} · LawCraft by PKT"><meta property="og:description" content="เอกสารยื่นศาลตามแบบพิมพ์ศาลยุติธรรม — แตะเพื่อเปิดดูไฟล์ล่าสุด (ไม่ต้องล็อกอิน)">
 <meta property="og:url" content="${SITE}/p/${token}"><meta property="og:image" content="${SITE}/og-pdf.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
-<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${displayTitle} · Law Craft"><meta name="twitter:image" content="${SITE}/og-pdf.png">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${displayTitle} · LawCraft by PKT"><meta name="twitter:image" content="${SITE}/og-pdf.png">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta http-equiv="refresh" content="0;url=${file}">
 </head><body></body></html>`;
   }
@@ -50,7 +50,7 @@ a{color:#64748b;text-decoration:none;font-size:14px;}
 
   // สำหรับผู้ใช้ทั่วไป (Header + Iframe เปิด PDF ทันที)
   return `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow"><title>${displayTitle} · Law Craft</title>
+<meta name="robots" content="noindex, nofollow"><title>${displayTitle} · LawCraft by PKT</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600&display=swap');

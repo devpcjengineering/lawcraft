@@ -16,8 +16,9 @@ export const TAB_NAMES = {
 };
 export const CASE_TABS = Object.keys(TAB_NAMES);
 const TAB_ALIAS = { charges: 'complaint', facts: 'complaint' };
-export const CONTENT_TABS = ['articles', 'laws', 'procedure', 'pages'];
-const CONTENT_NAMES = { articles: 'บทความ', laws: 'ข้อกฎหมาย', procedure: 'ขั้นตอนฟ้องคดี', pages: 'ข้อความหน้าเว็บ' };
+export const CONTENT_TABS = ['articles', 'laws', 'procedure', 'pages', 'portfolio'];
+const CONTENT_NAMES = { articles: 'บทความ', laws: 'ข้อกฎหมาย', procedure: 'ขั้นตอนฟ้องคดี', pages: 'ข้อความหน้าเว็บ', portfolio: 'ผลงาน' };
+const CONTENT_WITH_SLUG = new Set(['articles', 'portfolio']); // แท็บที่มีหน้าแก้รายการ /content/<tab>/<slug|id>
 const SLUG = /^[a-z0-9][a-z0-9-]{1,60}$/;
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -31,7 +32,7 @@ export const urls = {
   contacts: () => BASE + '/contacts',
   inbox: () => BASE + '/inbox',
   site: () => BASE + '/site',
-  content: (tab = 'articles', slug = '') => `${BASE}/content/${tab}${tab === 'articles' && slug ? '/' + encodeURIComponent(slug) : ''}`,
+  content: (tab = 'articles', slug = '') => `${BASE}/content/${tab}${CONTENT_WITH_SLUG.has(tab) && slug ? '/' + encodeURIComponent(slug) : ''}`,
 };
 
 /** URL → { name, …พารามิเตอร์, canonical (พาธที่ถูกรูป) } ; พาธที่ไม่รู้จัก = หน้ารายการคดี */
@@ -58,7 +59,7 @@ export function parseRoute(pathname = location.pathname, search = location.searc
   if (a === 'site' && !b) return r({ name: 'site', canonical: urls.site() });
   if (a === 'content') {
     const tab = CONTENT_TABS.includes(b) ? b : 'articles';
-    const slug = tab === 'articles' && b === 'articles' && c && SLUG.test(c) ? c : '';
+    const slug = CONTENT_WITH_SLUG.has(tab) && b === tab && c && SLUG.test(c) ? c : '';
     return r({ name: 'content', tab, slug, canonical: urls.content(tab, slug) });
   }
   return r({ name: 'home', canonical: urls.home() });
@@ -75,11 +76,11 @@ export function routeLabel(r) {
     case 'contacts': return 'สมุดรายชื่อ';
     case 'inbox': return 'กล่องข้อความปรึกษา';
     case 'site': return 'จัดการเว็บไซต์';
-    case 'content': return r.slug ? 'แก้ไขบทความ' : 'จัดการเนื้อหา · ' + CONTENT_NAMES[r.tab];
+    case 'content': return r.slug ? (r.tab === 'portfolio' ? 'แก้ไขผลงาน' : 'แก้ไขบทความ') : 'จัดการเนื้อหา · ' + CONTENT_NAMES[r.tab];
     default: return 'รายการคดี';
   }
 }
-export const setTitle = (label) => { document.title = (label ? label + ' · ' : '') + 'Law Craft'; };
+export const setTitle = (label) => { document.title = (label ? label + ' · ' : '') + 'LawCraft by PKT'; };
 
 // ---------- ควบคุมการนำทาง ----------
 let handler = null;

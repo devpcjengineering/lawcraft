@@ -2,7 +2,7 @@
 // POST /functions/v1/invite-email  body { caseId, email }  header Authorization: Bearer <access_token ของเจ้าของคดี/แอดมิน>
 // ป้องกันการใช้เป็นเครื่องส่งสแปม: ต้องเป็นเจ้าของคดี (is_case_owner) + อีเมลปลายทางต้องอยู่ในรายชื่อผู้ร่วมแก้ไขของคดีนั้นแล้ว
 // + ส่งซ้ำถึงคนเดิมได้ทุก 30 วินาที (ส่งได้หลายครั้ง) ; ลิงก์ในอีเมลมาจาก APP_URL (secret) ไม่รับจากไคลเอนต์ (กันแปะลิงก์ฟิชชิง)
-// secrets: RESEND_API_KEY (จำเป็น) · MAIL_FROM (ค่าเริ่มต้น alert@law-craft.co) · MAIL_FROM_FALLBACK (ผู้ส่งสำรองที่ยืนยันใน Resend แล้ว ใช้เมื่อโดเมน MAIL_FROM ยังไม่ยืนยัน) · MAIL_FROM_NAME (Law Craft) · APP_URL (https://www.law-craft.co)
+// secrets: RESEND_API_KEY (จำเป็น) · MAIL_FROM (ค่าเริ่มต้น alert@law-craft.co) · MAIL_FROM_FALLBACK (ผู้ส่งสำรองที่ยืนยันใน Resend แล้ว ใช้เมื่อโดเมน MAIL_FROM ยังไม่ยืนยัน) · MAIL_FROM_NAME (LawCraft by PKT) · APP_URL (https://www.law-craft.co)
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { inviteEmail } from './template.js';
 
@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     const appUrl = (Deno.env.get('APP_URL') || 'https://www.law-craft.co').replace(/\/$/, '');
     const from = Deno.env.get('MAIL_FROM') || 'alert@law-craft.co';
     const fallback = Deno.env.get('MAIL_FROM_FALLBACK') || '';
-    const fromName = Deno.env.get('MAIL_FROM_NAME') || 'Law Craft';
+    const fromName = Deno.env.get('MAIL_FROM_NAME') || 'LawCraft by PKT';
 
     const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
       global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },

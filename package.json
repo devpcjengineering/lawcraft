@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Law Craft — เว็บบริการกฎหมาย + หลังบ้านร่างคำฟ้อง",
+  "description": "LawCraft by PKT — สำนักงานกฎหมาย ปรึกษาฟรี ฟ้องคดี รับว่าความ + ฐานความรู้กฎหมาย + หลังบ้านร่างคำฟ้อง",
   "scripts": {
     "start": "node server/index.js",
     "build": "node scripts/build-static.js",

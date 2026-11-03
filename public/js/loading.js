@@ -9,7 +9,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 
 /** มาร์กอัปหน้าโหลด (ใช้ซ้ำใน HTML ตั้งต้นของหน้าได้) */
 export function loadingMarkup(label = '') {
-  return `<div class="lcl-box"><div class="lcl-brand">${MARK}<span><span class="th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="en">Law Craft Legal Consultants</span></span></div>
+  return `<div class="lcl-box"><div class="lcl-brand">${MARK}<span><span class="th">LawCraft</span><span class="en">by PKT</span></span></div>
     <div class="lcl-track" role="progressbar" aria-label="กำลังโหลด"></div>
     <p class="lcl-text" role="status" aria-live="polite">กำลังโหลด…${label ? `<b>${esc(label)}</b>` : ''}</p></div>`;
 }

@@ -35,7 +35,8 @@ export function buildFilter(query) {
   const type = TYPES.has(query.type) ? query.type : null; if (type) where.push(`case_type = ${add(type)}`);
   const sec = cut(query.sec, 60).trim(); if (sec) where.push(`sections @> ARRAY[${add(sec)}]::text[]`);
   const law = cut(query.law, 40).trim(); if (law) where.push(`laws @> ${add(JSON.stringify([{ abbr: law }]))}::jsonb`); // กฎหมายที่อ้าง (ชื่อย่อ เช่น ป.อ.)
-  return { where: where.length ? where.join(' and ') : 'true', params, tsq, tokens };
+  // เฉพาะระเบียนหลัก 1 ระเบียนต่อเลขฎีกา+ปี (ระบบศาลมีคดีเดียวกันหลายเวอร์ชัน — load-aiven.mjs recomputeCanonical)
+  return { where: ['canonical', ...where].join(' and '), params, tsq, tokens };
 }
 
 export default async function handler(req, res) {
@@ -49,10 +50,11 @@ export default async function handler(req, res) {
       const byDoc = query.doc !== undefined;
       const key = byDoc ? (/^[0-9a-z]{1,20}$/i.test(String(query.doc)) ? String(query.doc) : null) : int(query.id, 1, 2 ** 31 - 1);
       if (!key) return send(res, 400, { error: 'รหัสฎีกาไม่ถูกต้อง' });
-      const r = await p.query(`select id, source_doc_id, case_no, year, case_type, title_raw, headnote, full_text, sections, laws, litigants, judges, lower_courts, primary_court_nos, departments, source_url, retrieved_at from precedents_full where ${byDoc ? 'source_doc_id' : 'id'} = $1`, [key]);
+      // อ่านรายการเดียวได้ทุกระเบียน (ลิงก์เก่ายังใช้ได้) — ถ้าไม่ใช่ระเบียนหลัก path ชี้ไประเบียนหลักของคดีเดียวกัน
+      const r = await p.query(`select id, source_doc_id, case_no, year, case_type, title_raw, headnote, full_text, sections, laws, litigants, judges, lower_courts, primary_court_nos, departments, source_url, retrieved_at, canonical, canonical_doc_id from precedents_full where ${byDoc ? 'source_doc_id' : 'id'} = $1`, [key]);
       if (!r.rowCount) return send(res, 404, { error: 'ไม่พบฎีกานี้' });
       const x = r.rows[0];
-      return send(res, 200, { notice: NOTICE, item: { id: x.id, docId: x.source_doc_id, path: precedentPath(x.case_no, x.year, x.source_doc_id), caseNo: x.case_no, year: x.year, caseType: x.case_type, title: x.title_raw, headnote: x.headnote, fullText: x.full_text, sections: x.sections, laws: x.laws, litigants: x.litigants, judges: x.judges, lowerCourts: x.lower_courts, primaryCourtNos: x.primary_court_nos, departments: x.departments, sourceUrl: x.source_url, retrievedAt: x.retrieved_at } }, 'public, s-maxage=86400, stale-while-revalidate=604800');
+      return send(res, 200, { notice: NOTICE, item: { id: x.id, docId: x.source_doc_id, path: precedentPath(x.case_no, x.year, x.canonical === false && x.canonical_doc_id ? x.canonical_doc_id : x.source_doc_id), canonical: x.canonical !== false, caseNo: x.case_no, year: x.year, caseType: x.case_type, title: x.title_raw, headnote: x.headnote, fullText: x.full_text, sections: x.sections, laws: x.laws, litigants: x.litigants, judges: x.judges, lowerCourts: x.lower_courts, primaryCourtNos: x.primary_court_nos, departments: x.departments, sourceUrl: x.source_url, retrievedAt: x.retrieved_at } }, 'public, s-maxage=86400, stale-while-revalidate=604800');
     }
     const f = buildFilter(query); // ไม่มีเงื่อนไขเลย = รายการล่าสุด (ไม่จัดอันดับ)
     const page = int(query.page, 1, 100) || 1;
@@ -84,8 +86,8 @@ async function facets(p) {
     if (r.rowCount) return r.rows[0].data;
   } catch (e) { if (e.code !== '42P01' && e.code !== '42501') throw e; }
   const [years, types] = await Promise.all([
-    p.query('select year, count(*)::int n from precedents_full group by 1 order by 1 desc'),
-    p.query('select case_type, count(*)::int n from precedents_full where case_type is not null group by 1 order by 2 desc'),
+    p.query('select year, count(*)::int n from precedents_full where canonical group by 1 order by 1 desc'),
+    p.query('select case_type, count(*)::int n from precedents_full where canonical and case_type is not null group by 1 order by 2 desc'),
   ]);
   return { years: years.rows, types: types.rows.map((r) => ({ type: r.case_type, n: r.n })), laws: [], total: years.rows.reduce((a, r) => a + r.n, 0) };
 }

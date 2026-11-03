@@ -1,4 +1,4 @@
-/* หน้าโหลด (ทุกหน้า): โลโก้สำนักงาน + แถบสีวิ่งไปทางขวา + "กำลังโหลด…ชื่อหน้า"
+/* หน้าโหลด (ทุกหน้า): โลโก้ Lawcraft + แถบสีวิ่งไปทางขวา + "กำลังโหลด…ชื่อหน้า"
    ใช้ร่วมกันหลังบ้าน (js/loading.js) และหน้าเว็บสาธารณะ (.splash ใน 4 หน้า) — ไม่พึ่งตัวแปรสีของไฟล์อื่น */
 .lcl {
   --lcl-bg: #fff; --lcl-ink: #1d1d1f; --lcl-muted: #6e6e73; --lcl-track: #ececf0; --lcl-bar: #1d1d1f;
@@ -13,8 +13,8 @@
 .lcl-box { display: grid; justify-items: center; gap: 28px; width: min(320px, 78vw); text-align: center; }
 .lcl-brand { display: inline-flex; align-items: center; gap: 12px; color: var(--lcl-ink); text-align: left; }
 .lcl-brand svg { width: 38px; height: 38px; flex: none; }
-.lcl-brand .th { display: block; font-weight: 700; font-size: 20px; line-height: 1.25; letter-spacing: -.01em; }
-.lcl-brand .en { display: block; font-size: 13px; line-height: 1.3; color: var(--lcl-muted); letter-spacing: .01em; }
+.lcl-brand .th { display: block; font-weight: 700; font-size: 22px; line-height: 1.15; letter-spacing: -.02em; }
+.lcl-brand .en { display: block; font-size: 14px; line-height: 1.35; color: var(--lcl-muted); letter-spacing: 0; }
 .lcl-track { position: relative; width: 100%; height: 4px; border-radius: 99px; background: var(--lcl-track); overflow: hidden; }
 .lcl-track::after {
   content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 36%; border-radius: 99px; background: var(--lcl-bar);

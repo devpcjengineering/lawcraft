@@ -9,9 +9,9 @@ const fmt = (n) => Number(n).toLocaleString('th-TH');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 document.querySelectorAll('[data-site=name]').forEach((e) => { e.textContent = config.legalName || config.name; });
-document.title = `${config.name} · ${config.legalName || ''} — กฎหมายไทย ฐานความรู้ และระบบร่างคำฟ้อง`;
+document.title = `${config.legalName || config.name} · เพราะทุกปัญหามีทางออก ปรึกษาฟรี`;
 
-// ท้ายเว็บ + ข้อมูลสำนักงาน (JSON-LD) สร้างโดย /site/footer.js ร่วมกันทุกหน้า
+// ท้ายเว็บ + ข้อมูลผู้ให้บริการ (JSON-LD) สร้างโดย /site/footer.js ร่วมกันทุกหน้า
 
 // ---- nav ----
 const burger = $('#burger'), links = $('#navLinks');

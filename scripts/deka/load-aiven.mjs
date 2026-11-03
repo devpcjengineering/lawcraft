@@ -10,7 +10,8 @@
 //   node scripts/deka/load-aiven.mjs                          # โหลดทุกปีที่มีไฟล์ (หรือ --from 2560 --to 2569 / --years 2519,2520)
 //   node scripts/deka/load-aiven.mjs --build-indexes          # สร้างดัชนีค้นหา หลังโหลดเสร็จ
 //   node scripts/deka/load-aiven.mjs --create-reader          # สร้าง role lawcraft_reader (อ่านอย่างเดียว) → เขียน URL ลงไฟล์นอก repo
-//   node scripts/deka/load-aiven.mjs --refresh-facets         # คำนวณตัวเลือกเรียกดู (ปี/ประเภท/กฎหมาย) ใหม่ — รันเองอัตโนมัติหลังโหลดข้อมูลใหม่
+//   node scripts/deka/load-aiven.mjs --refresh-facets         # คำนวณระเบียนหลัก (canonical) + ตัวเลือกเรียกดู (ปี/ประเภท/กฎหมาย) ใหม่ — รันเองอัตโนมัติหลังโหลดข้อมูลใหม่
+//   node scripts/deka/load-aiven.mjs --recanon                # คำนวณเฉพาะระเบียนหลัก 1 ระเบียนต่อเลขฎีกา+ปี (ระเบียนซ้ำของศาลถูกซ่อนจากเว็บ ไม่ลบ)
 //   node scripts/deka/load-aiven.mjs --stats                  # สรุปจำนวน/ขนาดในฐาน
 // ตัวเลือก: --dir <โฟลเดอร์ jsonl> (ค่าเริ่มต้น %LOCALAPPDATA%\lawcraft-deka-data) · --batch 100 · --max-gb 4 (หยุดเองถ้าฐานโตเกินนี้) · --limit N (ทดสอบ) · --dry-run (แปลงอย่างเดียว ไม่แตะฐาน)
 import fs from 'node:fs';
@@ -100,20 +101,47 @@ async function createReader(c) {
   log(`สร้าง/รีเซ็ตรหัสผ่าน role ${name} (SELECT เฉพาะตารางฎีกา, statement_timeout 8s, อ่านอย่างเดียว) — URL เก็บที่ ${f} (นอก repo; ใช้เป็น AIVEN_READER_URL ของเว็บ และ .env) — ถ้าตั้งไว้ใน Vercel แล้วต้องอัปเดตค่าใหม่`);
 }
 
-/** คำนวณตัวเลือกเรียกดูล่วงหน้า → ตาราง precedent_facets (API อ่านจากตารางนี้ทันที) — เขียนข้อมูลเล็กน้อย จึงปิดแฟล็ก read-only ของเซสชันนี้ได้ถ้า Aiven ล็อกฐานเพราะดิสก์ใกล้เต็ม */
-async function refreshFacets(c) {
+/**
+ * ระเบียนหลัก (canonical) หนึ่งระเบียนต่อเลขฎีกา+ปี — ระบบศาลเก็บคดีเดียวกันเป็นหลายระเบียน (คนละ docId: คนละเวอร์ชัน/เว้นวรรคต่าง/อีกระเบียนไม่มีย่อยาว)
+ * ราว 1 ใน 3 ของแถวทั้งหมด → เว็บแสดง/ค้นหา/ทำ sitemap เฉพาะระเบียนหลัก ระเบียนอื่นเก็บไว้ครบ (ไม่ลบ) และหน้าของมันเด้งไประเบียนหลัก
+ * เกณฑ์เลือก: ย่อยาวยาวที่สุด → ย่อสั้นยาวที่สุด → id น้อยสุด ; คำนวณซ้ำได้ทุกครั้งหลังโหลดข้อมูลใหม่ (อัปเดตเฉพาะแถวที่ค่าเปลี่ยน)
+ */
+async function recomputeCanonical(c) {
   await c.query('set default_transaction_read_only = off');
+  await c.query('alter table precedents_full add column if not exists canonical boolean not null default true');
+  await c.query('alter table precedents_full add column if not exists canonical_doc_id text');
+  await c.query('create index if not exists precedents_full_canon_idx on precedents_full (year desc, id desc) where canonical');
+  const r = await c.query(`
+    with ranked as (
+      select id, source_doc_id,
+        first_value(source_doc_id) over w as canon_doc,
+        row_number() over w as rn
+      from precedents_full
+      window w as (partition by case_no, year order by length(coalesce(full_text, '')) desc, length(coalesce(headnote, '')) desc, id asc))
+    update precedents_full f
+       set canonical = (r.rn = 1), canonical_doc_id = case when r.rn = 1 then null else r.canon_doc end
+      from ranked r
+     where r.id = f.id
+       and (f.canonical is distinct from (r.rn = 1) or f.canonical_doc_id is distinct from (case when r.rn = 1 then null else r.canon_doc end))`);
+  const t = (await c.query('select count(*) filter (where canonical)::int main, count(*) filter (where not canonical)::int dup from precedents_full')).rows[0];
+  log(`ระเบียนหลัก: ${t.main} คดี · ระเบียนซ้ำ (ซ่อน): ${t.dup} · แถวที่เปลี่ยนรอบนี้ ${r.rowCount}`);
+  return t;
+}
+
+/** คำนวณตัวเลือกเรียกดูล่วงหน้า → ตาราง precedent_facets (API อ่านจากตารางนี้ทันที) — นับเฉพาะระเบียนหลัก ; เขียนข้อมูลเล็กน้อย จึงปิดแฟล็ก read-only ของเซสชันนี้ได้ถ้า Aiven ล็อกฐานเพราะดิสก์ใกล้เต็ม */
+async function refreshFacets(c) {
+  await recomputeCanonical(c);
   await c.query(`create table if not exists precedent_facets (key text primary key, data jsonb not null, updated_at timestamptz not null default now())`);
-  const years = await c.query('select year, count(*)::int n from precedents_full group by 1 order by 1 desc');
-  const types = await c.query('select case_type, count(*)::int n from precedents_full where case_type is not null group by 1 order by 2 desc');
-  const laws = await c.query(`select l->>'abbr' as abbr, l->>'name' as name, count(distinct f.id)::int n from precedents_full f, jsonb_array_elements(f.laws) l where l->>'abbr' is not null group by 1, 2 order by 3 desc limit 24`);
+  const years = await c.query('select year, count(*)::int n from precedents_full where canonical group by 1 order by 1 desc');
+  const types = await c.query('select case_type, count(*)::int n from precedents_full where canonical and case_type is not null group by 1 order by 2 desc');
+  const laws = await c.query(`select l->>'abbr' as abbr, l->>'name' as name, count(distinct f.id)::int n from precedents_full f, jsonb_array_elements(f.laws) l where f.canonical and l->>'abbr' is not null group by 1, 2 order by 3 desc limit 24`);
   const data = { years: years.rows, types: types.rows.map((r) => ({ type: r.case_type, n: r.n })), laws: laws.rows.map((r) => ({ abbr: r.abbr, name: r.name, n: r.n })), total: years.rows.reduce((a, r) => a + r.n, 0) };
   await c.query(`insert into precedent_facets (key, data) values ('all', $1::jsonb) on conflict (key) do update set data = excluded.data, updated_at = now()`, [JSON.stringify(data)]);
   if ((await c.query("select 1 from pg_roles where rolname='lawcraft_reader'")).rowCount) await c.query('grant select on precedent_facets to lawcraft_reader');
   log(`อัปเดตตารางสรุปตัวเลือกเรียกดู: ${data.years.length} ปี · ${data.types.length} ประเภท · ${data.laws.length} กฎหมาย · รวม ${data.total} คดี`);
 }
 async function stats(c) {
-  const t = (await c.query(`select count(*)::int n, count(full_text)::int with_full, min(year) y0, max(year) y1, pg_size_pretty(pg_total_relation_size('precedents_full')) tbl, pg_size_pretty(pg_database_size(current_database())) db from precedents_full`)).rows[0];
+  const t = (await c.query(`select count(*)::int n, count(*) filter (where canonical)::int main, count(full_text)::int with_full, min(year) y0, max(year) y1, pg_size_pretty(pg_total_relation_size('precedents_full')) tbl, pg_size_pretty(pg_database_size(current_database())) db from precedents_full`).catch(() => c.query(`select count(*)::int n, count(full_text)::int with_full, min(year) y0, max(year) y1, pg_size_pretty(pg_total_relation_size('precedents_full')) tbl, pg_size_pretty(pg_database_size(current_database())) db from precedents_full`))).rows[0];
   log('ในฐาน:', JSON.stringify(t));
   const by = (await c.query('select year, count(*)::int n from precedents_full group by 1 order by 1 desc limit 8')).rows;
   log('ปีล่าสุด:', by.map((r) => `${r.year}=${r.n}`).join(' '));
@@ -154,6 +182,7 @@ async function loadYearFile(c, file, year) {
     if (args['build-indexes']) { await runSchema(c, 'indexes'); await stats(c); return; }
     if (args['create-reader']) { await createReader(c); return; }
     if (args['refresh-facets']) { await refreshFacets(c); return; }
+    if (args.recanon) { await recomputeCanonical(c); await stats(c); return; }
     if (args.stats) { await stats(c); return; }
     if (c) await runSchema(c, 'base'); // ไม่มีก็สร้าง (if not exists)
     const files = fs.readdirSync(DIR).filter((f) => /^\d{4}\.jsonl$/.test(f)).sort().reverse(); // ใหม่ → เก่า

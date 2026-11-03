@@ -45,7 +45,7 @@ async function liveArticles() {
 /** หน้าสาธารณะ + บทความ + หน้าข้อมูลกฎหมายสถิต (เหมือน sitemap เดิม) */
 export async function pagesSitemap(host) {
   const today = new Date().toISOString().slice(0, 10);
-  const urls = [['/', today, 'weekly', '1.0'], ['/articles/', today, 'weekly', '0.8'], ['/contact/', today, 'monthly', '0.6'], ['/privacy/', today, 'yearly', '0.3'], ['/service-fee/', today, 'monthly', '0.7']];
+  const urls = [['/', today, 'weekly', '1.0'], ['/articles/', today, 'weekly', '0.8'], ['/portfolio/', today, 'weekly', '0.7'], ['/contact/', today, 'monthly', '0.6'], ['/privacy/', today, 'yearly', '0.3'], ['/service-fee/', today, 'monthly', '0.7']];
   try {
     const [idx, live, seo] = await Promise.all([staticIndex(host), liveArticles(), seoUrls(host).catch(() => [])]);
     for (const a of mergeIndex(idx, live)) {
@@ -66,7 +66,7 @@ export async function precedentCount() {
   try {
     const p = getPool();
     if (!p) return 0;
-    const r = await p.query('select count(*)::int as n from precedents_full');
+    const r = await p.query('select count(*)::int as n from precedents_full where canonical'); // เฉพาะระเบียนหลัก (คดีเดียวกันหลายเวอร์ชันของศาลไม่ลง sitemap)
     return r.rows[0]?.n || 0;
   } catch { return 0; }
 }
@@ -77,7 +77,7 @@ export async function precedentsSitemap(n) {
   try {
     const p = getPool();
     if (p && n >= 1) {
-      const r = await p.query('select source_doc_id, case_no, year, created_at::date::text as d from precedents_full order by id limit $1 offset $2', [PRECEDENTS_PER_FILE, (n - 1) * PRECEDENTS_PER_FILE]);
+      const r = await p.query('select source_doc_id, case_no, year, created_at::date::text as d from precedents_full where canonical order by id limit $1 offset $2', [PRECEDENTS_PER_FILE, (n - 1) * PRECEDENTS_PER_FILE]);
       for (const x of r.rows) rows.push([precedentPath(x.case_no, x.year, x.source_doc_id), day(x.d, ''), '', '0.4']);
     }
   } catch { /* ไฟล์ว่าง */ }

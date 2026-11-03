@@ -24,7 +24,7 @@ export function fillShell(shell, v) {
 export function titleOf(it) {
   const no = `ฎีกาที่ ${it.case_no}/${it.year}`;
   const hint = trunc((it.headnote || '').split(/\n/)[0], 38);
-  return hint ? `${no} ${hint} | Law Craft` : `${no} | Law Craft`;
+  return hint ? `${no} ${hint} | LawCraft by PKT` : `${no} | LawCraft by PKT`;
 }
 
 /** เนื้อหาหน้า (main) — ทุกค่าจากฐานผ่าน esc() */
@@ -79,14 +79,15 @@ export default async function handler(req, res) {
   const p = getPool();
   if (!p) return out(res, 503, plainPage('ยังไม่พร้อมใช้งาน', 'ระบบอ่านฎีกายังไม่พร้อมใช้งาน (ยังไม่ได้ตั้งค่าฐานข้อมูล) ลองใหม่ภายหลัง'), 'no-store');
   try {
-    const [shell, r] = await Promise.all([getShell(req), p.query('select source_doc_id, case_no, year, case_type, headnote, full_text, laws, litigants, judges, lower_courts, primary_court_nos, departments from precedents_full where source_doc_id = $1', [docId])]);
+    const [shell, r] = await Promise.all([getShell(req), p.query('select source_doc_id, case_no, year, case_type, headnote, full_text, laws, litigants, judges, lower_courts, primary_court_nos, departments, canonical, canonical_doc_id from precedents_full where source_doc_id = $1', [docId])]);
     if (!shell) return out(res, 503, plainPage('ยังไม่พร้อมใช้งาน', 'โหลดแม่แบบหน้าไม่สำเร็จ ลองใหม่อีกครั้ง'), 'no-store');
     if (!r.rowCount) {
-      const html = fillShell(shell, { slug, title: 'ไม่พบฎีกานี้ | Law Craft', desc: 'ไม่พบฎีกาที่ระบุ', crumb: 'ไม่พบฎีกา', main: '<h1>ไม่พบฎีกานี้</h1><p>ไม่พบฎีกาตามที่อยู่นี้ ลอง <a href="/precedents/">ค้นหาฎีกา</a> ใหม่อีกครั้ง</p>' }).replace('content="index,follow"', 'content="noindex,follow"');
+      const html = fillShell(shell, { slug, title: 'ไม่พบฎีกานี้ | LawCraft by PKT', desc: 'ไม่พบฎีกาที่ระบุ', crumb: 'ไม่พบฎีกา', main: '<h1>ไม่พบฎีกานี้</h1><p>ไม่พบฎีกาตามที่อยู่นี้ ลอง <a href="/precedents/">ค้นหาฎีกา</a> ใหม่อีกครั้ง</p>' }).replace('content="index,follow"', 'content="noindex,follow"');
       return out(res, 404, html, 'public, s-maxage=300');
     }
     const it = r.rows[0];
-    const canonical = precedentSlug(it.case_no, it.year, it.source_doc_id);
+    // ระเบียนซ้ำของศาล (คดีเดียวกันหลายเวอร์ชัน) → เด้งไปหน้าระเบียนหลักของคดีนั้น ; slug ที่ส่วนหน้าไม่ตรง → เด้งไป URL หลักของระเบียนเดียวกัน
+    const canonical = precedentSlug(it.case_no, it.year, it.canonical === false && it.canonical_doc_id ? it.canonical_doc_id : it.source_doc_id);
     if (slug !== canonical) return out(res, 301, '', 'public, s-maxage=86400', { Location: `/precedents/${canonical}/` });
     const desc = trunc(it.headnote || `คำพิพากษาศาลฎีกาที่ ${it.case_no}/${it.year}`, 155);
     const html = fillShell(shell, { slug: canonical, title: titleOf(it), desc, crumb: `${it.case_no}/${it.year}`, main: renderMain(it) });

@@ -15,7 +15,7 @@ const FONT = "'Noto Sans Thai','Sarabun','Leelawadee UI','Tahoma','Thonburi',-ap
 export function inviteEmail({ appUrl, caseUrl, inviter, title = '', court = '', type = '', to = '' }) {
   const kind = type === 'civil' ? 'คดีแพ่ง' : type === 'criminal' ? 'คดีอาญา' : 'คดี';
   const caseName = String(title || '').trim() || 'คดีที่ยังไม่ตั้งชื่อ';
-  const subject = `${inviter} เชิญคุณร่วมตรวจสอบ/แก้ไขคำฟ้อง — Law Craft`;
+  const subject = `${inviter} เชิญคุณร่วมตรวจสอบ/แก้ไขคำฟ้อง — LawCraft by PKT`;
   const logo = `${appUrl}/apple-touch-icon.png`;
   const pre = `${inviter} เชิญคุณเข้ามาร่วมตรวจสอบ/แก้ไขคำฟ้อง "${caseName}" ในระบบร่างคำฟ้อง`;
 
@@ -35,7 +35,7 @@ export function inviteEmail({ appUrl, caseUrl, inviter, title = '', court = '', 
     <tr><td style="padding:0 4px 16px">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
         <td style="vertical-align:middle;padding-right:12px"><img src="${esc(logo)}" width="40" height="40" alt="" style="display:block;border:0;border-radius:10px;background:#fff"></td>
-        <td style="vertical-align:middle"><div style="font:700 16px/1.3 ${FONT};color:${C.ink}">Law Craft</div><div style="font:400 12.5px/1.4 ${FONT};color:${C.muted}">ระบบร่างคำฟ้อง · สำนักงานกฎหมาย ลอว์คราฟต์</div></td>
+        <td style="vertical-align:middle"><div style="font:700 16px/1.3 ${FONT};color:${C.ink}">LawCraft by PKT</div><div style="font:400 12.5px/1.4 ${FONT};color:${C.muted}">ระบบร่างคำฟ้อง · ลอว์คราฟต์ โดยสำนักงานกฎหมาย PKT</div></td>
       </tr></table>
     </td></tr>
     <tr><td style="background:${C.card};border-radius:20px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)">
@@ -71,13 +71,13 @@ export function inviteEmail({ appUrl, caseUrl, inviter, title = '', court = '', 
         </td></tr>
       </table>
     </td></tr>
-    <tr><td align="center" style="padding:22px 12px 6px;font:400 12.5px/1.7 ${FONT};color:${C.muted}">อีเมลนี้ส่งโดยอัตโนมัติจากระบบร่างคำฟ้อง Law Craft เพราะ ${esc(inviter)} เชิญอีเมลของคุณ<br>ระบบนี้เป็นเครื่องมือช่วยร่างเอกสาร ไม่ใช่คำปรึกษาทางกฎหมาย · <a href="${esc(appUrl)}" target="_blank" style="color:${C.muted}">${esc(appUrl.replace(/^https?:\/\//, ''))}</a></td></tr>
+    <tr><td align="center" style="padding:22px 12px 6px;font:400 12.5px/1.7 ${FONT};color:${C.muted}">อีเมลนี้ส่งโดยอัตโนมัติจากระบบร่างคำฟ้อง LawCraft by PKT เพราะ ${esc(inviter)} เชิญอีเมลของคุณ<br>ระบบนี้เป็นเครื่องมือช่วยร่างเอกสาร ไม่ใช่คำปรึกษาทางกฎหมาย · <a href="${esc(appUrl)}" target="_blank" style="color:${C.muted}">${esc(appUrl.replace(/^https?:\/\//, ''))}</a></td></tr>
   </table>
 </td></tr></table>
 </body></html>`;
 
   const text = [
-    `${inviter} เชิญคุณร่วมตรวจสอบ/แก้ไขคำฟ้อง ในระบบร่างคำฟ้อง Law Craft`,
+    `${inviter} เชิญคุณร่วมตรวจสอบ/แก้ไขคำฟ้อง ในระบบร่างคำฟ้อง LawCraft by PKT`,
     '',
     `คดี: ${caseName}`,
     court ? `ศาล: ${court}` : '',
@@ -89,7 +89,7 @@ export function inviteEmail({ appUrl, caseUrl, inviter, title = '', court = '', 
     `วิธีเริ่มใช้งาน: เปิดลิงก์ → เข้าสู่ระบบด้วย Google ด้วยอีเมล ${to || 'ที่ได้รับเชิญ'} เท่านั้น → คดีจะอยู่ในรายการคดี พร้อมป้าย “แชร์ให้คุณแก้ไข”`,
     '',
     'คดีมีข้อมูลส่วนบุคคลของคู่ความ กรุณาอย่าส่งต่ออีเมลหรือลิงก์นี้ให้ผู้อื่น หากไม่รู้จักผู้เชิญหรือไม่ได้คาดหมายอีเมลฉบับนี้ สามารถเพิกเฉยได้',
-    '— ระบบร่างคำฟ้อง Law Craft',
+    '— ระบบร่างคำฟ้อง LawCraft by PKT',
   ].filter((l, i, a) => l !== '' || a[i - 1] !== '').join('\n');
 
   return { subject, html, text };

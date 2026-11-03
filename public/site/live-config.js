@@ -1,4 +1,4 @@
-// ข้อมูลเว็บไซต์ที่แอดมินแก้ได้จากหลังบ้าน (ช่องทางติดต่อ ข้อมูลสำนักงาน เวลาทำการ ประกาศบนหัวเว็บ ข้อความท้ายเว็บ)
+// ข้อมูลเว็บไซต์ที่แอดมินแก้ได้จากหลังบ้าน (ช่องทางติดต่อ ข้อมูลผู้ให้บริการ เวลาติดต่อ ประกาศบนหัวเว็บ ข้อความท้ายเว็บ)
 // เก็บเป็นแถว key='site' ในตาราง law_data (ทุกคนอ่านได้ แอดมินเขียนได้) — ถ้ายังไม่ตั้งค่า ใช้ค่าเริ่มต้นจาก /site/config.js
 // แคชใน sessionStorage 5 นาที เพื่อให้หน้าถัดไปแสดงข้อมูลทันทีไม่กะพริบ แล้วค่อยอัปเดตเมื่อโหลดค่าล่าสุดเสร็จ
 import base from '/site/config.js';
@@ -12,7 +12,7 @@ const merge = (live) => {
   return {
     ...base,
     ...d,
-    office: { ...base.office, ...(d.office || {}) },
+    office: d.office && String(d.office.entity || '').trim() ? { label: 'ผู้ดำเนินการเว็บไซต์', ...base.office, ...d.office } : (base.office || null), // ไม่มีชื่อนิติบุคคล = ไม่แสดงส่วนผู้ดำเนินการ
     contacts: Array.isArray(d.contacts) && d.contacts.length ? d.contacts : (base.contacts || []),
     hours: d.hours || base.hours || '',
     footerDesc: d.footerDesc || base.footerDesc || '',

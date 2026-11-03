@@ -38,18 +38,19 @@ export const NAV = [
   ['service-fee', '/service-fee/', 'ค่านำหมาย'],
   ['precedents', '/precedents/', 'ฎีกา'],
   ['articles', '/articles/', 'บทความ'],
+  ['portfolio', '/portfolio/', 'ผลงาน'],
   ['contact', '/contact/', 'ติดต่อ'],
 ];
 
 export function makeTemplate({ site, chrome }) {
   const { QUICK, TOPICS, MARK, DEFAULT_DESC, config } = chrome;
-  const siteName = 'Law Craft สำนักงานกฎหมาย ลอว์คราฟต์';
+  const siteName = 'LawCraft by PKT';
 
   const nav = (cur) => `<nav class="nav" id="nav" aria-label="เมนูหลัก">
   <div class="nav-in">
     <a class="logo" href="/" aria-label="${siteName}">
       <svg class="logo-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${MARK.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '')}</svg>
-      <span class="logo-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span>
+      <span class="logo-text"><span class="lt-th">LawCraft</span><span class="lt-en">by PKT</span></span>
     </a>
     <div class="nav-links" id="navLinks">
       ${NAV.map(([k, h, t]) => `<a href="${h}"${k === cur ? ' aria-current="page"' : ''}>${t}</a>`).join('\n      ')}
@@ -61,18 +62,19 @@ export function makeTemplate({ site, chrome }) {
 
   // ต้องตรงกับ footerHtml() ใน public/site/footer.js (ค่าเริ่มต้นจาก config.js)
   const footer = () => {
-    const o = config.office;
+    const o = config.office && config.office.entity ? config.office : null; // ที่อยู่/เลขทะเบียนแสดงเฉพาะเมื่อตั้งค่าไว้
     const name = config.legalName || config.name;
     const contacts = (config.contacts || []).filter((c) => c && c.value);
-    const addr = o ? `<address class="sf-addr"><b>${esc(o.label)}</b><span>${esc(o.entity)}</span><span>${esc([o.street, o.district, o.province].filter(Boolean).join(' '))}</span>${o.regNo ? `<span>ทะเบียนนิติบุคคลเลขที่ ${esc(o.regNo)}</span>` : ''}</address>` : '';
+    const addr = o ? `<address class="sf-addr"><b>${esc(o.label || 'ผู้ดำเนินการเว็บไซต์')}</b><span>${esc(o.entity)}</span>${[o.street, o.district, o.province].filter(Boolean).length ? `<span>${esc([o.street, o.district, o.province].filter(Boolean).join(' '))}</span>` : ''}${o.regNo ? `<span>ทะเบียนนิติบุคคลเลขที่ ${esc(o.regNo)}</span>` : ''}</address>` : '';
     const list = contacts.length ? `<ul class="sf-contacts">${contacts.map((c) => `<li>${c.href ? `<a href="${esc(c.href)}"><span>${esc(c.label)}</span> ${esc(c.value)}</a>` : `<span>${esc(c.label)}</span> ${esc(c.value)}`}</li>`).join('')}</ul>` : '';
-    const hours = config.hours ? `<p class="sf-hours"><b>เวลาทำการ</b><br>${esc(config.hours).replace(/\n/g, '<br>')}</p>` : '';
+    const hours = config.hours ? `<p class="sf-hours"><b>เวลาติดต่อ</b><br>${esc(config.hours).replace(/\n/g, '<br>')}</p>` : '';
+    const firm = `${addr}${list}${hours}`;
     return `<footer class="foot sf" id="siteFooter"><div class="wrap">
     <div class="sf-grid">
-      <section class="sf-brand" aria-label="เกี่ยวกับสำนักงาน">
-        <a class="sf-logo" href="/" aria-label="${esc(name)}">${MARK}<span class="logo-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span></a>
+      <section class="sf-brand" aria-label="เกี่ยวกับ LawCraft">
+        <a class="sf-logo" href="/" aria-label="${esc(name)}">${MARK}<span class="logo-text"><span class="lt-th">LawCraft</span><span class="lt-en">by PKT</span></span></a>
         <p class="sf-desc">${esc(config.footerDesc || DEFAULT_DESC)}</p>
-        <a class="btn-pill primary sm sf-cta" href="/contact/">ติดต่อปรึกษากฎหมาย</a>
+        <a class="btn-pill primary sm sf-cta" href="/contact/">ปรึกษาทีมทนายฟรี</a>
       </section>
       <nav class="sf-col" aria-label="ลิงก์ด่วน">
         <h2 class="sf-h">ลิงก์ด่วน</h2>
@@ -82,13 +84,13 @@ export function makeTemplate({ site, chrome }) {
         <h2 class="sf-h">คดีออนไลน์</h2>
         <ul>${TOPICS.map(([s, t]) => `<li><a href="/articles/?a=${s}">${esc(t)}</a></li>`).join('')}</ul>
       </nav>
-      <section class="sf-col sf-firm" aria-label="ข้อมูลสำนักงาน">
-        <h2 class="sf-h">ข้อมูลสำนักงาน</h2>
-        ${addr}${list}${hours}
-      </section>
+      ${firm ? `<section class="sf-col sf-firm" aria-label="ข้อมูลผู้ให้บริการ">
+        <h2 class="sf-h">ติดต่อเรา</h2>
+        ${firm}
+      </section>` : ''}
     </div>
     <div class="sf-bottom">
-      <p class="sf-copy">© ${new Date().getFullYear()} Law Craft Legal Consultants</p>
+      <p class="sf-copy">© ${new Date().getFullYear()} ${esc(name)} — ลอว์คราฟต์ โดยสำนักงานกฎหมาย PKT</p>
       <p class="sf-legal">ข้อมูลในเว็บไซต์นี้เป็นข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมาย และอาจไม่ทันต่อการแก้ไขกฎหมายล่าสุด ควรตรวจสอบตัวบทฉบับปัจจุบันและปรึกษาทนายความก่อนดำเนินคดี แบบพิมพ์อ้างอิงจากแบบพิมพ์ศาลยุติธรรม สำนักงานศาลยุติธรรม</p>
       <p class="sf-links"><a href="/privacy/">นโยบายความเป็นส่วนตัว</a><a href="/workspace/" class="sf-admin">เข้าสู่ระบบร่างคำฟ้อง</a></p>
     </div>
@@ -121,7 +123,7 @@ export function makeTemplate({ site, chrome }) {
     const graph = [
       {
         '@type': page.ldType || 'WebPage', '@id': `${url}#webpage`, url, name: page.title, description: page.description, inLanguage: 'th-TH',
-        isPartOf: { '@type': 'WebSite', name: 'Law Craft Legal Consultants', url: `${site}/` },
+        isPartOf: { '@type': 'WebSite', name: 'LawCraft by PKT', url: `${site}/` },
         breadcrumb: { '@id': `${url}#breadcrumb` },
         ...(page.lastmod ? { dateModified: page.lastmod } : {}),
       },
@@ -145,7 +147,7 @@ export function makeTemplate({ site, chrome }) {
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="${esc(url)}">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Law Craft Legal Consultants">
+<meta property="og:site_name" content="LawCraft by PKT">
 <meta property="og:locale" content="th_TH">
 <meta property="og:title" content="${t}">
 <meta property="og:description" content="${d}">
@@ -153,7 +155,7 @@ export function makeTemplate({ site, chrome }) {
 <meta property="og:image" content="${site}/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="สำนักงานกฎหมาย ลอว์คราฟต์ — ให้คำปรึกษากฎหมาย ฟ้องคดี รับว่าความ">
+<meta property="og:image:alt" content="LawCraft by PKT — สำนักงานกฎหมาย ให้คำปรึกษากฎหมายฟรี ฟ้องคดี รับว่าความ">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${t}">
 <meta name="twitter:description" content="${d}">

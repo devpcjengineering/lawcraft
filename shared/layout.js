@@ -37,7 +37,7 @@ export const LAYOUT_GROUPS = [
     { k: 'emblem.dx', label: 'เลื่อนซ้าย-ขวา', unit: 'มม.', min: -40, max: 40, step: 0.5 },
     { k: 'emblem.dy', label: 'เลื่อนขึ้น-ลง', unit: 'มม.', min: -15, max: 40, step: 0.5, hint: 'ในไฟล์ Word เลื่อนลงได้เท่านั้น (ค่าติดลบใช้เฉพาะตัวอย่างและ PDF)' },
   ] },
-  { title: 'โลโก้ Law Craft (เว็บไซต์ / หลังบ้าน)', scope: 'all', fields: [
+  { title: 'โลโก้ LawCraft (เว็บไซต์ / หลังบ้าน)', scope: 'all', fields: [
     { k: 'brand.site', label: 'ขนาดโลโก้บนเว็บไซต์ (ความสูง)', unit: 'px', min: 14, max: 56, step: 1 },
     { k: 'brand.admin', label: 'ขนาดโลโก้บนหลังบ้าน (ความสูง)', unit: 'px', min: 16, max: 56, step: 1 },
   ] },

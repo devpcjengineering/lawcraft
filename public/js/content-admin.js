@@ -23,6 +23,7 @@ const TABS = [
   () => import('./content-laws.js'),
   () => import('./content-procedure.js'),
   () => import('./content-pages.js'),
+  () => import('./content-portfolio.js'),
 ];
 let app, mods = [], cur = null, curIdx = 0, stateTxt = '', stateTone = '';
 

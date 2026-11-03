@@ -1,4 +1,4 @@
-// หน้าสำหรับแอดมิน: จัดการข้อมูลบนเว็บไซต์สาธารณะ — ช่องทางติดต่อ ข้อมูลสำนักงาน เวลาทำการ ประกาศบนหัวเว็บ ข้อความท้ายเว็บ
+// หน้าสำหรับแอดมิน: จัดการข้อมูลบนเว็บไซต์สาธารณะ — ช่องทางติดต่อ ข้อมูลผู้ให้บริการ เวลาติดต่อ ประกาศบนหัวเว็บ ข้อความท้ายเว็บ
 // เก็บเป็นแถว key='site' ใน law_data (ทุกคนอ่านได้ เฉพาะแอดมินเขียนได้) แล้วฟุตเตอร์/หน้าติดต่อของเว็บอ่านไปแสดง
 // ใช้วิธีเดียวกับสมุดรายชื่อ: “คดีจำลอง” เป็นที่ผูกฟอร์ม (ตัวช่วย field() อ่านจาก S.c) ไม่ถูกบันทึกเป็นคดี
 import { S, esc, actions, hooks } from './store.js';
@@ -89,21 +89,22 @@ function renderForm() {
         <button type="button" class="btn sm danger" data-act="siteDelContact" data-i="${i}" aria-label="ลบช่องทางที่ ${i + 1}">ลบ</button></div>`).join('') || '<p class="empty">ยังไม่มีช่องทางติดต่อ — กด “เพิ่มช่องทาง”</p>'}</div>
       <div class="toolbar"><button type="button" class="btn outline" data-act="siteAddContact">${icon('plus')}เพิ่มช่องทาง</button></div></section>
 
-    <section class="panel"><h3>เวลาทำการ</h3>
-      ${field('ข้อความเวลาทำการ (ขึ้นท้ายเว็บ)', 'site.hours', { type: 'textarea', rows: 2, ph: 'เช่น จันทร์–ศุกร์ 9.00–17.00 น.', cls: 's12' })}</section>
+    <section class="panel"><h3>เวลาติดต่อ</h3>
+      ${field('ข้อความเวลาติดต่อ (ขึ้นท้ายเว็บ)', 'site.hours', { type: 'textarea', rows: 2, ph: 'เช่น จันทร์–ศุกร์ 9.00–17.00 น.', cls: 's12' })}</section>
 
     <section class="panel"><h3>ประกาศบนหัวเว็บ</h3>
       <label class="chk sw"><input type="checkbox" data-bind="site.announcement.on" data-type="bool" data-rerender="1" ${s.announcement.on ? 'checked' : ''}><span>แสดงแถบประกาศบนทุกหน้าของเว็บ (ผู้เยี่ยมชมปิดได้)</span></label>
-      ${s.announcement.on ? `<div class="grid">${field('ข้อความประกาศ', 'site.announcement.text', { cls: 's12', ph: 'เช่น สำนักงานหยุดทำการวันที่ …' })}
+      ${s.announcement.on ? `<div class="grid">${field('ข้อความประกาศ', 'site.announcement.text', { cls: 's12', ph: 'เช่น งดรับเรื่องปรึกษาวันที่ …' })}
         ${field('ลิงก์ (ไม่บังคับ)', 'site.announcement.link', { cls: 's6', ph: '/contact/ หรือ https://…' })}${field('ข้อความลิงก์', 'site.announcement.linkText', { cls: 's6', ph: 'รายละเอียด' })}</div>` : ''}</section>
 
-    <section class="panel"><h3>ข้อมูลสำนักงาน</h3><div class="grid">
-      ${field('ป้ายหัวข้อ', 'site.office.label', { cls: 's4', ph: 'สำนักงานแห่งใหญ่' })}${field('ชื่อนิติบุคคล', 'site.office.entity', { cls: 's8' })}
+    <section class="panel"><h3>ข้อมูลผู้ดำเนินการเว็บไซต์ (ไม่บังคับ)</h3>
+      <p class="hint panel-note">ค่าเริ่มต้นของเว็บไม่แสดงที่อยู่และเลขทะเบียนนิติบุคคล — กรอกเฉพาะเมื่อต้องการให้แสดงท้ายเว็บ เว้นว่าง = ไม่แสดงส่วนนี้</p><div class="grid">
+      ${field('ป้ายหัวข้อ', 'site.office.label', { cls: 's4', ph: 'ผู้ดำเนินการเว็บไซต์' })}${field('ชื่อนิติบุคคล (เว้นว่าง = ไม่แสดง)', 'site.office.entity', { cls: 's8' })}
       ${field('เลขที่ หมู่ ตำบล', 'site.office.street', { cls: 's12' })}
       ${field('อำเภอ/เขต', 'site.office.district', { cls: 's4' })}${field('จังหวัด', 'site.office.province', { cls: 's4' })}${field('ทะเบียนนิติบุคคลเลขที่', 'site.office.regNo', { cls: 's4' })}</div></section>
 
     <section class="panel"><h3>ข้อความท้ายเว็บ</h3>
-      ${field('คำอธิบายสำนักงาน (เว้นว่าง = ใช้ข้อความมาตรฐาน)', 'site.footerDesc', { type: 'textarea', rows: 4, cls: 's12' })}</section>
+      ${field('คำอธิบายผู้ให้บริการ (เว้นว่าง = ใช้ข้อความมาตรฐาน)', 'site.footerDesc', { type: 'textarea', rows: 4, cls: 's12' })}</section>
 
     <div class="toolbar"><button type="button" class="btn outline" data-act="siteReset">ล้างข้อมูลที่ตั้งไว้ (กลับค่าเริ่มต้น)</button></div>`;
 }
@@ -111,7 +112,7 @@ function renderForm() {
 actions.siteAddContact = () => { S.c.site.contacts.push({ kind: 'tel', label: '', value: '' }); render(); changed(); };
 actions.siteDelContact = (el) => { S.c.site.contacts.splice(+el.dataset.i, 1); render(); changed(); };
 actions.siteReset = async () => {
-  if (!(await confirmBox('ล้างช่องทางติดต่อ เวลาทำการ ประกาศ และข้อความท้ายเว็บที่ตั้งไว้ทั้งหมด แล้วใช้ค่าเริ่มต้นของเว็บแทน?', { title: 'กลับค่าเริ่มต้น', okText: 'ล้างค่า', danger: true }))) return;
+  if (!(await confirmBox('ล้างช่องทางติดต่อ เวลาติดต่อ ประกาศ และข้อความท้ายเว็บที่ตั้งไว้ทั้งหมด แล้วใช้ค่าเริ่มต้นของเว็บแทน?', { title: 'กลับค่าเริ่มต้น', okText: 'ล้างค่า', danger: true }))) return;
   try { await hooks.api.saveSite({}); } catch (e) { return notify({ type: 'error', title: 'ล้างไม่สำเร็จ', message: e.message || String(e) }); }
   try { sessionStorage.removeItem('lawcraft:site:v1'); } catch { /* ข้าม */ }
   S.c = { site: normalize({}) }; setState('ล้างแล้ว', 'ok'); renderForm();

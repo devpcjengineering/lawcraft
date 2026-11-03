@@ -7,7 +7,7 @@ import { mergeIndex, pickArticle, normArticle, needsResolve, reuseStaticRefs, re
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const main = $('#main');
-const BASE_TITLE = 'บทความกฎหมายคดีออนไลน์ · Law Craft';
+const BASE_TITLE = 'บทความกฎหมายคดีออนไลน์ · LawCraft by PKT';
 const BASE_DESC = $('meta[name=description]')?.content || '';
 const thDate = (iso) => { try { return new Date(iso).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return iso || ''; } };
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -183,7 +183,7 @@ async function showArticle(slug) {
 }
 
 function renderArticle(a, list, slug, update) {
-  setMeta(`${a.title} · Law Craft`, a.summary);
+  setMeta(`${a.title} · LawCraft by PKT`, a.summary);
   const tocOpen = update ? $('.ar-toc details')?.open : null;
 
   const toc = [
@@ -258,7 +258,7 @@ function tocSpy() {
 }
 
 function notFound() {
-  setMeta(`ไม่พบบทความ · Law Craft`, '');
+  setMeta(`ไม่พบบทความ · LawCraft by PKT`, '');
   main.innerHTML = '<div class="wrap"><div class="ar-empty"><h1>ไม่พบบทความนี้</h1><p>ลิงก์อาจผิด หรือบทความถูกย้ายแล้ว</p><a class="btn-pill primary" href="/articles/" data-list>ดูบทความทั้งหมด</a></div></div>';
 }
 function fail() {

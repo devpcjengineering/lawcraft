@@ -8,7 +8,7 @@ export const APP_DATE = '__APP_DATE__';
 
 /** โลโก้มุมซ้ายบน: คลิกกลับหน้าแรก, sub = ชื่อหน้าปัจจุบัน (ซ่อนบนมือถือ) */
 export function brandHtml(sub = '') {
-  return `<a class="brand" href="/workspace/" data-act="goHome" aria-label="กลับหน้าแรกหลังบ้าน">${MARK}<span class="brand-text"><span class="lt-th">สำนักงานกฎหมาย ลอว์คราฟต์</span><span class="lt-en">Law Craft Legal Consultants</span></span>${sub ? `<span class="brand-sub">${sub}</span>` : ''}</a>`;
+  return `<a class="brand" href="/workspace/" data-act="goHome" aria-label="กลับหน้าแรกหลังบ้าน">${MARK}<span class="brand-text"><span class="lt-th">LawCraft</span><span class="lt-en">by PKT</span></span>${sub ? `<span class="brand-sub">${sub}</span>` : ''}</a>`;
 }
 
 /** ปุ่มแถบบน: ไอคอนเสมอ ข้อความซ่อนเมื่อจอแคบ (≤1100px, class tb-i / tb-t) — มี title/aria-label เสมอ */
