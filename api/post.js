@@ -57,14 +57,19 @@ async function fetchText(url, init = {}) {
 }
 /** ไฟล์ในไซต์เดียวกัน (dist/…) เช่น _px/article.html, articles-data/<slug>.json — null = ไม่มี/อ่านไม่ได้ */
 async function siteFile(req, rel, dirEnv) {
-  const dir = process.env[dirEnv];
+  const dir = dirEnv ? process.env[dirEnv] : '';
   if (dir) { try { return fs.readFileSync(path.join(dir, rel), 'utf8'); } catch { return null; } }
   for (const b of bases(req)) {
     try { return await fetchText(`${b}/${rel}`); } catch (e) { if (String(e.message) === '404') return null; }
   }
   return null;
 }
-const getShell = (req, kind) => cached('shell:' + kind, 10 * 60_000, async () => { const t = await siteFile(req, `${kind}.html`, 'PX_SHELL_DIR') ?? await siteFile(req, `_px/${kind}.html`, 'PX_SHELL_DIR'); return t && t.includes('@@PX_MAIN@@') ? t : null; });
+/** แม่แบบ dist/_px/<kind>.html (PX_SHELL_DIR=<โฟลเดอร์ที่มี article.html/portfolio.html> สำหรับทดสอบ) — Vercel ตอบ 200 ให้พาธ .html ที่ไม่มีอยู่ด้วยหน้าอื่น จึงต้องตรวจว่ามี token จริง */
+const getShell = (req, kind) => cached('shell:' + kind, 10 * 60_000, async () => {
+  const dir = process.env.PX_SHELL_DIR;
+  const t = dir ? (() => { try { return fs.readFileSync(path.join(dir, `${kind}.html`), 'utf8'); } catch { return null; } })() : await siteFile(req, `_px/${kind}.html`, '');
+  return t && t.includes('@@PX_MAIN@@') ? t : null;
+});
 const staticJson = async (req, rel) => { const t = await siteFile(req, rel, 'PX_DATA_DIR'); try { return t ? JSON.parse(t) : null; } catch { return null; } };
 /** ชั้นที่แอดมินจัดการ (law_data 'content-<key>') — อ่านไม่ได้ = {} (ใช้ข้อมูลตั้งต้นต่อ) · แคช 30 วินาที */
 const liveContent = (key) => cached('content:' + key, 30_000, async () => {
