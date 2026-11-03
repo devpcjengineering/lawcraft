@@ -5,7 +5,7 @@
 | แบบ | ไฟล์ | ใช้กับ |
 |---|---|---|
 | เครื่องหมาย (ตราชั่ง) อย่างเดียว | `lawcraft-mark-orange.svg` · `-black` · `-white` + PNG 256/1024 | ไอคอนเล็ก ลายน้ำ ตราประทับ |
-| **รูปโปรไฟล์** (ตราชั่ง + LawCraft + by PKT (เพ็ช ไพศาณ) — ทุกอย่างอยู่ในวงกลมปลอดภัย ไม่โดนครอป) | `lawcraft-profile-orange.svg` (สี่เหลี่ยมพื้นส้ม — อัปโหลดแล้วให้แอปครอปวงกลมเอง) · `-white` · `lawcraft-profile-circle-orange.svg` / `-circle-white` (เป็นวงกลมแล้ว มุมโปร่ง) + PNG 512/1024 | **รูปโปรไฟล์ Facebook / LINE / Google Business / TikTok** |
+| **รูปโปรไฟล์** (ตราชั่ง + LawCraft + by PKT (เพ็ช ไพศาณ) — ทุกอย่างอยู่ในวงกลมปลอดภัย ไม่โดนครอป) | `lawcraft-profile-orange.svg` (สี่เหลี่ยมพื้นส้ม — อัปโหลดแล้วให้แอปครอปวงกลมเอง) · `lawcraft-profile-circle-orange.svg` (เป็นวงกลมแล้ว มุมโปร่ง) + PNG 512/1024 | **รูปโปรไฟล์ Facebook / LINE / Google Business / TikTok** |
 | วงกลม (ตราชั่งอย่างเดียว) | `lawcraft-circle-orange.svg` (พื้นส้ม ตราชั่งขาว) · `-white` (พื้นขาว ตราชั่งส้ม) · `-black` + PNG 512/1024 | รูปโปรไฟล์แบบไม่มีตัวอักษร (แสดงเล็กมาก) |
 | สี่เหลี่ยมมุมมน | `lawcraft-square-orange.svg` · `-white` · `-black` + PNG 512/1024 | ไอคอนแอป / favicon ขนาดใหญ่ |
 | แนวนอน (ตราชั่ง + LawCraft by PKT (เพ็ช ไพศาณ) + บรรทัดไทย) | `lawcraft-logo-horizontal.svg` (พื้นสว่าง: ตราชั่งส้ม ชื่อดำ) · `-orange` (ส้มล้วน) · `-white` (ขาวล้วน วางบนพื้นเข้ม/ส้ม) · `-on-orange` (มีพื้นส้ม) · `-tagline` (บรรทัดล่างเป็นสโลแกน) + PNG 1440/2880 | หัวเว็บ หัวจดหมาย นามบัตร ป้าย |
