@@ -62,12 +62,12 @@ function footerHtml() {
   return `<div class="wrap">
     <div class="sf-grid">
       <section class="sf-brand" aria-label="เกี่ยวกับ LawCraft">
-        <a class="sf-logo" href="/" aria-label="${esc(name)}">${MARK}<span class="logo-text"><span class="lt-th">LawCraft</span><span class="lt-en">by PKT</span></span></a>
+        <a class="sf-logo" href="/" aria-label="${esc(name)}">${MARK}<span class="logo-text"><span class="lt-th">LawCraft</span><span class="lt-en">by PKT (เพ็ช ไพศาณ)</span></span></a>
         <p class="sf-desc">${esc(config.footerDesc || DEFAULT_DESC)}</p>
         <a class="btn-pill primary sm sf-cta" href="/contact/">ปรึกษาทีมทนายฟรี</a>
       </section>
-      <nav class="sf-col" aria-label="ลิงก์ด่วน">
-        <h2 class="sf-h">ลิงก์ด่วน</h2>
+      <nav class="sf-col" aria-label="ลิงก์">
+        <h2 class="sf-h">ลิงก์</h2>
         <ul>${QUICK.map(([h, t]) => `<li><a href="${h}">${esc(t)}</a></li>`).join('')}</ul>
       </nav>
       <nav class="sf-col" aria-label="หัวข้อกฎหมายออนไลน์">

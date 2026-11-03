@@ -50,7 +50,7 @@ export function makeTemplate({ site, chrome }) {
   <div class="nav-in">
     <a class="logo" href="/" aria-label="${siteName}">
       <svg class="logo-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${MARK.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '')}</svg>
-      <span class="logo-text"><span class="lt-th">LawCraft</span><span class="lt-en">by PKT</span></span>
+      <span class="logo-text"><span class="lt-th">LawCraft</span><span class="lt-en">by PKT (เพ็ช ไพศาณ)</span></span>
     </a>
     <div class="nav-links" id="navLinks">
       ${NAV.map(([k, h, t]) => `<a href="${h}"${k === cur ? ' aria-current="page"' : ''}>${t}</a>`).join('\n      ')}
@@ -72,12 +72,12 @@ export function makeTemplate({ site, chrome }) {
     return `<footer class="foot sf" id="siteFooter"><div class="wrap">
     <div class="sf-grid">
       <section class="sf-brand" aria-label="เกี่ยวกับ LawCraft">
-        <a class="sf-logo" href="/" aria-label="${esc(name)}">${MARK}<span class="logo-text"><span class="lt-th">LawCraft</span><span class="lt-en">by PKT</span></span></a>
+        <a class="sf-logo" href="/" aria-label="${esc(name)}">${MARK}<span class="logo-text"><span class="lt-th">LawCraft</span><span class="lt-en">by PKT (เพ็ช ไพศาณ)</span></span></a>
         <p class="sf-desc">${esc(config.footerDesc || DEFAULT_DESC)}</p>
         <a class="btn-pill primary sm sf-cta" href="/contact/">ปรึกษาทีมทนายฟรี</a>
       </section>
-      <nav class="sf-col" aria-label="ลิงก์ด่วน">
-        <h2 class="sf-h">ลิงก์ด่วน</h2>
+      <nav class="sf-col" aria-label="ลิงก์">
+        <h2 class="sf-h">ลิงก์</h2>
         <ul>${QUICK.map(([h, t]) => `<li><a href="${h}">${esc(t)}</a></li>`).join('')}</ul>
       </nav>
       <nav class="sf-col" aria-label="หัวข้อกฎหมายออนไลน์">
