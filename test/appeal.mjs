@@ -178,6 +178,20 @@ assert.equal(appealDue(''), null);
   assert.ok(pc.appeal.text.includes('ความเป็นมาแห่งคดี'), 'กลับฝั่งโจทก์ อุทธรณ์เดิมกลับมา');
 }
 
+// ---- คำร้องขอทุเลาการบังคับ (ม.231) ในชุดแม่แบบคำร้องฝั่งจำเลย: ออกเป็นคำร้องแบบ ๗ คู่กับอุทธรณ์ ----
+{
+  const st = DEF_MOTIONS.find((x) => x.id === 'd-stay-execution');
+  assert.ok(st && st.kind === 'คำร้อง' && st.caseType === 'civil' && /ทุเลาการบังคับ/.test(st.title) && st.refs.includes('ป.วิ.พ. มาตรา 231'));
+  const mc = { ...c, docs: { ...c.docs, motions: true }, motions: [{ id: 'stay', kind: st.kind, title: st.title, text: st.text }], vars: { 'วันที่คำพิพากษา': '2 พฤศจิกายน 2569' } };
+  const d = buildDocuments(mc, data).find((x) => x.id === 'motion-stay');
+  assert.ok(d, 'มีคำร้องขอทุเลา');
+  const s = textOf(d);
+  assert.ok(s.includes('ทุเลาการบังคับตามคำพิพากษา') && s.includes('จนกว่าคดีจะถึงที่สุด') && s.includes('๒ พฤศจิกายน ๒๕๖๙') && s.includes('จำเลยทั้งห้า'));
+  assert.ok(s.includes('"ข้อ ๑."') && s.includes('"ข้อ ๔."') && !s.includes('"ข้อ ๕."'), 'คำร้อง 4 ข้อ');
+  assert.ok(s.includes('"kind":"ph"'), 'เหตุผล/หลักประกันเป็นช่องให้กรอก');
+  assert.ok(s.includes('ผู้ร้อง'), 'ลงชื่อผู้ร้อง');
+}
+
 // ---- ไม่มีวันที่/สำเนา → จุดไข่ปลา ไม่พัง ; ข้อความว่าง → เส้นให้เขียน ----
 {
   const e = { ...c, appeal: { ...newAppeal() }, counsel: { ...c.counsel, enabled: false } };
