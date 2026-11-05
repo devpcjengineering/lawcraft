@@ -68,6 +68,10 @@ assert.ok(sA.includes('ขอยื่นอุทธรณ์คัดค้า
 assert.ok(sA.includes('๒ พฤศจิกายน ๒๕๖๙'), 'วันที่คำพิพากษา/วันอ่าน เป็นวันที่ไทย');
 assert.ok(sA.includes(' ต่อ') && sA.includes('ศาลอุทธรณ์ภาค ๓'), 'ยื่นต่อศาลอุทธรณ์');
 assert.ok(sA.includes('มีข้อความตามที่จะกล่าวต่อไปนี้'));
+{ // ผู้อุทธรณ์ + ประโยคนำอยู่ย่อหน้าเดียวกัน (ไม่ขึ้นย่อหน้าใหม่)
+  const intro = A.blocks.find((b) => b.t === 'p' && J(b.runs).includes('ขอยื่นอุทธรณ์คัดค้าน'));
+  assert.ok(J(intro.runs).includes('ข้าพเจ้า ') && J(intro.runs).includes(' ผู้อุทธรณ์ ') && intro.indent === 1.5, 'ข้าพเจ้า … ผู้อุทธรณ์ ขอยื่นอุทธรณ์คัดค้าน… ย่อหน้าเดียว');
+}
 assert.ok(sA.includes('"ข้อ ๑."') && sA.includes('"ข้อ ๒."') && sA.includes('"ข้อ ๓."'), 'เลขข้อ');
 assert.ok(sA.includes('ความเป็นมาแห่งคดี') && sA.includes('คำขอท้ายอุทธรณ์'));
 assert.ok(sA.includes('[ชื่อเจ้ามรดก]') && sA.includes('"kind":"ph"'), 'ช่อง {{…}} ที่ยังไม่กรอกเป็นแถบเหลือง');

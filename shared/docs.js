@@ -768,14 +768,14 @@ function appealDocs(c, idx) {
     betweenBlock(c),
     charges ? p([t('ข้อหาหรือฐานความผิด '), val(charges)], { gap: false }) : { t: 'leader', label: 'ข้อหาหรือฐานความผิด' },
     { t: 'amount', baht: c.amount?.baht ? (toNum(c.amount.baht) || 0).toLocaleString('en-US') : '', satang: c.amount?.baht ? String(c.amount.satang || '00') : '' },
-    p([t('ข้าพเจ้า '), ...nameRuns, t(' ผู้อุทธรณ์')], { indent: 1.5, justify: true }),
-    p(ftRuns('appeal.intro', {
+    // “ข้าพเจ้า <ผู้อุทธรณ์ทุกคน> ผู้อุทธรณ์ ขอยื่นอุทธรณ์คัดค้าน…” ต่อเนื่องเป็นย่อหน้าเดียว (ไม่ขึ้นย่อหน้าใหม่ที่ประโยคนำ)
+    p([t('ข้าพเจ้า '), ...nameRuns, t(' ผู้อุทธรณ์ '), ...ftRuns('appeal.intro', {
       what: (a.against || '').trim() || 'คำพิพากษา',
       court: court ? `ศาล${court}` : 'ศาลชั้นต้น',
       date: isoToThaiLong(a.decisionDate),
       read: isoToThaiLong(a.readDate),
       to: (a.toCourt || '').trim() ? [t(' ต่อ'), val(String(a.toCourt).trim())] : [],
-    }), { indent: 0, justify: true }),
+    })], { indent: 1.5, justify: true }),
   ];
   if (items.length) items.forEach((it, i) => blocks.push(...itemParas(i + 1, it, c, idx)));
   else blocks.push(p([itemLabel(1), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 12 });
