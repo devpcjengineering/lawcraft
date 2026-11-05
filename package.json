@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "LawCraft by PKT — สำนักงานกฎหมาย ปรึกษาฟรี ฟ้องคดี รับว่าความ + ฐานความรู้กฎหมาย + หลังบ้านร่างคำฟ้อง",
+  "description": "LawCraft by PKT â€” à¸ªà¸³à¸™à¸±à¸à¸‡à¸²à¸™à¸à¸Žà¸«à¸¡à¸²à¸¢ à¸›à¸£à¸¶à¸à¸©à¸²à¸Ÿà¸£à¸µ à¸Ÿà¹‰à¸­à¸‡à¸„à¸”à¸µ à¸£à¸±à¸šà¸§à¹ˆà¸²à¸„à¸§à¸²à¸¡ + à¸à¸²à¸™à¸„à¸§à¸²à¸¡à¸£à¸¹à¹‰à¸à¸Žà¸«à¸¡à¸²à¸¢ + à¸«à¸¥à¸±à¸‡à¸šà¹‰à¸²à¸™à¸£à¹ˆà¸²à¸‡à¸„à¸³à¸Ÿà¹‰à¸­à¸‡",
   "scripts": {
     "start": "node server/index.js",
     "build": "node scripts/build-static.js",
-    "test": "node test/smoke.mjs && node test/followup.mjs && node test/digits.mjs && node test/frontfit.mjs && node test/seo.mjs && node test/deka-map.mjs && node test/precedents-api.mjs && node test/precedent-page.mjs && node test/post-page.mjs &&node test/witness-note.mjs && node test/procedure-merge.mjs && node test/defendant-side.mjs && node test/witness-request.mjs && node test/doc-order.mjs && node test/item-indent.mjs && node test/service-fee.mjs && node test/witness-rounds.mjs && node test/pdf-server.mjs && node test/tablecut.mjs",
+    "test": "node test/smoke.mjs && node test/followup.mjs && node test/digits.mjs && node test/frontfit.mjs && node test/seo.mjs && node test/deka-map.mjs && node test/precedents-api.mjs && node test/precedent-page.mjs && node test/post-page.mjs &&node test/witness-note.mjs && node test/procedure-merge.mjs && node test/defendant-side.mjs && node test/witness-request.mjs && node test/doc-order.mjs && node test/item-indent.mjs && node test/appeal.mjs && node test/service-fee.mjs && node test/witness-rounds.mjs && node test/pdf-server.mjs && node test/tablecut.mjs",
     "build:edge": "node server/build-edge.js"
   },
   "dependencies": {

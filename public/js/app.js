@@ -320,7 +320,7 @@ function normalizeCase(c) {
   const merged = {
     ...base, ...c, options: { ...base.options, ...c.options }, counsel: { ...base.counsel, ...c.counsel, address: { ...base.counsel.address, ...c.counsel?.address } },
     service: { ...base.service, ...c.service }, docs: { ...base.docs, ...c.docs }, proxy: { ...base.proxy, ...c.proxy, holder: { ...base.proxy.holder, ...c.proxy?.holder } },
-    hearing: { ...base.hearing, ...c.hearing }, answer: { ...base.answer, ...c.answer }, settlement: { ...base.settlement, ...c.settlement }, date: { ...base.date, ...c.date }
+    hearing: { ...base.hearing, ...c.hearing }, answer: { ...base.answer, ...c.answer }, settlement: { ...base.settlement, ...c.settlement }, appeal: { ...base.appeal, ...c.appeal }, date: { ...base.date, ...c.date }
   };
   // ข้อมูลเก่า: crossDistrict/postNotice (boolean) → mode
   if (c.service && !c.service.mode) {
@@ -579,7 +579,7 @@ function schedulePreview(now) {
 function currentDocs() { return buildDocuments(S.c, S.data); }
 
 // หน้า “ตำแหน่งตัวหนังสือ & ตราครุฑ”: เลือกแบบใดต้องเห็นเอกสารแบบนั้นทันที แม้ยังไม่ได้เปิดใช้ในชุด (เช่น ใบแต่งทนาย)
-const LAYOUT_DOCKEY = { complaint: 'complaint', prayer: 'prayer', attachment: 'attachment', service: 'service', motion: 'motions', witness: 'witness', witnessExtra: 'witnessExtra', summons: 'summons', witnessSummons: 'witnessSummons', witnessRequest: 'witnessRequest', attorney: 'attorney', proxy: 'proxy', answer: 'answer', settlement: 'settlement' };
+const LAYOUT_DOCKEY = { complaint: 'complaint', prayer: 'prayer', attachment: 'attachment', service: 'service', motion: 'motions', witness: 'witness', witnessExtra: 'witnessExtra', summons: 'summons', witnessSummons: 'witnessSummons', witnessRequest: 'witnessRequest', attorney: 'attorney', proxy: 'proxy', answer: 'answer', settlement: 'settlement', appeal: 'appeal' };
 const isDocOf = (d, key) => d.id === key || d.id.startsWith(key + '-') || (key === 'motions' && d.id.startsWith('motion-'));
 function previewDocs() {
   if (S.tab === 'attachments') {
@@ -610,6 +610,7 @@ function previewDocs() {
     if (key === 'summons') tmp.type = 'criminal';
     if (key === 'witnessExtra' && !(tmp.witnesses || []).some((w) => w.extra && (w.name || '').trim())) tmp.witnesses = [...(tmp.witnesses || []), { ...newWitness('person', true), name: 'นายตัวอย่าง พยานเพิ่มเติม' }];
     if (key === 'motions' && !tmp.motions.length) tmp.motions = [{ id: 'sample', title: 'ตัวอย่างคำร้อง', text: 'โจทก์ขอยื่นคำร้องนี้เพื่อประกอบการพิจารณาของศาล\n\nขอศาลได้โปรดพิจารณา' }];
+    if (key === 'appeal' && !(tmp.appeal?.text || '').trim()) tmp.appeal = { ...tmp.appeal, text: 'ความเป็นมาแห่งคดี\nตัวอย่างข้อความอุทธรณ์ข้อแรก\n\nเหตุผลที่ไม่เห็นพ้องด้วยกับคำพิพากษาของศาลชั้นต้น\n2.1 ตัวอย่างข้อย่อย' };
     if (key === 'attachment') {
       for (const role of ['plaintiff', 'defendant']) {
         const list = tmp.parties.filter((p) => p.role === role);

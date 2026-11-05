@@ -16,7 +16,7 @@ export const STEPS = [
   { key: 'witness', label: 'บัญชีพยาน', optional: true },
   { key: 'summons', label: 'หมายนัดไต่สวน', optional: true, only: 'criminal' },
   { key: 'motions', label: 'คำร้อง / คำแถลง', optional: true },
-  { key: 'extras', label: 'คำให้การ & สัญญา', optional: true },
+  { key: 'extras', label: 'คำให้การ · สัญญา · อุทธรณ์', optional: true },
   { key: 'export', label: 'ออกเอกสาร' },
 ];
 

@@ -15,6 +15,9 @@ export function newParty(role = 'plaintiff') {
   };
 }
 
+/** ข้อมูลอุทธรณ์เริ่มต้น: partyIds = ผู้อุทธรณ์ที่เลือก (ว่าง = คู่ความฝั่งที่เปิดอยู่ทุกคน) · against = สิ่งที่คัดค้าน · decisionDate/readDate = ISO · toCourt = ศาลที่ยื่นต่อ (ว่างได้) · typist = ผู้เขียนหรือผู้พิมพ์ (ว่าง = ผู้เรียง) */
+export const newAppeal = () => ({ partyIds: [], against: 'คำพิพากษา', decisionDate: '', readDate: '', toCourt: '', text: '', copies: '', typist: '', templateId: '' });
+
 export function newCase(type = 'criminal') {
   return {
     id: uid(), title: '', type, side: 'plaintiff', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
@@ -45,7 +48,8 @@ export function newCase(type = 'criminal') {
     hearing: { date: '', time: '' },
     answer: { defendantId: '', templateId: '', text: '' },               // คำให้การจำเลย (แบบ ๑๑)
     settlement: { templateId: '', subject: '', clauses: [] },            // สัญญาประนีประนอมยอมความ (แบบ ๒๙)
-    docs: { complaint: true, prayer: true, attachment: true, service: true, witness: true, witnessExtra: true, witnessRequest: true, witnessSummons: true, summons: true, attorney: true, proxy: false, motions: true, answer: false, settlement: false },   // attorney: ออกใบแต่งทนายความเมื่อเปิด “มีทนายความ” (counsel.enabled) — ทั้งฝั่งโจทก์และฝั่งจำเลย
+    appeal: newAppeal(),                                                 // อุทธรณ์ (แบบ ๓๒) + ท้ายอุทธรณ์ (แบบ ๓๓) — ผู้อุทธรณ์ = คู่ความฝั่งที่เปิดอยู่
+    docs: { complaint: true, prayer: true, attachment: true, service: true, witness: true, witnessExtra: true, witnessRequest: true, witnessSummons: true, summons: true, attorney: true, proxy: false, motions: true, answer: false, settlement: false, appeal: false },   // attorney: ออกใบแต่งทนายความเมื่อเปิด “มีทนายความ” (counsel.enabled) — ทั้งฝั่งโจทก์และฝั่งจำเลย
     docOrder: [],                                 // ลำดับชนิดเอกสารในชุดที่ผู้ใช้จัดเอง (คีย์ใน DOC_ORDER) — ว่าง = ลำดับมาตรฐานตามชั้น (ดู docs.js docOrderKeys)
     options: { thaiDigits: true, autoFill: true, selfWitness: true },
     closing: { mode: 'self' },                    // ข้อท้ายคำฟ้อง: self = ไม่ได้ร้องทุกข์ ประสงค์ดำเนินคดีเอง | police = ร้องทุกข์ต่อพนักงานสอบสวนแล้ว
@@ -56,11 +60,11 @@ export function newCase(type = 'criminal') {
 // ---------- ฝั่งโจทก์ / ฝั่งจำเลย ในคดีเดียวกัน ----------
 // ช่องข้อมูลที่แยกตามฝั่ง: ฝั่งที่เปิดอยู่ (c.side) อยู่ในช่องปกติของคดี (c.court, c.parties, c.witnesses …) ทำให้แท็บ/เอกสารเดิมทำงานได้ทุกอย่างโดยไม่ต้องแก้
 // ส่วนอีกฝั่งเก็บพักไว้ที่ c.stash แล้วสลับกันด้วย switchSide — ฝั่งจำเลยมีข้อมูลคดี คู่ความ ทนาย พยาน คำร้อง คำให้การ ชุดเอกสารของตัวเอง
-export const SIDE_KEYS = ['court', 'caseNoBlack', 'caseYearBlack', 'caseNoRed', 'caseYearRed', 'date', 'receivedDate', 'parties', 'counsel', 'witnesses', 'witnessExtraRound', 'motions', 'answer', 'docs', 'docOrder', 'options', 'vars', 'copies', 'proxy', 'powers', 'attachments'];
+export const SIDE_KEYS = ['court', 'caseNoBlack', 'caseYearBlack', 'caseNoRed', 'caseYearRed', 'date', 'receivedDate', 'parties', 'counsel', 'witnesses', 'witnessExtraRound', 'motions', 'answer', 'appeal', 'docs', 'docOrder', 'options', 'vars', 'copies', 'proxy', 'powers', 'attachments'];
 export const SIDE_LABEL = { plaintiff: 'ฝั่งโจทก์', defendant: 'ฝั่งจำเลย' };
 export const sideOf = (c) => (c?.side === 'defendant' ? 'defendant' : 'plaintiff');
 /** ชุดเอกสารเริ่มต้นของฝั่งจำเลย: บัญชีพยานจำเลย · คำร้อง/คำแถลง · หมายเรียกพยาน · คำให้การ (ไม่มีคำฟ้อง/คำขอท้ายฟ้อง/หมายนัดไต่สวน) */
-const DEF_DOCS = { complaint: false, prayer: false, attachment: false, service: false, witness: true, witnessExtra: true, witnessRequest: true, witnessSummons: true, summons: false, attorney: true, proxy: false, motions: true, answer: true, settlement: false };
+const DEF_DOCS = { complaint: false, prayer: false, attachment: false, service: false, witness: true, witnessExtra: true, witnessRequest: true, witnessSummons: true, summons: false, attorney: true, proxy: false, motions: true, answer: true, settlement: false, appeal: false };
 
 /** ข้อมูลฝั่งจำเลยเริ่มต้น: คัดชื่อโจทก์/จำเลย ศาล เลขคดีดำ จากฝั่งโจทก์มาให้ก่อน (แก้ได้) ; วันที่รับฟ้องว่างไว้ให้กรอก */
 export function defaultDefendantSlots(c) {
@@ -70,7 +74,7 @@ export function defaultDefendantSlots(c) {
     court: c.court || '', caseNoBlack: c.caseNoBlack || '', caseYearBlack: c.caseYearBlack || '', caseNoRed: '', caseYearRed: '',
     date: fresh.date, receivedDate: '',
     parties: copy(c.parties || fresh.parties).map((p) => ({ ...p, id: uid() })),
-    counsel: fresh.counsel, witnesses: [], witnessExtraRound: '', motions: [], answer: { defendantId: '', templateId: '', text: '' },
+    counsel: fresh.counsel, witnesses: [], witnessExtraRound: '', motions: [], answer: { defendantId: '', templateId: '', text: '' }, appeal: newAppeal(),
     docs: { ...fresh.docs, ...DEF_DOCS }, docOrder: [], options: { ...fresh.options, ...(c.options || {}), selfWitness: true }, vars: {}, copies: '', proxy: fresh.proxy, powers: '',
     attachments: [],
   };
@@ -100,6 +104,7 @@ export function switchSide(c, side) {
   c.options = { ...base.options, ...c.options };
   c.date = { ...base.date, ...c.date };
   c.answer = { ...base.answer, ...c.answer };
+  c.appeal = { ...base.appeal, ...c.appeal };
   c.proxy = { ...base.proxy, ...c.proxy, holder: { ...base.proxy.holder, ...c.proxy?.holder } };
   c.witnesses = c.witnesses || []; c.motions = c.motions || [];
   c.stash = cur;
@@ -322,7 +327,9 @@ export function reservedValue(name, c, idx) {
     case 'โจทก์': return plaintiffs(c).length > 1 ? 'โจทก์ทั้งหมด' : 'โจทก์';
     case 'จำเลย': {
       const n = defendants(c).length;
-      return n <= 1 ? 'จำเลย' : n === 2 ? 'จำเลยทั้งสอง' : `จำเลยทั้ง ${n}`;
+      // จำเลยทั้งสอง/ทั้งสาม … ทั้งสิบ ตามสำนวนเอกสารศาล ; เกินสิบใช้ตัวเลข
+      const W = ['', '', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า', 'สิบ'];
+      return n <= 1 ? 'จำเลย' : n <= 10 ? `จำเลยทั้ง${W[n]}` : `จำเลยทั้ง ${n}`;
     }
     case 'ศาล': return courtShort(c.court) ? `ศาล${courtShort(c.court)}` : '';
     case 'มาตรา': return chargeSectionsText(c, idx);
@@ -392,8 +399,43 @@ export function collectVars(c) {
   c.motions.forEach((m) => add(m.text));
   add(c.powers);
   add(c.answer?.text);
+  add(c.appeal?.text);
   (c.settlement?.clauses || []).forEach((f) => add(f.text));
   return seen;
+}
+
+/** วันครบกำหนดยื่นอุทธรณ์ (ISO) = หนึ่งเดือนนับแต่วันอ่านคำพิพากษา (ป.วิ.พ. มาตรา 229) — null เมื่อยังไม่ระบุวันอ่าน */
+export function appealDue(readDate) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(readDate || '');
+  if (!m) return null;
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  const day = d.getUTCDate();
+  d.setUTCMonth(d.getUTCMonth() + 1);
+  if (d.getUTCDate() !== day) d.setUTCDate(0); // เดือนถัดไปสั้นกว่า (เช่น 31 ม.ค. → 28/29 ก.พ.) = วันสุดท้ายของเดือน
+  return d.toISOString().slice(0, 10);
+}
+
+/** ข้อตรวจของอุทธรณ์ (เฉพาะเมื่อเปิดออกในชุดเอกสาร): ข้อความ · วันที่ · กำหนดหนึ่งเดือน */
+function validateAppeal(c, add) {
+  if (!c.docs?.appeal) return;
+  const a = c.appeal || {};
+  if (!String(a.text || '').trim()) add('warn', 'อุทธรณ์: ยังไม่มีข้อความอุทธรณ์ — เลือกแม่แบบหรือพิมพ์เอง', 'extras');
+  else {
+    // ช่อง {{…}} ในข้อความอุทธรณ์ที่ยังไม่กรอก (ฝั่งโจทก์นับรวมอยู่ใน collectVars แล้ว แต่ชี้ไปหน้าคำฟ้อง — แจ้งซ้ำเฉพาะของอุทธรณ์ให้ไปที่หน้านี้)
+    const miss = [];
+    for (const tk of tokenize(a.text)) if (tk.v !== undefined && !isReserved(tk.v) && !(c.vars?.[tk.v] ?? '').trim() && !miss.includes(tk.v)) miss.push(tk.v);
+    if (miss.length) add('warn', `อุทธรณ์: ยังมีช่องที่ยังไม่ได้กรอก ${miss.length} ช่อง: ${miss.slice(0, 6).join(', ')}${miss.length > 6 ? ' ...' : ''}`, 'extras');
+  }
+  if (!filledStr(a.readDate)) add('warn', 'อุทธรณ์: ยังไม่ระบุวันที่อ่านคำพิพากษา/คำสั่ง — ใช้นับกำหนดยื่นหนึ่งเดือน (ป.วิ.พ. มาตรา 229)', 'extras');
+  else {
+    const due = appealDue(a.readDate);
+    const days = Math.ceil((new Date(due + 'T00:00:00') - new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00')) / 86400000);
+    const dueTh = new Date(due + 'T00:00:00').toLocaleDateString('th-TH');
+    if (days < 0) add('error', `อุทธรณ์: พ้นกำหนดยื่นหนึ่งเดือนนับแต่วันอ่าน (ครบ ${dueTh}) มาแล้ว ${-days} วัน — ต้องขอขยายระยะเวลาหรือตรวจวันอ่านอีกครั้ง`, 'extras');
+    else if (days <= 7) add('warn', `อุทธรณ์: เหลือเวลายื่นอีก ${days} วัน (ครบ ${dueTh}) ตาม ป.วิ.พ. มาตรา 229`, 'extras');
+    else add('info', `อุทธรณ์: ต้องยื่นภายใน ${dueTh} (เหลือ ${days} วัน) ตาม ป.วิ.พ. มาตรา 229`, 'extras');
+  }
+  if (!filledStr(a.copies)) add('info', 'อุทธรณ์: ยังไม่ระบุจำนวนสำเนาอุทธรณ์ในท้ายอุทธรณ์ (แบบ ๓๓)', 'extras');
 }
 
 /** รายการตรวจความครบถ้วนก่อนออกเอกสาร: [{level:'error'|'warn'|'info', msg, tab}] */
@@ -416,6 +458,7 @@ export function validateCase(c, idx) {
         if (g.kind === 'item' && !wFilled(r.w.holder) && !witnessAddrText(r.w)) add('warn', `${lbl}: ยังไม่ระบุผู้ครอบครอง/ที่อยู่ — หมายเรียกจะเว้นไว้ให้เขียนเติมเอง`, 'witness');
       }
     }
+    validateAppeal(c, add);
     return out;
   }
   if (!c.court) add('error', 'ยังไม่ได้เลือกศาล', 'case');
@@ -456,6 +499,7 @@ export function validateCase(c, idx) {
   }
   if (c.counsel?.enabled && String(c.counsel.idCard || '').trim() && !validCitizenId(c.counsel.idCard)) add('error', 'เลขประจำตัวประชาชนของทนายความไม่ถูกต้อง', 'counsel');
   if (c.docs.attorney && !c.counsel.enabled) add('warn', 'เลือกออกใบแต่งทนายความ แต่ยังไม่ได้กรอกข้อมูลทนายความ', 'counsel');
+  validateAppeal(c, add);
   // พยาน: หมายเรียกที่ระบบสร้างให้ต้องมีชื่อ/ที่อยู่ — เป็นข้อควรตรวจ ไม่ขวางการออกเอกสาร
   const unnamedW = (c.witnesses || []).filter((w) => !wFilled(w.name));
   if (unnamedW.length) add('warn', `มีพยาน ${unnamedW.length} รายการที่ยังไม่ระบุชื่อ/รายการ — ยังไม่อยู่ในบัญชีพยานและไม่มีหมายเรียก`, 'witness');

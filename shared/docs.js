@@ -721,6 +721,85 @@ function settlementDoc(c, idx) {
   return { id: 'settlement', title: 'สัญญาประนีประนอมยอมความ', blocks };
 }
 
+/** ข้อความจากแม่แบบที่มี {ตัวแปร} → runs : ค่าเป็นสตริง (ว่าง = จุดไข่ปลา) หรือ run/รายการ run ที่เตรียมไว้แล้ว */
+function ftRuns(key, vars) {
+  const raw = ft(key, Object.fromEntries(Object.keys(vars).map((k) => [k, `\u0000${k}\u0000`])));
+  const out = [];
+  raw.split('\u0000').forEach((s, i) => {
+    if (i % 2 === 0) { if (s) out.push(t(s)); return; }
+    const v = vars[s];
+    if (typeof v === 'string') out.push(v ? val(v) : dots(12));
+    else if (Array.isArray(v)) out.push(...v);
+    else if (v) out.push(v);
+  });
+  return out;
+}
+
+/** สิ่งที่อุทธรณ์คัดค้านได้ (ตัวเลือกในหน้ากรอก — พิมพ์เองได้) */
+export const APPEAL_AGAINST = ['คำพิพากษา', 'คำสั่ง', 'คำพิพากษาตามสัญญาประนีประนอมยอมความ'];
+/** ผู้อุทธรณ์: คู่ความฝั่งที่เปิดอยู่ (เลือกบางคนด้วย appeal.partyIds — ไม่เลือก/เลือกไม่ตรง = ทุกคน) */
+export function appellants(c) {
+  const all = filers(c), ids = Array.isArray(c.appeal?.partyIds) ? c.appeal.partyIds : [];
+  const sel = all.filter((x) => ids.includes(x.id));
+  return sel.length ? sel : all;
+}
+/**
+ * อุทธรณ์ (แบบ ๓๒) + ท้ายอุทธรณ์ (แบบ ๓๓) — สองฉบับคู่กันเหมือนคำฟ้อง/คำขอท้ายคำฟ้อง (id 'appeal' และ 'appeal-tail' → ชนิดเดียวกัน 'appeal')
+ * แบบ ๓๒: หัวเหมือนคำฟ้อง (ศาล วันที่ ความ ระหว่าง ข้อหา ทุนทรัพย์) → “ข้าพเจ้า <ผู้อุทธรณ์> ผู้อุทธรณ์” → ประโยคนำ (appeal.intro) → ข้อ ๑ ๒ …
+ * แบบ ๓๓: สำเนาอุทธรณ์ {n} ฉบับ → ลงชื่อผู้อุทธรณ์ → ผู้เรียง (ทนายความ: ใบอนุญาต ที่อยู่ โทรศัพท์ โทรสาร อีเมล) → ผู้เขียนหรือผู้พิมพ์
+ */
+function appealDocs(c, idx) {
+  const a = c.appeal || {};
+  const list = appellants(c);
+  if (!list.length) return [];
+  const all = filers(c), word = filerWord(c);
+  const civil = c.type === 'civil';
+  const charges = (c.chargeText || '').trim() || chargeNamesText(c, idx) || c.civilCause;
+  const label = (x) => (all.length > 1 ? partyLabel(c, x) : word);
+  const nameRuns = [];
+  list.forEach((x, i) => { if (i) nameRuns.push(t(i === list.length - 1 ? ' และ' : ','), t(' ')); nameRuns.push(val(partyName(x)), t(' ' + label(x))); });
+  const court = courtShort(c.court);
+  const items = textToItems(a.text);
+  const blocks = [
+    top(c, '๓๒', 'อุทธรณ์'),
+    courtBlock(c),
+    betweenBlock(c),
+    charges ? p([t('ข้อหาหรือฐานความผิด '), val(charges)], { gap: false }) : { t: 'leader', label: 'ข้อหาหรือฐานความผิด' },
+    { t: 'amount', baht: c.amount?.baht ? (toNum(c.amount.baht) || 0).toLocaleString('en-US') : '', satang: c.amount?.baht ? String(c.amount.satang || '00') : '' },
+    p([t('ข้าพเจ้า '), ...nameRuns, t(' ผู้อุทธรณ์')], { indent: 1.5, justify: true }),
+    p(ftRuns('appeal.intro', {
+      what: (a.against || '').trim() || 'คำพิพากษา',
+      court: court ? `ศาล${court}` : 'ศาลชั้นต้น',
+      date: isoToThaiLong(a.decisionDate),
+      read: isoToThaiLong(a.readDate),
+      to: (a.toCourt || '').trim() ? [t(' ต่อ'), val(String(a.toCourt).trim())] : [],
+    }), { indent: 0, justify: true }),
+  ];
+  if (items.length) items.forEach((it, i) => blocks.push(...itemParas(i + 1, it, c, idx)));
+  else blocks.push(p([itemLabel(1), t(' '), dots(60)], { indent: 1.5 }), { t: 'lines', n: 12 });
+  blocks.push(p([t(ft('motion.closing.2'))], { align: 'right', gap: true }));
+  const main = { id: 'appeal', title: civil ? 'อุทธรณ์ (แพ่ง)' : 'อุทธรณ์ (อาญา)', blocks };
+
+  // ---- ท้ายอุทธรณ์ (แบบ ๓๓) ----
+  const cn = c.counsel || {};
+  const hasCounsel = !!(cn.enabled && (cn.first || cn.last));
+  const composer = hasCounsel ? counselName(cn) : partyName(list[0]);
+  const typist = String(a.typist || '').trim() || composer;
+  const tail = [
+    top(c, '๓๓', 'ท้ายอุทธรณ์', { showRed: false, noEmblem: true }),
+    p(ftRuns('appeal.copies', { n: String(a.copies || '').trim() }), { indent: 1.5, justify: true, gap: true }),
+    sigBlock(list.map((x) => ({ label: 'ผู้อุทธรณ์', name: `(${partyName(x)})` }))),
+    p([t('อุทธรณ์ฉบับนี้ข้าพเจ้า '), val(composer),
+      ...(hasCounsel ? [t(' ทนายความใบอนุญาตที่ '), cn.license ? val(cn.license) : dots(10), ...(fields(addrPairs(cn.address)).length ? [t(' '), ...fields(addrPairs(cn.address))] : []),
+        ...(cn.phone ? [t(' โทรศัพท์ '), val(cn.phone)] : []), ...(cn.fax ? [t(' โทรสาร '), val(cn.fax)] : []), ...(cn.email ? [t(' ไปรษณีย์อิเล็กทรอนิกส์ '), val(cn.email)] : [])] : []),
+      t(' เป็นผู้เรียง')], { indent: 0, justify: true, keep: true }),
+    sigBlock([{ label: 'ผู้เรียง', name: `(${composer})` }]),
+    p([t('อุทธรณ์ฉบับนี้ข้าพเจ้า '), val(typist), t(' เป็นผู้เขียนหรือผู้พิมพ์')], { indent: 0, justify: true, keep: true }),
+    sigBlock([{ label: 'ผู้เขียนหรือผู้พิมพ์', name: `(${typist})` }]),
+  ];
+  return [main, { id: 'appeal-tail', title: 'ท้ายอุทธรณ์', blocks: tail }];
+}
+
 /** โหมดการส่งหมาย: cross-post | post | cross | none (รองรับข้อมูลเก่าที่เป็น boolean) */
 export function serviceMode(c) {
   const svc = c.service || {};
@@ -805,6 +884,7 @@ export const DOC_TYPES = [
   { key: 'summons', label: 'ร่างหมายนัดไต่สวนมูลฟ้อง (แบบ ๑๙ ตรี)' },
   { key: 'answer', label: 'คำให้การจำเลย (แบบ ๑๑)' },
   { key: 'settlement', label: 'สัญญาประนีประนอมยอมความ (แบบ ๒๙)' },
+  { key: 'appeal', label: 'อุทธรณ์ + ท้ายอุทธรณ์ (แบบ ๓๒ · ๓๓)' },
 ];
 
 /** เอกสารหลังยื่นฟ้อง = หมายเรียกพยาน · บัญชีพยานเพิ่มเติม · คำร้อง/คำแถลง (ไม่รวมคำร้องส่งหมายซึ่งเป็นของชุดคำฟ้อง) */
@@ -819,15 +899,16 @@ export const isPostFilingDoc = (d) => /^(witnessSummons-|motion-)/.test(d.id) ||
  * คดีที่ฟ้องแล้ว (มีเลขคดี) : ชั้นพิจารณามาก่อน แล้วตามด้วยชั้นก่อนฟ้อง
  */
 export const DOC_ORDER = ['complaint', 'prayer', 'attachment', 'service', 'witness', 'summons', 'attorney', 'proxy',
-  'motions', 'witnessExtra', 'witnessRequest', 'witnessSummons', 'answer', 'settlement'];
+  'motions', 'witnessExtra', 'witnessRequest', 'witnessSummons', 'answer', 'settlement', 'appeal'];
 export const DOC_STAGE = {
   complaint: 'pre', prayer: 'pre', attachment: 'pre', service: 'pre', witness: 'pre', summons: 'pre', attorney: 'pre', proxy: 'pre',
-  motions: 'trial', witnessExtra: 'trial', witnessRequest: 'trial', witnessSummons: 'trial', answer: 'trial', settlement: 'trial',
+  motions: 'trial', witnessExtra: 'trial', witnessRequest: 'trial', witnessSummons: 'trial', answer: 'trial', settlement: 'trial', appeal: 'trial',
 };
-/** id เอกสาร (หรือ object เอกสาร) → คีย์ชนิดเอกสาร : 'motion-x' → 'motions' · 'witnessSummons-p-…' → 'witnessSummons' · 'summons-<id>' → 'summons' */
+/** id เอกสาร (หรือ object เอกสาร) → คีย์ชนิดเอกสาร : 'motion-x' → 'motions' · 'witnessSummons-p-…' → 'witnessSummons' · 'summons-<id>' → 'summons' · 'appeal-tail' → 'appeal' */
 export function docKey(idOrDoc) {
   const id = String((idOrDoc && idOrDoc.id) ?? idOrDoc ?? '');
   if (id.startsWith('motion-')) return 'motions';
+  if (id.startsWith('appeal-')) return 'appeal';
   if (id.startsWith('witnessSummons-')) return 'witnessSummons';
   if (id.startsWith('summons-')) return 'summons';
   if (id.startsWith('witnessExtra-')) return 'witnessExtra';
@@ -887,6 +968,7 @@ export function buildDocuments(c, data, only) {
   if (want('proxy')) docs.push(proxyDoc(c, idx));
   if (want('answer')) { const a = answerDoc(c, idx); if (a) docs.push(a); }
   if (want('settlement')) docs.push(settlementDoc(c, idx));
+  if (want('appeal')) docs.push(...appealDocs(c, idx));
   // เรียงตาม DOC_ORDER (คงลำดับเดิมของเอกสารชนิดเดียวกัน เช่น คำร้องหลายฉบับ/หมายเรียกหลายฉบับ) ;
   // คดีที่ฟ้องแล้ว: ชั้นพิจารณา (เอกสารหลังยื่นฟ้อง) มาก่อนชั้นก่อนฟ้อง ตามกลุ่มบนหน้าออกเอกสาร ;
   // ผู้ใช้จัดลำดับเองได้เป็นชุดเอกสาร (c.docOrder = รายการคีย์ชนิดเอกสาร) → ใช้ลำดับนั้นทั้งชุดแทนกติกาชั้น

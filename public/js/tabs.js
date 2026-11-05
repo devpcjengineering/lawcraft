@@ -4,10 +4,10 @@ import { idField, field, select, check, seg, dateFields, addressFields, badge, p
 import {
   newParty, uid, plaintiffs, defendants, partyLabel, partyName, collectVars, validateCase, chargeItem, chargeSectionsText, chargeNamesText, serviceAdvice, ensureBasePrayer, tailFacts, resolveRuns, serviceFeeInfo,
   WITNESS_KINDS, newWitness, emptyAddress, witnessKind, witnessSummonsPlan, witnessWantsSummons, witnessAddrText, witnessWho,
-  witnessList, witnessRounds, isFiled, filedBadge, sideOf, witnessNoteKeyword,
+  witnessList, witnessRounds, isFiled, filedBadge, sideOf, witnessNoteKeyword, appealDue,
 } from '/shared/model.js';
-import { DEF_MOTIONS } from '/shared/def-templates.js';
-import { serviceMotionText, serviceMode, DOC_TYPES, MOTION_KINDS_ALL, POST_FILING_KEYS, buildDocuments, docKey, docOrderKeys } from '/shared/docs.js';
+import { DEF_MOTIONS, APPEALS } from '/shared/def-templates.js';
+import { serviceMotionText, serviceMode, DOC_TYPES, MOTION_KINDS_ALL, POST_FILING_KEYS, buildDocuments, docKey, docOrderKeys, APPEAL_AGAINST } from '/shared/docs.js';
 import { openViewer } from './viewer.js';
 import { icon as ix } from './icons.js';
 import { FORM_TEXT, defaultFormText } from '/shared/formtext.js';
@@ -824,7 +824,7 @@ function tabExtras() {
   const ans = (T.answers || []).filter((x) => x.caseType === c.type);
   const sets = (T.settlements || []).filter((x) => x.caseType === c.type);
   const dfs = defendants(c);
-  return `${pageHead('คำให้การ & สัญญาประนีประนอม', 'คำให้การจำเลย (แบบ ๑๑) และสัญญาประนีประนอมยอมความ (แบบ ๒๙) ใช้ข้อมูลคู่ความชุดเดียวกัน')}
+  return `${pageHead('คำให้การ · สัญญาประนีประนอม · อุทธรณ์', 'คำให้การจำเลย (แบบ ๑๑) สัญญาประนีประนอมยอมความ (แบบ ๒๙) และอุทธรณ์ (แบบ ๓๒ + ท้ายอุทธรณ์ แบบ ๓๓) ใช้ข้อมูลคู่ความชุดเดียวกัน')}
   ${varsPanel(true)}
   <div class="panel"><h3>คำให้การจำเลย (แบบ ๑๑)<span class="grow"></span>${check('ออกในชุดเอกสาร', 'docs.answer', { rerender: true, sw: true })}</h3>
     ${group('จำเลยและแม่แบบ', `
@@ -838,8 +838,53 @@ function tabExtras() {
       <div class="f s4 f-end"><button class="btn outline" data-act="useSettlementTpl">ใช้แม่แบบนี้</button></div>
       ${field('เรื่อง', 'settlement.subject', { cls: 's12', ph: 'เช่น ผิดสัญญากู้ยืมเงิน' })}`)}
     <section class="grp"><div class="grp-t">ข้อตกลง</div>${itemEditor('settlement.clauses', 'ข้อ', 'ยังไม่มีข้อตกลง — เลือกแม่แบบด้านบน หรือกด “เพิ่มข้อตกลง”')}
-      <div class="toolbar foot"><button class="btn outline" data-act="addItem" data-list="settlement.clauses">${icon('plus', { size: 16 })}เพิ่มข้อตกลง</button></div></section></div>`;
+      <div class="toolbar foot"><button class="btn outline" data-act="addItem" data-list="settlement.clauses">${icon('plus', { size: 16 })}เพิ่มข้อตกลง</button></div></section></div>
+  ${appealPanel(c)}`;
 }
+
+// ---- อุทธรณ์ (แบบ ๓๒) + ท้ายอุทธรณ์ (แบบ ๓๓): ผู้อุทธรณ์ = คู่ความฝั่งที่เปิดอยู่ (เลือกบางคนได้) ----
+const appealTemplates = (c) => APPEALS.filter((x) => (x.caseType === 'any' || x.caseType === c.type) && (x.side === 'any' || x.side === sideOf(c)));
+const thDateLong = (iso) => (iso ? new Date(iso + 'T00:00:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
+function appealPanel(c) {
+  const ap = c.appeal || {};
+  const side = sideOf(c), filers = side === 'defendant' ? defendants(c) : plaintiffs(c);
+  const tpls = appealTemplates(c);
+  const cur = tpls.find((x) => x.id === ap.templateId);
+  const due = appealDue(ap.readDate);
+  const dueDays = due ? Math.ceil((new Date(due + 'T00:00:00') - new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00')) / 86400000) : null;
+  const ids = Array.isArray(ap.partyIds) ? ap.partyIds : [];
+  return `<div class="panel"><h3>อุทธรณ์ (แบบ ๓๒) + ท้ายอุทธรณ์ (แบบ ๓๓)<span class="grow"></span>${check('ออกในชุดเอกสาร', 'docs.appeal', { rerender: true, sw: true })}</h3>
+    <p class="hint panel-note">ผู้อุทธรณ์คือ${side === 'defendant' ? 'จำเลย' : 'โจทก์'}ในคดีนี้ · ยื่นต่อศาลชั้นต้นภายในหนึ่งเดือนนับแต่วันอ่านคำพิพากษา/คำสั่ง (ป.วิ.พ. มาตรา 229)${due ? ` — <b>ครบกำหนด ${esc(thDateLong(due))}</b>${dueDays < 0 ? ` ${badge(`พ้นกำหนดแล้ว ${-dueDays} วัน`, 'err')}` : dueDays <= 7 ? ` ${badge(`เหลือ ${dueDays} วัน`, 'warn')}` : ` (เหลือ ${dueDays} วัน)`}` : ''}</p>
+    ${group('คัดค้านอะไร', `
+      ${field('คัดค้าน', 'appeal.against', { cls: 's6', list: 'dl-appeal-against', ph: 'คำพิพากษา / คำสั่ง' })}<datalist id="dl-appeal-against">${APPEAL_AGAINST.map((x) => `<option value="${esc(x)}">`).join('')}</datalist>
+      ${field('ลงวันที่ (วันที่คำพิพากษา/คำสั่ง)', 'appeal.decisionDate', { cls: 's3', type: 'date' })}
+      ${field('ที่ได้อ่านเมื่อวันที่', 'appeal.readDate', { cls: 's3', type: 'date', rerender: true, hint: 'ใช้นับกำหนดยื่นหนึ่งเดือน' })}
+      ${field('ยื่นต่อศาล (ถ้าต้องการระบุในประโยคนำ)', 'appeal.toCourt', { cls: 's6', ph: 'เช่น ศาลอุทธรณ์ภาค 3' })}
+      ${field('จำนวนสำเนาอุทธรณ์ (ท้ายอุทธรณ์)', 'appeal.copies', { cls: 's3', inputmode: 'numeric' })}
+      ${field('ผู้เขียนหรือผู้พิมพ์ (ว่าง = ผู้เรียง)', 'appeal.typist', { cls: 's3' })}`)}
+    ${filers.length > 1 ? group('ผู้อุทธรณ์ (ไม่เลือก = ทุกคน)', filers.map((d) => `<div class="f s4"><label class="chk"><input type="checkbox" data-act="toggleAppellant" data-id="${esc(d.id)}" ${ids.includes(d.id) ? 'checked' : ''}><span>${esc(partyLabel(c, d))}: ${esc(partyName(d))}</span></label></div>`).join('')) : ''}
+    ${group('แม่แบบ', `
+      <label class="f s8"><span>แม่แบบอุทธรณ์</span><select id="apl-tpl">${tpls.map((x) => `<option value="${esc(x.id)}" ${x.id === ap.templateId ? 'selected' : ''}>${esc(x.title)}</option>`).join('')}</select></label>
+      <div class="f s4 f-end"><button class="btn outline" data-act="useAppealTpl">ใช้แม่แบบนี้ (แทนที่ข้อความ)</button></div>
+      ${cur?.note ? `<div class="f s12"><div class="caution">${icon('alert', { size: 18 })}<div>${esc(cur.note)}</div></div></div>` : ''}
+      ${cur?.refs?.length ? `<div class="f s12"><small class="hint">อ้างอิง: ${esc(cur.refs.join(' · '))} — เลขมาตรา/ฎีกาในแม่แบบยังไม่ผ่านการตรวจกับแหล่งทางการ ตรวจก่อนยื่น</small></div>` : ''}`)}
+    ${group('ข้อความ', field('ข้อความอุทธรณ์ (แยกข้อด้วยบรรทัดว่าง — บรรทัดแรกของแต่ละข้อใช้เป็นหัวข้อได้ · ข้อย่อย 3.1 / (1) ขึ้นบรรทัดใหม่)', 'appeal.text', { cls: 's12', type: 'textarea', rows: 16 }))}
+    <p class="hint">ท้ายอุทธรณ์ (แบบ ๓๓) ใช้ชื่อทนายความจากหน้า “ทนายความ” เป็นผู้เรียง (ไม่มีทนาย = ผู้อุทธรณ์คนแรก) และระบบออกให้พร้อมกันเป็นอีกหนึ่งหน้า</p></div>`;
+}
+actions.useAppealTpl = () => {
+  const tpl = appealTemplates(S.c).find((x) => x.id === document.getElementById('apl-tpl')?.value);
+  if (!tpl) return hooks.toast('เลือกแม่แบบก่อน');
+  S.c.appeal.text = tpl.text;
+  S.c.appeal.templateId = tpl.id;
+  if (tpl.against) S.c.appeal.against = tpl.against;
+  S.c.docs.appeal = true; rerender(); hooks.changed(); hooks.toast('ใส่ข้อความอุทธรณ์แล้ว — กรอกช่องสีเหลืองในกล่อง “ช่องข้อมูลที่ต้องกรอก”');
+};
+actions.toggleAppellant = (el) => {
+  const id = el.dataset.id, a = S.c.appeal;
+  a.partyIds = Array.isArray(a.partyIds) ? a.partyIds : [];
+  a.partyIds = a.partyIds.includes(id) ? a.partyIds.filter((x) => x !== id) : [...a.partyIds, id];
+  rerender(); hooks.changed();
+};
 actions.useAnswerTpl = () => {
   const tpl = (tplData().answers || []).find((x) => x.id === document.getElementById('ans-tpl')?.value);
   if (!tpl) return hooks.toast('เลือกแม่แบบก่อน');
@@ -921,7 +966,7 @@ function tabExport() {
   const c = S.c;
   const issues = validateCase(c, S.idx);
   const errs = issues.filter((x) => x.level === 'error'), warns = issues.filter((x) => x.level === 'warn'), infos = issues.filter((x) => x.level === 'info');
-  const tabNames = { case: 'ข้อมูลคดี', parties: 'คู่ความ', counsel: 'ทนายความ', charges: 'คำฟ้อง', facts: 'คำฟ้อง', complaint: 'คำฟ้อง', prayer: 'คำขอท้ายฟ้อง', witness: 'บัญชีพยาน' };
+  const tabNames = { case: 'ข้อมูลคดี', parties: 'คู่ความ', counsel: 'ทนายความ', charges: 'คำฟ้อง', facts: 'คำฟ้อง', complaint: 'คำฟ้อง', prayer: 'คำขอท้ายฟ้อง', witness: 'บัญชีพยาน', extras: 'คำให้การ · อุทธรณ์' };
   const req = REQUIRED(), reqOk = req.filter((r) => r.ok).length;
   const tone = errs.length ? 'err' : warns.length ? 'warn' : 'ok';
   const issueRow = (x) => `<li><span class="st-ico ${ISSUE_ICON[x.level][0]}" aria-hidden="true">${ISSUE_ICON[x.level][1]}</span><span class="r-main">${esc(x.msg)}</span>
@@ -1176,7 +1221,7 @@ actions.saveFormText = async () => {
 
 // ===================== หน้า: แบบพิมพ์ศาล (ต้นฉบับ) =====================
 let formsIndex = null;
-const USED_FORMS = new Set(['04', '05', '06', '07', '09', '10', '11', '15', '16', '17', '18', '19 ตรี', '29']);
+const USED_FORMS = new Set(['04', '05', '06', '07', '09', '10', '11', '15', '16', '17', '18', '19 ตรี', '29', '32', '33']);
 function tabForms() {
   if (!formsIndex) {
     fetch('/templates/index.json').then((r) => r.json()).then((j) => { formsIndex = j.forms || []; if (S.tab === 'forms') rerender(); }).catch(() => { formsIndex = []; if (S.tab === 'forms') rerender(); });
@@ -1208,7 +1253,7 @@ const LAYOUT_FORMS = [
   ['all', 'ทุกแบบ (ค่ากลาง)', ''], ['complaint', 'คำฟ้อง (แบบ ๔)', 'complaint'], ['prayer', 'คำขอท้ายคำฟ้อง', 'prayer'],
   ['attachment', 'เอกสารแนบท้ายคำฟ้อง', 'attachment'], ['service', 'คำร้องส่งหมาย / ปิดหมาย', 'service'], ['motion', 'คำร้อง / คำแถลงอื่น', 'motion'],
   ['witness', 'บัญชีพยาน', 'witness'], ['witnessExtra', 'บัญชีพยาน (เพิ่มเติม) ครั้งที่ …', 'witnessExtra'], ['witnessRequest', 'คำร้องขอให้ศาลออกหมายเรียกพยาน', 'witnessRequest'], ['witnessSummons', 'หมายเรียกพยาน (แบบ ๑๖ · ๑๗ · ๑๘)', 'witnessSummons'], ['summons', 'หมายนัดไต่สวนมูลฟ้อง', 'summons'], ['attorney', 'ใบแต่งทนายความ', 'attorney'],
-  ['proxy', 'ใบมอบอำนาจ', 'proxy'], ['answer', 'คำให้การจำเลย', 'answer'], ['settlement', 'สัญญาประนีประนอมยอมความ', 'settlement'],
+  ['proxy', 'ใบมอบอำนาจ', 'proxy'], ['answer', 'คำให้การจำเลย', 'answer'], ['settlement', 'สัญญาประนีประนอมยอมความ', 'settlement'], ['appeal', 'อุทธรณ์ + ท้ายอุทธรณ์ (แบบ ๓๒ · ๓๓)', 'appeal'],
 ];
 const LAYOUT_PRESETS = { 'emblem.width': [['เล็ก', 18], ['มาตรฐาน', 24], ['ใหญ่', 32]] };
 const layoutObj = () => { const L = (S.data.layout ||= {}); L.all ||= {}; L.forms ||= {}; return L; };
@@ -1328,7 +1373,7 @@ export const NAV = [
   ] },
   { group: 'เพิ่มเติม', items: [
     { key: 'motions', label: 'คำร้อง / คำแถลง', ico: 'file', render: tabMotions, doc: 'motions', count: () => S.c.motions.length },
-    { key: 'extras', label: 'คำให้การ & สัญญา', ico: 'pen', render: tabExtras, doc: 'answer' },
+    { key: 'extras', label: 'คำให้การ · สัญญา · อุทธรณ์', ico: 'pen', render: tabExtras, doc: 'answer', status: () => (S.c.docs.appeal && !(S.c.appeal?.text || '').trim() ? 'todo' : undefined) },
   ] },
   { group: 'ออกเอกสาร', items: [
     { key: 'export', label: 'ออกเอกสาร', ico: 'download', render: tabExport },
