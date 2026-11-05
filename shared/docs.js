@@ -130,10 +130,12 @@ function authorLine(c, noun = 'คำฟ้อง', selfParty = null) {
       sigBlock([{ label: 'ผู้เรียงและเขียนหรือพิมพ์', name: `(${counselName(cn)})` }]),
     ];
   }
+  // ไม่มีทนาย: ชื่อที่ระบุไว้ (c.author) หรือคู่ความคนแรกของฝั่งที่ยื่น — พิมพ์ชื่อใต้ช่องลงชื่อด้วย (เดิมเว้นว่าง)
   const pl = selfParty || filers(c)[0];
+  const name = String(c.author || '').trim() || (pl ? partyName(pl) : '');
   return [
-    p([t(`${noun}ฉบับนี้ ข้าพเจ้า `), val(pl ? partyName(pl) : ''), t(' ผู้เรียงและเขียนหรือพิมพ์')], { align: 'center', keep: true }),
-    sigBlock([{ label: 'ผู้เรียงและเขียนหรือพิมพ์', name: '' }]),
+    p([t(`${noun}ฉบับนี้ ข้าพเจ้า `), name ? val(name) : dots(24), t(' ผู้เรียงและเขียนหรือพิมพ์')], { align: 'center', keep: true }),
+    sigBlock([{ label: 'ผู้เรียงและเขียนหรือพิมพ์', name: name ? `(${name})` : '' }]),
   ];
 }
 
@@ -783,7 +785,7 @@ function appealDocs(c, idx) {
   // ---- ท้ายอุทธรณ์ (แบบ ๓๓) ----
   const cn = c.counsel || {};
   const hasCounsel = !!(cn.enabled && (cn.first || cn.last));
-  const composer = hasCounsel ? counselName(cn) : partyName(list[0]);
+  const composer = hasCounsel ? counselName(cn) : (String(c.author || '').trim() || partyName(list[0]));
   const typist = String(a.typist || '').trim() || composer;
   const tail = [
     top(c, '๓๓', 'ท้ายอุทธรณ์', { showRed: false, noEmblem: true }),

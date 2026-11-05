@@ -190,6 +190,17 @@ assert.equal(appealDue(''), null);
   assert.ok(s.includes('"ข้อ ๑."') && s.includes('"ข้อ ๔."') && !s.includes('"ข้อ ๕."'), 'คำร้อง 4 ข้อ');
   assert.ok(s.includes('"kind":"ph"'), 'เหตุผล/หลักประกันเป็นช่องให้กรอก');
   assert.ok(s.includes('ผู้ร้อง'), 'ลงชื่อผู้ร้อง');
+  // ผู้เรียงและเขียนหรือพิมพ์: ไม่มีทนาย → ชื่อผู้ร้องคนแรกใต้ช่องลงชื่อ ; ระบุ c.author → ใช้ชื่อนั้น (ทั้งคำร้องและท้ายอุทธรณ์)
+  const noC = { ...mc, counsel: { ...mc.counsel, enabled: false } };
+  const sig = (doc) => doc.blocks.filter((b) => b.t === 'sig').find((b) => b.lines[0].label === 'ผู้เรียงและเขียนหรือพิมพ์');
+  assert.equal(sig(buildDocuments(noC, data).find((x) => x.id === 'motion-stay')).lines[0].name, '(นางสาวหนึ่ง ทายาทสมมติ)', 'ชื่อผู้เรียงใต้ลายมือชื่อคำร้อง');
+  const au = { ...noC, author: 'นายเสมียน เรียงดี' };
+  const ds = buildDocuments(au, data);
+  assert.equal(sig(ds.find((x) => x.id === 'motion-stay')).lines[0].name, '(นายเสมียน เรียงดี)');
+  assert.ok(textOf(ds.find((x) => x.id === 'motion-stay')).includes('ข้าพเจ้า ') && textOf(ds.find((x) => x.id === 'motion-stay')).includes('นายเสมียน เรียงดี'));
+  assert.ok(textOf(ds.find((x) => x.id === 'appeal-tail')).includes('นายเสมียน เรียงดี') && textOf(ds.find((x) => x.id === 'appeal-tail')).includes('เป็นผู้เรียง'), 'ท้ายอุทธรณ์ใช้ชื่อผู้เรียงที่ระบุ');
+  const dsC = buildDocuments({ ...au, counsel: mc.counsel }, data);
+  assert.equal(sig(dsC.find((x) => x.id === 'motion-stay')).lines[0].name, '(นายทนาย สมมติ)', 'มีทนาย → ทนายเป็นผู้เรียง ไม่ใช้ c.author');
 }
 
 // ---- ไม่มีวันที่/สำเนา → จุดไข่ปลา ไม่พัง ; ข้อความว่าง → เส้นให้เขียน ----

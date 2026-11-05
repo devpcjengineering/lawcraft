@@ -63,6 +63,10 @@
 .panel > h3, .sec-h { font-size: 17px; font-weight: 600; letter-spacing: -.005em; color: var(--ink); margin: 0 0 20px; }
 .panel > h3 .chk { font-size: 14.5px; font-weight: 400; color: var(--ink-2); }
 .panel.compact { padding: 16px 20px; }
+/* กล่องเอกสารที่ปิดสวิตช์ “ออกในชุดเอกสาร”: ยุบเหลือหัวข้อ + สถานะ (หน้า คำให้การ · สัญญา · อุทธรณ์) */
+.panel.off { padding: 14px 20px; background: var(--surface-2, #fafafa); border-style: dashed; }
+.panel.off > h3 { margin: 0; font-size: 15.5px; color: var(--ink-2); }
+.panel.off > .panel-note { margin: 6px 0 0; font-size: 13px; }
 .panel.spaced { margin-top: 16px; }
 .panel-body { margin-top: 24px; }
 .panel-foot { margin-top: 20px; }

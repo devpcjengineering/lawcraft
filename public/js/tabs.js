@@ -351,6 +351,7 @@ function tabCounsel() {
     <span class="grow"></span>
     ${cn.enabled ? `${mine.length ? `<select class="sel-inline" data-onchange="useCounsel" aria-label="เลือกจากสมุดรายชื่อ"><option value="">เลือกจากสมุดรายชื่อ…</option>${mine.map((x) => `<option value="${esc(x.id)}">${esc(x.label)}</option>`).join('')}</select>` : ''}
     <button class="btn sm outline" data-act="saveCounsel">${icon('bookmark', { size: 15 })}บันทึกลงสมุดรายชื่อ</button>` : ''}</div>
+    ${cn.enabled ? '' : `<div class="panel-body">${group('ผู้เรียงและเขียนหรือพิมพ์', field(`ชื่อผู้เรียงและเขียนหรือพิมพ์ท้ายเอกสาร (ว่าง = ${sideOf(c) === 'defendant' ? 'จำเลย' : 'โจทก์'}คนแรก)`, 'author', { cls: 's8', ph: 'เช่น นายสมชาย ใจดี', hint: 'พิมพ์ในบรรทัด “…ฉบับนี้ ข้าพเจ้า … ผู้เรียงและเขียนหรือพิมพ์” และใต้ช่องลงชื่อของคำฟ้อง คำร้อง คำให้การ และท้ายอุทธรณ์' }))}</div>`}
     ${cn.enabled ? `<div class="panel-body">
       ${group('ข้อมูลส่วนตัว', `
         ${field('คำนำหน้า', 'counsel.prefix', { cls: 's3', list: 'dl-prefix' })}
@@ -824,22 +825,30 @@ function tabExtras() {
   const ans = (T.answers || []).filter((x) => x.caseType === c.type);
   const sets = (T.settlements || []).filter((x) => x.caseType === c.type);
   const dfs = defendants(c);
-  return `${pageHead('คำให้การ · สัญญาประนีประนอม · อุทธรณ์', 'คำให้การจำเลย (แบบ ๑๑) สัญญาประนีประนอมยอมความ (แบบ ๒๙) และอุทธรณ์ (แบบ ๓๒ + ท้ายอุทธรณ์ แบบ ๓๓) ใช้ข้อมูลคู่ความชุดเดียวกัน')}
+  const hasAns = !!(c.answer?.text || '').trim(), nCl = (c.settlement?.clauses || []).filter((x) => (x.text || '').trim()).length;
+  return `${pageHead('คำให้การ · สัญญาประนีประนอม · อุทธรณ์', 'เปิดสวิตช์เฉพาะเอกสารที่จะใช้ในคดีนี้ กล่องที่ปิดอยู่จะยุบเหลือหัวข้อ — คำให้การจำเลย (แบบ ๑๑) สัญญาประนีประนอมยอมความ (แบบ ๒๙) อุทธรณ์ (แบบ ๓๒ + ท้ายอุทธรณ์ แบบ ๓๓)')}
   ${varsPanel(true)}
-  <div class="panel"><h3>คำให้การจำเลย (แบบ ๑๑)<span class="grow"></span>${check('ออกในชุดเอกสาร', 'docs.answer', { rerender: true, sw: true })}</h3>
+  ${docPanel(c, 'answer', 'คำให้การจำเลย (แบบ ๑๑)', hasAns ? 'มีข้อความคำให้การอยู่แล้ว แต่ยังไม่ออกในชุด' : 'ยังไม่ได้ใช้', `
     ${group('จำเลยและแม่แบบ', `
       <label class="f s6"><span>จำเลยผู้ให้การ</span><select data-bind="answer.defendantId" data-rerender="1">${dfs.map((d) => `<option value="${esc(d.id)}" ${c.answer.defendantId === d.id ? 'selected' : ''}>${esc(partyLabel(c, d))}: ${esc(partyName(d))}</option>`).join('')}</select></label>
       <label class="f s6"><span>แม่แบบ</span><select id="ans-tpl"><option value="">เลือกแม่แบบคำให้การ…</option>${ans.map((x) => `<option value="${esc(x.id)}">${esc(x.title)}</option>`).join('')}</select></label>
       <div class="f s12"><div><button class="btn outline" data-act="useAnswerTpl">ใช้แม่แบบนี้ (แทนที่ข้อความ)</button></div></div>`)}
-    ${group('ข้อความ', field('ข้อความคำให้การ (แยกข้อด้วยบรรทัดว่าง)', 'answer.text', { cls: 's12', type: 'textarea', rows: 9 }))}</div>
-  <div class="panel"><h3>สัญญาประนีประนอมยอมความ (แบบ ๒๙)<span class="grow"></span>${check('ออกในชุดเอกสาร', 'docs.settlement', { rerender: true, sw: true })}</h3>
+    ${group('ข้อความ', field('ข้อความคำให้การ (แยกข้อด้วยบรรทัดว่าง)', 'answer.text', { cls: 's12', type: 'textarea', rows: 9 }))}`)}
+  ${docPanel(c, 'settlement', 'สัญญาประนีประนอมยอมความ (แบบ ๒๙)', nCl ? `มีข้อตกลง ${nCl} ข้ออยู่แล้ว แต่ยังไม่ออกในชุด` : 'ยังไม่ได้ใช้', `
     ${group('แม่แบบ', `
       <label class="f s8"><span>แม่แบบ</span><select id="set-tpl"><option value="">เลือกแม่แบบสัญญา…</option>${sets.map((x) => `<option value="${esc(x.id)}">${esc(x.title)}</option>`).join('')}</select></label>
       <div class="f s4 f-end"><button class="btn outline" data-act="useSettlementTpl">ใช้แม่แบบนี้</button></div>
       ${field('เรื่อง', 'settlement.subject', { cls: 's12', ph: 'เช่น ผิดสัญญากู้ยืมเงิน' })}`)}
     <section class="grp"><div class="grp-t">ข้อตกลง</div>${itemEditor('settlement.clauses', 'ข้อ', 'ยังไม่มีข้อตกลง — เลือกแม่แบบด้านบน หรือกด “เพิ่มข้อตกลง”')}
-      <div class="toolbar foot"><button class="btn outline" data-act="addItem" data-list="settlement.clauses">${icon('plus', { size: 16 })}เพิ่มข้อตกลง</button></div></section></div>
+      <div class="toolbar foot"><button class="btn outline" data-act="addItem" data-list="settlement.clauses">${icon('plus', { size: 16 })}เพิ่มข้อตกลง</button></div></section>`)}
   ${appealPanel(c)}`;
+}
+/** กล่องเอกสารที่มีสวิตช์ “ออกในชุดเอกสาร”: ปิดอยู่ = ยุบเหลือหัวข้อ + สถานะสั้น ๆ (เปิดสวิตช์แล้วค่อยกางฟอร์ม) — จอมือถือไม่ต้องเลื่อนผ่านฟอร์มที่ไม่ใช้ */
+function docPanel(c, key, title, offNote, body) {
+  const on = !!c.docs?.[key];
+  const sw = check(on ? 'ออกในชุดเอกสาร' : 'เปิดใช้', `docs.${key}`, { rerender: true, sw: true });
+  if (!on) return `<div class="panel off"><h3>${title}<span class="grow"></span>${sw}</h3><p class="hint panel-note">${esc(offNote)} — เปิดสวิตช์เพื่อกรอกและออกในชุดเอกสาร</p></div>`;
+  return `<div class="panel"><h3>${title}<span class="grow"></span>${sw}</h3>${body}</div>`;
 }
 
 // ---- อุทธรณ์ (แบบ ๓๒) + ท้ายอุทธรณ์ (แบบ ๓๓): ผู้อุทธรณ์ = คู่ความฝั่งที่เปิดอยู่ (เลือกบางคนได้) ----
@@ -853,7 +862,8 @@ function appealPanel(c) {
   const due = appealDue(ap.readDate);
   const dueDays = due ? Math.ceil((new Date(due + 'T00:00:00') - new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00')) / 86400000) : null;
   const ids = Array.isArray(ap.partyIds) ? ap.partyIds : [];
-  return `<div class="panel"><h3>อุทธรณ์ (แบบ ๓๒) + ท้ายอุทธรณ์ (แบบ ๓๓)<span class="grow"></span>${check('ออกในชุดเอกสาร', 'docs.appeal', { rerender: true, sw: true })}</h3>
+  const offNote = (ap.text || '').trim() ? 'มีข้อความอุทธรณ์อยู่แล้ว แต่ยังไม่ออกในชุด' : due ? `ยังไม่ได้ใช้ · ครบกำหนดยื่น ${thDateLong(due)}` : 'ยังไม่ได้ใช้';
+  return docPanel(c, 'appeal', 'อุทธรณ์ (แบบ ๓๒) + ท้ายอุทธรณ์ (แบบ ๓๓)', offNote, `
     <p class="hint panel-note">ผู้อุทธรณ์คือ${side === 'defendant' ? 'จำเลย' : 'โจทก์'}ในคดีนี้ · ยื่นต่อศาลชั้นต้นภายในหนึ่งเดือนนับแต่วันอ่านคำพิพากษา/คำสั่ง (ป.วิ.พ. มาตรา 229)${due ? ` — <b>ครบกำหนด ${esc(thDateLong(due))}</b>${dueDays < 0 ? ` ${badge(`พ้นกำหนดแล้ว ${-dueDays} วัน`, 'err')}` : dueDays <= 7 ? ` ${badge(`เหลือ ${dueDays} วัน`, 'warn')}` : ` (เหลือ ${dueDays} วัน)`}` : ''}</p>
     ${group('คัดค้านอะไร', `
       ${field('คัดค้าน', 'appeal.against', { cls: 's6', list: 'dl-appeal-against', ph: 'คำพิพากษา / คำสั่ง' })}<datalist id="dl-appeal-against">${APPEAL_AGAINST.map((x) => `<option value="${esc(x)}">`).join('')}</datalist>
@@ -869,7 +879,7 @@ function appealPanel(c) {
       ${cur?.note ? `<div class="f s12"><div class="caution">${icon('alert', { size: 18 })}<div>${esc(cur.note)}</div></div></div>` : ''}
       ${cur?.refs?.length ? `<div class="f s12"><small class="hint">อ้างอิง: ${esc(cur.refs.join(' · '))} — เลขมาตรา/ฎีกาในแม่แบบยังไม่ผ่านการตรวจกับแหล่งทางการ ตรวจก่อนยื่น</small></div>` : ''}`)}
     ${group('ข้อความ', field('ข้อความอุทธรณ์ (แยกข้อด้วยบรรทัดว่าง — บรรทัดแรกของแต่ละข้อใช้เป็นหัวข้อได้ · ข้อย่อย 3.1 / (1) ขึ้นบรรทัดใหม่)', 'appeal.text', { cls: 's12', type: 'textarea', rows: 16 }))}
-    <p class="hint">ท้ายอุทธรณ์ (แบบ ๓๓) ใช้ชื่อทนายความจากหน้า “ทนายความ” เป็นผู้เรียง (ไม่มีทนาย = ผู้อุทธรณ์คนแรก) และระบบออกให้พร้อมกันเป็นอีกหนึ่งหน้า</p></div>`;
+    <p class="hint">ท้ายอุทธรณ์ (แบบ ๓๓) ใช้ชื่อทนายความจากหน้า “ผู้เรียงพิมพ์ / ทนายความ” เป็นผู้เรียง (ไม่มีทนาย = ชื่อผู้เรียงที่ระบุไว้ในหน้านั้น หรือผู้อุทธรณ์คนแรก) และระบบออกให้พร้อมกันเป็นอีกหนึ่งหน้า</p>`);
 }
 actions.useAppealTpl = () => {
   const tpl = appealTemplates(S.c).find((x) => x.id === document.getElementById('apl-tpl')?.value);
