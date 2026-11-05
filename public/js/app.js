@@ -16,7 +16,7 @@ import { mergeLawEdits } from '/shared/content-merge.js';
 import { mergeProcedureEdits } from '/shared/procedure-merge.js';
 import { openViewer } from './viewer.js';
 import { morphInto } from './morph.js';
-import { paginateHtml, countSheets, documentFontsReady } from './paginate.js';
+import { paginateHtml, countSheets, joinSheets, documentFontsReady } from './paginate.js';
 import { startConn, connHtml } from './conn.js';
 import { firstBlocked, isLocked, wizardNav, refreshWizard, STEPS, DEF_HIDDEN_STEPS } from './wizard.js';
 import { showInbox } from './inbox.js';
@@ -782,14 +782,15 @@ async function guardExport() {
 
 async function viewDocs(docs, title) {
   await documentFontsReady();
-  const html = docs.map((d) => {
+  // พิมพ์หลายฉบับ: เอกสารหน้าคี่เติมแผ่นเปล่าปิดท้าย (ยกเว้นฉบับสุดท้าย) ให้พิมพ์หน้า-หลังแล้วทุกฉบับเริ่มหน้าใหม่ — ปิดได้ที่ตัวเลือกในหน้าออกเอกสาร
+  const html = joinSheets(docs.map((d) => {
     if (d.isAttachment) {
       const att = { ...d.attachmentData };
       if (!att.signer && S.c) att.signer = resolveCaseSigner(S.c).name;
       return attachmentDocHtml(att);
     }
     return paginateHtml(docHtml(d, S.data.layout));
-  }).join('');
+  }), S.c?.options?.duplex !== false);
   const win = window.open('', '_blank');
   if (!win) return alertBox('โปรดอนุญาต Pop-up ของเบราว์เซอร์ แล้วกดอีกครั้งเพื่อเปิดเอกสารในแท็บใหม่', { title: 'เปิดเอกสารไม่ได้', tone: 'warn' });
   win.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>${esc(title)}</title><base href="${location.origin}/"><link rel="stylesheet" href="css/doc.css">

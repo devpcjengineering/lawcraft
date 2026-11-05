@@ -799,7 +799,15 @@ function appealDocs(c, idx) {
     p([t('อุทธรณ์ฉบับนี้ข้าพเจ้า '), val(typist), t(' เป็นผู้เขียนหรือผู้พิมพ์')], { indent: 0, justify: true, keep: true }),
     sigBlock([{ label: 'ผู้เขียนหรือผู้พิมพ์', name: `(${typist})` }]),
   ];
-  return [main, { id: 'appeal-tail', title: 'ท้ายอุทธรณ์', blocks: tail }];
+  const tailDoc = { id: 'appeal-tail', title: 'ท้ายอุทธรณ์', blocks: tail };
+  // สำเนาอุทธรณ์ตามจำนวนในท้ายอุทธรณ์ (“ยื่นสำเนามาด้วย n ฉบับ”): ชุดที่ 2 ขึ้นไปพิมพ์ “สำเนาถูกต้อง” มุมซ้ายบนของหน้าแรกทั้งอุทธรณ์และท้ายอุทธรณ์ (ไม่เกิน 10 ชุด)
+  const n = Math.min(10, Math.max(0, Math.floor(toNum(a.copies) || 0)));
+  const out = [main, tailDoc];
+  for (let k = 1; k <= n; k++) {
+    const mark = (d) => ({ ...d, blocks: d.blocks.map((b, i) => (i === 0 && b.t === 'top' ? { ...b, copyMark: 'สำเนาถูกต้อง' } : b)) });
+    out.push({ ...mark(main), id: `appeal-copy${k}`, title: `${main.title} — สำเนาชุดที่ ${k + 1}` }, { ...mark(tailDoc), id: `appeal-tail-copy${k}`, title: `ท้ายอุทธรณ์ — สำเนาชุดที่ ${k + 1}` });
+  }
+  return out;
 }
 
 /** โหมดการส่งหมาย: cross-post | post | cross | none (รองรับข้อมูลเก่าที่เป็น boolean) */

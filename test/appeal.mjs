@@ -111,7 +111,7 @@ c.docs.appeal = true; c.appeal.partyIds = [];
 const A5 = buildDocuments(c, data).find((d) => d.id === 'appeal-tail');
 assert.equal(A5.blocks.filter((b) => b.t === 'sig')[0].lines.length, 5, 'ไม่เลือก = จำเลยทั้งห้าเป็นผู้อุทธรณ์');
 // เลือกเฉพาะ only=['appeal'] จากหน้าออกเอกสาร
-assert.deepEqual(buildDocuments(c, data, ['appeal']).map((d) => d.id), ['appeal', 'appeal-tail']);
+assert.deepEqual(buildDocuments(c, data, ['appeal']).map((d) => d.id), ['appeal', 'appeal-tail', 'appeal-copy1', 'appeal-tail-copy1'], 'สำเนา 1 ฉบับ → เพิ่มอีก 1 ชุด');
 
 // ---- validateCase / collectVars / กำหนดหนึ่งเดือน ----
 assert.ok(collectVars(c).includes('ชื่อเจ้ามรดก'), 'ช่องในข้อความอุทธรณ์อยู่ในรายการตัวแปร');
@@ -180,6 +180,26 @@ assert.equal(appealDue(''), null);
   assert.equal(pc.appeal.text, '', 'ฝั่งจำเลยเริ่มด้วยอุทธรณ์ว่าง');
   switchSide(pc, 'plaintiff');
   assert.ok(pc.appeal.text.includes('ความเป็นมาแห่งคดี'), 'กลับฝั่งโจทก์ อุทธรณ์เดิมกลับมา');
+}
+
+// ---- สำเนาอุทธรณ์ตามจำนวนในท้ายอุทธรณ์: ชุดที่ 2 ขึ้นไปมี “สำเนาถูกต้อง” มุมซ้ายบน ----
+{
+  const cc = { ...c, appeal: { ...c.appeal, copies: '2' } };
+  const d = buildDocuments(cc, data, ['appeal']);
+  assert.deepEqual(d.map((x) => x.id), ['appeal', 'appeal-tail', 'appeal-copy1', 'appeal-tail-copy1', 'appeal-copy2', 'appeal-tail-copy2'], 'ต้นฉบับ + สำเนา 2 ชุด');
+  assert.equal(d[0].blocks[0].copyMark, undefined, 'ต้นฉบับไม่มีคำว่าสำเนาถูกต้อง');
+  assert.equal(d[1].blocks[0].copyMark, undefined);
+  for (const x of d.slice(2)) { assert.equal(x.blocks[0].copyMark, 'สำเนาถูกต้อง', x.id); assert.equal(docKey(x), 'appeal'); assert.ok(/สำเนาชุดที่ [๒๓]/.test(x.title), x.title); }
+  assert.equal(textOf(d[2]).replace(/,"copyMark":"สำเนาถูกต้อง"/, ''), textOf(d[0]), 'เนื้อหาสำเนาเหมือนต้นฉบับ');
+  const html = docsHtml(d, { layout: {} });
+  assert.equal((html.match(/copy-mark/g) || []).length, 4, 'HTML มี “สำเนาถูกต้อง” 4 หน้าแรก (อุทธรณ์+ท้าย × 2 ชุด)');
+  const zip = await JSZip.loadAsync(await renderDocx(d, 'ทดสอบสำเนา'));
+  const xml = await zip.file('word/document.xml').async('string');
+  assert.equal((xml.match(/สำเนาถูกต้อง/g) || []).length, 4, 'Word มีสำเนาถูกต้อง 4 ครั้ง');
+  // ไม่ระบุ/ศูนย์/ค่าเพี้ยน → ไม่มีสำเนา ; เกิน 10 → 10
+  assert.equal(buildDocuments({ ...c, appeal: { ...c.appeal, copies: '' } }, data, ['appeal']).length, 2);
+  assert.equal(buildDocuments({ ...c, appeal: { ...c.appeal, copies: 'abc' } }, data, ['appeal']).length, 2);
+  assert.equal(buildDocuments({ ...c, appeal: { ...c.appeal, copies: '99' } }, data, ['appeal']).length, 22);
 }
 
 // ---- คำร้องขอทุเลาการบังคับ (ม.231) ในชุดแม่แบบคำร้องฝั่งจำเลย: ออกเป็นคำร้องแบบ ๗ คู่กับอุทธรณ์ ----

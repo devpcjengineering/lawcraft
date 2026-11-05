@@ -36,6 +36,8 @@
 .page .top-c img { width: var(--em-w, 24mm); height: auto; aspect-ratio: 720 / 747; display: var(--em-show, block); margin: 0 auto; transform: translate(var(--em-x, 0mm), var(--em-y, 0mm)); }
 .page .top-r { text-align: left; font-size: var(--fs, 16pt); transform: translate(var(--cn-x, 0mm), var(--cn-y, 0mm)); }
 .page .court-use { text-align: right; text-decoration: underline; margin-bottom: 2mm; }
+/* สำเนาชุดที่ 2 ขึ้นไป: “สำเนาถูกต้อง” มุมซ้ายบน เหนือเลขแบบพิมพ์ */
+.page .copy-mark { text-decoration: underline; margin: -1.2em 0 .2em; white-space: nowrap; }
 .page .subtitle { text-align: center; font-weight: 700; margin: -2mm 0 2mm; }
 .page .court { text-align: center; margin: var(--ct-b, 3mm) 0 var(--ct-a, 6mm); padding: 0 max(0mm, calc(var(--ct-x, 0mm) * -2)) 0 max(0mm, calc(var(--ct-x, 0mm) * 2)); } /* เลื่อนกึ่งกลางไปขวา/ซ้าย ct-x ด้วย padding (ไม่ใช้ transform) → ชื่อศาลยาวมากไม่ล้นขอบขวา */
 .page .between { display: grid; grid-template-columns: 17mm 7mm 1fr; align-items: stretch; margin: var(--bt-b, 4mm) 0 var(--bt-a, 5mm); }
@@ -100,6 +102,9 @@
 
 /* ---------- แผ่น A4 ที่แบ่งหน้าแล้ว (js/paginate.js) ---------- */
 .page.sheet { padding: 0; height: 297mm; min-height: 0; overflow: hidden; position: relative; }
+/* แผ่นเปล่าท้ายเอกสารหน้าคี่ (พิมพ์หน้า-หลัง): บนจอมีป้ายบอก ตอนพิมพ์เป็นกระดาษเปล่า */
+.page.sheet.blank::after { content: 'หน้าว่าง — เว้นไว้ให้เอกสารถัดไปเริ่มหน้าใหม่เมื่อพิมพ์หน้า-หลัง'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #b4b4bc; font-size: 15px; letter-spacing: .01em; }
+@media print { .page.sheet.blank::after { display: none; } }
 .page.sheet .flow { position: relative; margin: 0; }
 .page.sheet .flow > * { position: absolute; left: 0; right: 0; } /* top ใส่เป็น inline โดย js/paginate.js ตามตำแหน่งที่วัดไว้ (กันความสูงบรรทัดที่ปัดเศษสะสมเมื่อซูม) */
 .page.sheet .flow-clip { position: absolute; top: var(--pt, 18mm); left: 0; width: 210mm; box-sizing: border-box; padding: 0 var(--pr, 18mm) 0 var(--pl, 25mm); overflow: hidden; }

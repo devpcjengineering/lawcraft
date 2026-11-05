@@ -798,7 +798,9 @@ function tabMotions() {
     <div class="row motion-add"><select id="motion-tpl" class="sel-grow" aria-label="แม่แบบคำร้อง"><option value="">เลือกแม่แบบคำร้อง / คำแถลง (${tplMotions().length} แบบ)…</option>${MOTION_KINDS_ALL.map((k) => { const l = tplMotions().filter((x) => x.kind === k); return l.length ? `<optgroup label="${esc(k)} (${l.length})">${l.map((x) => `<option value="${esc(x.id)}">${esc(x.title)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>
       <button class="btn outline" data-act="addMotionTpl">เพิ่มจากแม่แบบ</button>
       <button class="btn outline" data-act="addMotion">${icon('plus', { size: 16 })}คำร้องเปล่า</button></div>
-    <div class="caution">${icon('alert', { size: 18 })}<div>แม่แบบเขียนขึ้นเองตามโครงเอกสารทั่วไป เลขมาตราที่อ้างยังไม่ผ่านการตรวจกับแหล่งทางการ ตรวจก่อนยื่นทุกครั้ง</div></div></div>
+    <div class="caution">${icon('alert', { size: 18 })}<div>แม่แบบเขียนขึ้นเองตามโครงเอกสารทั่วไป เลขมาตราที่อ้างยังไม่ผ่านการตรวจกับแหล่งทางการ ตรวจก่อนยื่นทุกครั้ง</div></div>
+    ${S.c.counsel?.enabled ? `<p class="hint panel-foot">ผู้เรียงและเขียนหรือพิมพ์ท้ายคำร้อง = ทนายความ (${esc([S.c.counsel.prefix, S.c.counsel.first].filter(Boolean).join('') + (S.c.counsel.last ? ' ' + S.c.counsel.last : ''))}) — แก้ที่หน้า “ผู้เรียงพิมพ์ / ทนายความ”</p>`
+    : group('ผู้เรียงและเขียนหรือพิมพ์', field(`ชื่อผู้เรียงและเขียนหรือพิมพ์ท้ายคำร้องทุกฉบับ (ว่าง = ${sideOf(S.c) === 'defendant' ? 'จำเลย' : 'โจทก์'}คนแรก)`, 'author', { cls: 's8', ph: 'เช่น นายสมชาย ใจดี', hint: 'ใช้ร่วมกับคำฟ้อง คำให้การ และท้ายอุทธรณ์ด้วย (ช่องเดียวกับหน้า “ผู้เรียงพิมพ์ / ทนายความ”)' }))}</div>
   ${m.length ? m.map((x, i) => disclose(`m:${x.id || i}`, `<span class="sum-main">${motionSummary(x, i)}</span>
       <span class="sum-act"><button class="btn sm danger" data-act="delMotion" data-i="${i}" aria-label="ลบคำร้องฉบับที่ ${i + 1}">${icon('trash', { size: 15 })}ลบ</button></span>`, `
     <div class="grid">${select('ประเภทเอกสาร (คำที่ไม่ใช้จะถูกขีดฆ่าที่หัวเอกสาร)', `motions.${i}.kind`, MOTION_KINDS_ALL, { cls: 's6', rerender: true, value: x.kind || 'คำร้อง' })}
@@ -871,6 +873,7 @@ function appealPanel(c) {
       ${field('ที่ได้อ่านเมื่อวันที่', 'appeal.readDate', { cls: 's3', type: 'date', rerender: true, hint: 'ใช้นับกำหนดยื่นหนึ่งเดือน' })}
       ${field('ยื่นต่อศาล (ถ้าต้องการระบุในประโยคนำ)', 'appeal.toCourt', { cls: 's6', ph: 'เช่น ศาลอุทธรณ์ภาค 3' })}
       ${field('จำนวนสำเนาอุทธรณ์ (ท้ายอุทธรณ์)', 'appeal.copies', { cls: 's3', inputmode: 'numeric' })}
+      ${c.counsel?.enabled ? '' : field('ผู้เรียง (ว่าง = ผู้อุทธรณ์คนแรก)', 'author', { cls: 's3', hint: 'ช่องเดียวกับผู้เรียงและเขียนหรือพิมพ์ของคำร้อง/คำฟ้อง' })}
       ${field('ผู้เขียนหรือผู้พิมพ์ (ว่าง = ผู้เรียง)', 'appeal.typist', { cls: 's3' })}`)}
     ${filers.length > 1 ? group('ผู้อุทธรณ์ (ไม่เลือก = ทุกคน)', filers.map((d) => `<div class="f s4"><label class="chk"><input type="checkbox" data-act="toggleAppellant" data-id="${esc(d.id)}" ${ids.includes(d.id) ? 'checked' : ''}><span>${esc(partyLabel(c, d))}: ${esc(partyName(d))}</span></label></div>`).join('')) : ''}
     ${group('แม่แบบ', `
@@ -1014,7 +1017,8 @@ function tabExport() {
       ${infos.length ? disclose('iss:info', `ข้อมูลเพิ่มเติม (${infos.length})`, `<ul class="rows">${infos.map(issueRow).join('')}</ul>`, { cls: 'iss-fold', open: false }) : ''}`
     : `<ul class="rows"><li><span class="st-ico ok" aria-hidden="true">${ix('check')}</span><span class="r-main">ข้อมูลครบถ้วน ไม่พบประเด็นที่ต้องแก้</span></li></ul>`}</div>
   <div class="panel"><h3>${sideOf(c) === 'defendant' ? 'เลือกเอกสารฝั่งจำเลย' : filed ? 'เลือกเอกสารในชุดคำฟ้อง' : 'เลือกเอกสารในชุด'}</h3>
-    <div class="doc-pick">${packTypes.map((d) => check(esc(sideOf(c) === 'defendant' && d.key === 'witness' ? 'บัญชีพยานจำเลย (แบบ ๑๕)' : d.label), `docs.${d.key}`, { rerender: true })).join('')}</div></div>
+    <div class="doc-pick">${packTypes.map((d) => check(esc(sideOf(c) === 'defendant' && d.key === 'witness' ? 'บัญชีพยานจำเลย (แบบ ๑๕)' : d.label), `docs.${d.key}`, { rerender: true })).join('')}</div>
+    <div class="panel-foot">${check('เอกสารที่มีจำนวนหน้าคี่ เติมกระดาษเปล่าปิดท้าย 1 แผ่น — สั่งพิมพ์หน้า-หลังทั้งชุดแล้วทุกฉบับเริ่มหน้าใหม่ (PDF ทั้งชุด / พิมพ์ทั้งชุด)', 'options.duplex', { sw: true })}</div></div>
   ${docOrderPanel(c)}
   <div class="panel"><h3>ดาวน์โหลด</h3>
     <div class="dl-main"><div class="btn-group"><button class="btn primary" data-act="printAll">${ix('print')}<span>ดู PDF ทั้งชุด</span></button>

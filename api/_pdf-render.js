@@ -26,7 +26,7 @@ async function launch() {
 const PAGE_SCRIPT = `async (c, title) => {
   const { buildDocuments } = await import('/shared/docs.js');
   const { docHtml } = await import('/js/render-html.js');
-  const { paginateHtml, documentFontsReady } = await import('/js/paginate.js');
+  const { paginateHtml, joinSheets, documentFontsReady } = await import('/js/paginate.js');
   const { loadLawData } = await import('/js/public-data.js');
   const data = await loadLawData();
   const docs = buildDocuments(c, data);
@@ -34,7 +34,8 @@ const PAGE_SCRIPT = `async (c, title) => {
   await Promise.all([document.fonts.load('16px THSarabunIT9', 'ก'), document.fonts.load('bold 16px THSarabunIT9', 'ก')]).catch(() => {});
   await documentFontsReady();
   document.title = title || 'ชุดเอกสาร';
-  document.body.innerHTML = docs.map((d) => paginateHtml(docHtml(d, data.layout))).join('');
+  // เอกสารหน้าคี่เติมแผ่นเปล่าปิดท้าย (ยกเว้นฉบับสุดท้าย) ให้พิมพ์หน้า-หลังทั้งชุดแล้วทุกฉบับเริ่มหน้าใหม่ — ปิดได้ที่ options.duplex
+  document.body.innerHTML = (joinSheets || ((l) => l.join('')))(docs.map((d) => paginateHtml(docHtml(d, data.layout))), c.options?.duplex !== false);
   await document.fonts.ready;
   await Promise.all([...document.images].map((im) => (im.decode ? im.decode().catch(() => {}) : null)));
   return { sheets: document.querySelectorAll('section.sheet').length, docs: docs.map((d) => d.id) };

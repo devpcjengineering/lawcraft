@@ -288,8 +288,14 @@ export function paginateHtml(html) {
   } finally { host.remove(); }
 }
 
-/** จำนวนแผ่นในผลลัพธ์ที่แบ่งหน้าแล้ว */
+/** จำนวนแผ่นในผลลัพธ์ที่แบ่งหน้าแล้ว (รวมแผ่นเปล่าที่เติมท้ายเอกสารหน้าคี่) */
 export const countSheets = (html) => (html.match(/<section class="[^"]*\bsheet\b/g) || []).length;
+
+/** แผ่น A4 เปล่า: เติมท้ายเอกสารที่มีจำนวนแผ่นเป็นเลขคี่ ให้เอกสารถัดไปเริ่มที่หน้าหน้าของกระดาษเมื่อสั่งพิมพ์หน้า-หลังทั้งชุด (ไม่เติมท้ายฉบับสุดท้าย) */
+export const BLANK_SHEET = '<section class="page sheet blank" data-blank="1" aria-hidden="true"></section>';
+export const duplexPad = (sheetsHtml) => (countSheets(sheetsHtml) % 2 ? sheetsHtml + BLANK_SHEET : sheetsHtml);
+/** ประกอบหลายเอกสารเป็นชุด: เติมแผ่นเปล่าให้เอกสารหน้าคี่ทุกฉบับยกเว้นฉบับสุดท้าย (duplex=false = ต่อกันเฉย ๆ) */
+export const joinSheets = (list, duplex = true) => list.map((h, i) => (duplex && i < list.length - 1 ? duplexPad(h) : h)).join('');
 
 /** (เดิม) โหลดฟอนต์เอกสาร — ตอนนี้รวมอยู่ใน initMeasureFrame */
 export const documentFontsReady = () => initMeasureFrame().then(() => {});

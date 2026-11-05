@@ -52,7 +52,7 @@ export function newCase(type = 'criminal') {
     author: '',                                                          // ชื่อผู้เรียงและเขียนหรือพิมพ์ท้ายเอกสารเมื่อไม่มีทนายความ (ว่าง = โจทก์/จำเลยคนแรกของฝั่งที่ยื่น)
     docs: { complaint: true, prayer: true, attachment: true, service: true, witness: true, witnessExtra: true, witnessRequest: true, witnessSummons: true, summons: true, attorney: true, proxy: false, motions: true, answer: false, settlement: false, appeal: false },   // attorney: ออกใบแต่งทนายความเมื่อเปิด “มีทนายความ” (counsel.enabled) — ทั้งฝั่งโจทก์และฝั่งจำเลย
     docOrder: [],                                 // ลำดับชนิดเอกสารในชุดที่ผู้ใช้จัดเอง (คีย์ใน DOC_ORDER) — ว่าง = ลำดับมาตรฐานตามชั้น (ดู docs.js docOrderKeys)
-    options: { thaiDigits: true, autoFill: true, selfWitness: true },
+    options: { thaiDigits: true, autoFill: true, selfWitness: true, duplex: true },   // duplex: เติมแผ่นเปล่าท้ายเอกสารหน้าคี่เมื่อพิมพ์/ออก PDF ทั้งชุด (พิมพ์หน้า-หลังแล้วทุกฉบับเริ่มหน้าใหม่)
     closing: { mode: 'self' },                    // ข้อท้ายคำฟ้อง: self = ไม่ได้ร้องทุกข์ ประสงค์ดำเนินคดีเอง | police = ร้องทุกข์ต่อพนักงานสอบสวนแล้ว
     attachments: [],                              // [{id, type, parentLabel, num, headerText, filename, signer, date, driveUrl, pageCount}]
   };
