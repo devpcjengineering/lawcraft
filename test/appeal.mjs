@@ -227,6 +227,20 @@ assert.equal(appealDue(''), null);
   assert.equal(sig(dsC.find((x) => x.id === 'motion-stay')).lines[0].name, '(นายทนาย สมมติ)', 'มีทนาย → ทนายเป็นผู้เรียง ไม่ใช้ c.author');
 }
 
+// ---- คำร้องขอยกเว้นค่าธรรมเนียมศาลชั้นอุทธรณ์ (ม.155, 156, 156/1, 157, 229) ----
+{
+  const fw = DEF_MOTIONS.find((x) => x.id === 'd-fee-waiver-appeal');
+  assert.ok(fw && fw.kind === 'คำร้อง' && fw.caseType === 'civil' && /ยกเว้นค่าธรรมเนียมศาล/.test(fw.title));
+  for (const r of ['ป.วิ.พ. มาตรา 155', 'ป.วิ.พ. มาตรา 156', 'ป.วิ.พ. มาตรา 156/1', 'ป.วิ.พ. มาตรา 157', 'ป.วิ.พ. มาตรา 229']) assert.ok(fw.refs.includes(r), r);
+  assert.ok(!/อนาถา/.test(fw.text), 'ใช้ถ้อยคำปัจจุบัน “ยกเว้นค่าธรรมเนียมศาล” ไม่ใช่ “คนอนาถา”');
+  assert.ok(/ไม่มีทรัพย์สินพอ/.test(fw.text) && /เดือดร้อนเกินสมควร/.test(fw.text) && /เหตุผลอันสมควร/.test(fw.text) && /มาตรา 229/.test(fw.text) && /สาบานตัว/.test(fw.text), 'องค์ประกอบตาม ม.156/1 ว.2 + เงินวางศาล ม.229 + ไต่สวน/สาบาน');
+  const mc = { ...c, docs: { ...c.docs, motions: true }, motions: [{ id: 'fee', kind: fw.kind, title: fw.title, text: fw.text }] };
+  const d = buildDocuments(mc, data).find((x) => x.id === 'motion-fee');
+  const s = textOf(d);
+  assert.ok(s.includes('"ข้อ ๔."') && !s.includes('"ข้อ ๕."'), 'คำร้อง 4 ข้อ');
+  assert.ok(s.includes('จำเลยทั้งห้า') && s.includes('มาตรา ๑๕๖/๑') && s.includes('"kind":"ph"'));
+}
+
 // ---- ไม่มีวันที่/สำเนา → จุดไข่ปลา ไม่พัง ; ข้อความว่าง → เส้นให้เขียน ----
 {
   const e = { ...c, appeal: { ...newAppeal() }, counsel: { ...c.counsel, enabled: false } };
