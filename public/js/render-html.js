@@ -34,7 +34,7 @@ function blockHtml(b, doc) {
   switch (b.t) {
     case 'top':
       return `<div class="top${b.kinds ? ' kinds' : ''}">
-        <div class="top-l"><span class="circle"></span><div><div>${b.formNo ? esc(b.formNo) : '&nbsp;'}</div><div class="top-title">${b.kinds ? `<div>${b.kinds.all.map((k) => `<span class="${k === b.kinds.on ? '' : 'strike'}">${esc(k)}</span>`).join(' / ')}</div>` : ''}${b.title ? esc(b.title).replace(/\n/g, '<br>') : ''}</div>${b.copyMark ? `<div class="copy-mark">${esc(b.copyMark)}</div>` : ''}</div></div>
+        <div class="top-l"><span class="circle"></span><div><div>${b.formNo ? esc(b.formNo) : '&nbsp;'}</div><div class="top-title">${b.kinds ? `<div>${b.kinds.all.map((k) => `<span class="${k === b.kinds.on ? '' : 'strike'}">${esc(k)}</span>`).join(' / ')}</div>` : ''}${b.title ? esc(b.title).replace(/\n/g, '<br>') : ''}</div>${b.copyMark ? `<div class="copy-mark${b.noEmblem ? ' low' : ''}">${esc(b.copyMark)}</div>` : ''}</div></div>
         <div class="top-c">${b.noEmblem ? '' : '<img src="/garuda.png" alt="ตราครุฑ">'}</div>
         <div class="top-r">${b.courtUse ? '<div class="court-use">สำหรับศาลใช้</div>' : ''}
           ${b.noEmblem && !b.black ? '' : `<div>คดีหมายเลขดำที่ ${dotField(b.black, 4.5)}/${dotField(b.yearBlack, 3)}</div>`}

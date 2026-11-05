@@ -84,7 +84,7 @@ function blockToDocx(b) {
           ? para([txt(l)], { after: 0, opts: { alignment: AlignmentType.CENTER, indent: shiftIndent(L['title.dx']) } })
           : para([txt('      ' + l)], { after: 0, opts: { indent: shiftIndent(L['title.dx']) } }))),
         // สำเนาชุดที่ 2 ขึ้นไป: “สำเนาถูกต้อง” ใต้ชื่อเอกสาร (บรรทัดถัดจากชื่อ)
-        ...(b.copyMark ? [para([txt('      ' + String(b.copyMark), { underline: {} })], { after: 0, opts: { indent: shiftIndent(L['title.dx']) } })] : []),
+        ...(b.copyMark ? [new Paragraph({ indent: shiftIndent(L['title.dx']), spacing: { before: b.noEmblem ? mmToTwip(10 * FIT) : 0, after: 0, line: lineSp() }, children: [txt('      ' + String(b.copyMark), { underline: {} })] })] : []),
       ];
       const mid = [new Paragraph({
         alignment: AlignmentType.CENTER, indent: shiftIndent(L['emblem.dx'], true),
