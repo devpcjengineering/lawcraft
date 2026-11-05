@@ -873,8 +873,8 @@ function appealPanel(c) {
       ${field('ที่ได้อ่านเมื่อวันที่', 'appeal.readDate', { cls: 's3', type: 'date', rerender: true, hint: 'ใช้นับกำหนดยื่นหนึ่งเดือน' })}
       ${field('ยื่นต่อศาล (ถ้าต้องการระบุในประโยคนำ)', 'appeal.toCourt', { cls: 's6', ph: 'เช่น ศาลอุทธรณ์ภาค 3' })}
       ${field('จำนวนสำเนาอุทธรณ์ (ท้ายอุทธรณ์)', 'appeal.copies', { cls: 's3', inputmode: 'numeric' })}
-      ${c.counsel?.enabled ? '' : field('ผู้เรียง (ว่าง = ผู้อุทธรณ์คนแรก)', 'author', { cls: 's3', hint: 'ช่องเดียวกับผู้เรียงและเขียนหรือพิมพ์ของคำร้อง/คำฟ้อง' })}
-      ${field('ผู้เขียนหรือผู้พิมพ์ (ว่าง = ผู้เรียง)', 'appeal.typist', { cls: 's3' })}`)}
+      ${c.counsel?.enabled ? '' : field('ผู้เรียงและเขียนหรือพิมพ์ (ว่าง = ผู้อุทธรณ์คนแรก)', 'author', { cls: 's6', ph: 'เช่น นายสมชาย ใจดี', hint: 'ช่องเดียว คนเดียวกัน — ใช้ร่วมกับคำร้อง/คำฟ้อง/คำให้การ' })}`)}
+    ${c.counsel?.enabled ? `<p class="hint panel-note">ผู้เรียงและเขียนหรือพิมพ์ท้ายอุทธรณ์ = ทนายความ (${esc([c.counsel.prefix, c.counsel.first].filter(Boolean).join('') + (c.counsel.last ? ' ' + c.counsel.last : ''))}) — แก้ที่หน้า “ผู้เรียงพิมพ์ / ทนายความ”</p>` : ''}
     ${filers.length > 1 ? group('ผู้อุทธรณ์ (ไม่เลือก = ทุกคน)', filers.map((d) => `<div class="f s4"><label class="chk"><input type="checkbox" data-act="toggleAppellant" data-id="${esc(d.id)}" ${ids.includes(d.id) ? 'checked' : ''}><span>${esc(partyLabel(c, d))}: ${esc(partyName(d))}</span></label></div>`).join('')) : ''}
     ${group('แม่แบบ', `
       <label class="f s8"><span>แม่แบบอุทธรณ์</span><select id="apl-tpl">${tpls.map((x) => `<option value="${esc(x.id)}" ${x.id === ap.templateId ? 'selected' : ''}>${esc(x.title)}</option>`).join('')}</select></label>

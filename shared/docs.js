@@ -748,7 +748,7 @@ export function appellants(c) {
 /**
  * อุทธรณ์ (แบบ ๓๒) + ท้ายอุทธรณ์ (แบบ ๓๓) — สองฉบับคู่กันเหมือนคำฟ้อง/คำขอท้ายคำฟ้อง (id 'appeal' และ 'appeal-tail' → ชนิดเดียวกัน 'appeal')
  * แบบ ๓๒: หัวเหมือนคำฟ้อง (ศาล วันที่ ความ ระหว่าง ข้อหา ทุนทรัพย์) → “ข้าพเจ้า <ผู้อุทธรณ์> ผู้อุทธรณ์” → ประโยคนำ (appeal.intro) → ข้อ ๑ ๒ …
- * แบบ ๓๓: สำเนาอุทธรณ์ {n} ฉบับ → ลงชื่อผู้อุทธรณ์ → ผู้เรียง (ทนายความ: ใบอนุญาต ที่อยู่ โทรศัพท์ โทรสาร อีเมล) → ผู้เขียนหรือผู้พิมพ์
+ * แบบ ๓๓: สำเนาอุทธรณ์ {n} ฉบับ → ลงชื่อผู้อุทธรณ์ → ผู้เรียงและเขียนหรือพิมพ์ ช่องเดียว (ทนายความ: ใบอนุญาต ที่อยู่ โทรศัพท์ โทรสาร อีเมล · ไม่มีทนาย = c.author หรือผู้อุทธรณ์คนแรก)
  */
 function appealDocs(c, idx) {
   const a = c.appeal || {};
@@ -785,8 +785,8 @@ function appealDocs(c, idx) {
   // ---- ท้ายอุทธรณ์ (แบบ ๓๓) ----
   const cn = c.counsel || {};
   const hasCounsel = !!(cn.enabled && (cn.first || cn.last));
+  // ผู้เรียงและผู้เขียนหรือพิมพ์เป็นคนเดียวกัน → รวมเป็นช่องเดียว “ผู้เรียงและเขียนหรือพิมพ์” (เหมือนท้ายคำฟ้อง/คำร้อง) ไม่แยกช่องผู้พิมพ์
   const composer = hasCounsel ? counselName(cn) : (String(c.author || '').trim() || partyName(list[0]));
-  const typist = String(a.typist || '').trim() || composer;
   const tail = [
     top(c, '๓๓', 'ท้ายอุทธรณ์', { showRed: false, noEmblem: true }),
     p(ftRuns('appeal.copies', { n: String(a.copies || '').trim() }), { indent: 1.5, justify: true, gap: true }),
@@ -794,10 +794,8 @@ function appealDocs(c, idx) {
     p([t('อุทธรณ์ฉบับนี้ข้าพเจ้า '), val(composer),
       ...(hasCounsel ? [t(' ทนายความใบอนุญาตที่ '), cn.license ? val(cn.license) : dots(10), ...(fields(addrPairs(cn.address)).length ? [t(' '), ...fields(addrPairs(cn.address))] : []),
         ...(cn.phone ? [t(' โทรศัพท์ '), val(cn.phone)] : []), ...(cn.fax ? [t(' โทรสาร '), val(cn.fax)] : []), ...(cn.email ? [t(' ไปรษณีย์อิเล็กทรอนิกส์ '), val(cn.email)] : [])] : []),
-      t(' เป็นผู้เรียง')], { indent: 0, justify: true, keep: true }),
-    sigBlock([{ label: 'ผู้เรียง', name: `(${composer})` }]),
-    p([t('อุทธรณ์ฉบับนี้ข้าพเจ้า '), val(typist), t(' เป็นผู้เขียนหรือผู้พิมพ์')], { indent: 0, justify: true, keep: true }),
-    sigBlock([{ label: 'ผู้เขียนหรือผู้พิมพ์', name: `(${typist})` }]),
+      t(' เป็นผู้เรียงและเขียนหรือพิมพ์')], { indent: 0, justify: true, keep: true }),
+    sigBlock([{ label: 'ผู้เรียงและเขียนหรือพิมพ์', name: `(${composer})` }]),
   ];
   const tailDoc = { id: 'appeal-tail', title: 'ท้ายอุทธรณ์', blocks: tail };
   // สำเนาอุทธรณ์ตามจำนวนในท้ายอุทธรณ์ (“ยื่นสำเนามาด้วย n ฉบับ”): ชุดที่ 2 ขึ้นไปพิมพ์ “สำเนาถูกต้อง” มุมซ้ายบนของหน้าแรกทั้งอุทธรณ์และท้ายอุทธรณ์ (ไม่เกิน 10 ชุด)

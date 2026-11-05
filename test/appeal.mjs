@@ -91,17 +91,20 @@ const sigs = T.blocks.filter((b) => b.t === 'sig');
 assert.equal(sigs[0].lines.length, 3, 'ลงชื่อผู้อุทธรณ์ 3 คน');
 assert.ok(sigs[0].lines.every((l) => l.label === 'ผู้อุทธรณ์'));
 assert.ok(sigs[0].lines[0].name.includes('นางสาวหนึ่ง'));
-assert.ok(sT.includes('อุทธรณ์ฉบับนี้ข้าพเจ้า') && sT.includes('เป็นผู้เรียง') && sT.includes('เป็นผู้เขียนหรือผู้พิมพ์'));
-assert.ok(sigs.some((s) => s.lines[0].label === 'ผู้เรียง' && s.lines[0].name.includes('นางสาวหนึ่ง')), 'ไม่มีทนาย → ผู้อุทธรณ์คนแรกเป็นผู้เรียง');
-assert.ok(sigs.some((s) => s.lines[0].label === 'ผู้เขียนหรือผู้พิมพ์' && s.lines[0].name.includes('นางสาวหนึ่ง')), 'ผู้พิมพ์ว่าง = ผู้เรียง');
+// ผู้เรียงและผู้เขียนหรือพิมพ์รวมเป็นช่องเดียว (คนเดียวกัน) — ไม่มีช่อง “ผู้เขียนหรือผู้พิมพ์” แยก
+assert.ok(sT.includes('อุทธรณ์ฉบับนี้ข้าพเจ้า') && sT.includes('เป็นผู้เรียงและเขียนหรือพิมพ์'));
+assert.ok(!sT.includes('เป็นผู้เขียนหรือผู้พิมพ์') && !sigs.some((s) => s.lines[0].label === 'ผู้เขียนหรือผู้พิมพ์'), 'ไม่แยกช่องผู้พิมพ์');
+assert.equal(sigs.length, 2, 'ลงชื่อผู้อุทธรณ์ + ผู้เรียงและเขียนหรือพิมพ์ เท่านั้น');
+assert.ok(sigs.some((s) => s.lines[0].label === 'ผู้เรียงและเขียนหรือพิมพ์' && s.lines[0].name.includes('นางสาวหนึ่ง')), 'ไม่มีทนาย → ผู้อุทธรณ์คนแรกเป็นผู้เรียงและเขียนหรือพิมพ์');
 
-// ---- มีทนายความ + ผู้พิมพ์ระบุเอง ----
+// ---- มีทนายความ (typist เก่าที่ค้างในข้อมูลต้องไม่มีผล) ----
 c.counsel = { ...c.counsel, enabled: true, prefix: 'นาย', first: 'ทนาย', last: 'สมมติ', license: '1234/2560', phone: '081-000-0000', email: 'lawyer@example.com', address: { ...c.counsel.address, no: '9', road: 'ถนนสมมติ', sub: 'ตำบลสมมติ', district: 'อำเภอสมมติ', province: 'อุบลราชธานี', zip: '34000' } };
 c.appeal.typist = 'นางสาวเสมียน พิมพ์ดี';
 docs = buildDocuments(c, data);
 const T2 = docs.find((d) => d.id === 'appeal-tail'), sT2 = textOf(T2);
-assert.ok(sT2.includes('นายทนาย สมมติ') && sT2.includes('ทนายความใบอนุญาตที่') && sT2.includes('๑๒๓๔/๒๕๖๐') && sT2.includes('อยู่บ้านเลขที่') && sT2.includes('๐๘๑-๐๐๐-๐๐๐๐') && sT2.includes('lawyer@example.com'), 'ผู้เรียง = ทนายความ พร้อมใบอนุญาต ที่อยู่ โทรศัพท์ อีเมล');
-assert.ok(sT2.includes('นางสาวเสมียน พิมพ์ดี') && sT2.includes('เป็นผู้เขียนหรือผู้พิมพ์'));
+assert.ok(sT2.includes('นายทนาย สมมติ') && sT2.includes('ทนายความใบอนุญาตที่') && sT2.includes('๑๒๓๔/๒๕๖๐') && sT2.includes('อยู่บ้านเลขที่') && sT2.includes('๐๘๑-๐๐๐-๐๐๐๐') && sT2.includes('lawyer@example.com') && sT2.includes('เป็นผู้เรียงและเขียนหรือพิมพ์'), 'ผู้เรียงและเขียนหรือพิมพ์ = ทนายความ พร้อมใบอนุญาต ที่อยู่ โทรศัพท์ อีเมล');
+assert.ok(!sT2.includes('นางสาวเสมียน พิมพ์ดี'), 'ค่า typist เก่าไม่ถูกใช้');
+assert.ok(T2.blocks.filter((b) => b.t === 'sig').some((s) => s.lines[0].label === 'ผู้เรียงและเขียนหรือพิมพ์' && s.lines[0].name.includes('นายทนาย สมมติ')));
 assert.ok(docs.some((d) => d.id === 'attorney'), 'ใบแต่งทนายออกด้วยเมื่อเปิดทนาย');
 
 // ---- ปิด docs.appeal → ไม่มีเอกสาร ; ไม่เลือกผู้อุทธรณ์ → ทุกคน ----

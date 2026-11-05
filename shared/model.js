@@ -15,8 +15,9 @@ export function newParty(role = 'plaintiff') {
   };
 }
 
-/** ข้อมูลอุทธรณ์เริ่มต้น: partyIds = ผู้อุทธรณ์ที่เลือก (ว่าง = คู่ความฝั่งที่เปิดอยู่ทุกคน) · against = สิ่งที่คัดค้าน · decisionDate/readDate = ISO · toCourt = ศาลที่ยื่นต่อ (ว่างได้) · typist = ผู้เขียนหรือผู้พิมพ์ (ว่าง = ผู้เรียง) */
-export const newAppeal = () => ({ partyIds: [], against: 'คำพิพากษา', decisionDate: '', readDate: '', toCourt: '', text: '', copies: '', typist: '', templateId: '' });
+/** ข้อมูลอุทธรณ์เริ่มต้น: partyIds = ผู้อุทธรณ์ที่เลือก (ว่าง = คู่ความฝั่งที่เปิดอยู่ทุกคน) · against = สิ่งที่คัดค้าน · decisionDate/readDate = ISO · toCourt = ศาลที่ยื่นต่อ (ว่างได้)
+ *  ผู้เรียงและเขียนหรือพิมพ์ท้ายอุทธรณ์ = ทนายความ หรือ c.author (ช่องเดียว คนเดียวกัน — ไม่มีช่องผู้พิมพ์แยก) */
+export const newAppeal = () => ({ partyIds: [], against: 'คำพิพากษา', decisionDate: '', readDate: '', toCourt: '', text: '', copies: '', templateId: '' });
 
 export function newCase(type = 'criminal') {
   return {
