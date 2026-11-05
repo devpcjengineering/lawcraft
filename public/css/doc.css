@@ -36,8 +36,8 @@
 .page .top-c img { width: var(--em-w, 24mm); height: auto; aspect-ratio: 720 / 747; display: var(--em-show, block); margin: 0 auto; transform: translate(var(--em-x, 0mm), var(--em-y, 0mm)); }
 .page .top-r { text-align: left; font-size: var(--fs, 16pt); transform: translate(var(--cn-x, 0mm), var(--cn-y, 0mm)); }
 .page .court-use { text-align: right; text-decoration: underline; margin-bottom: 2mm; }
-/* สำเนาชุดที่ 2 ขึ้นไป: “สำเนาถูกต้อง” มุมซ้ายบน เหนือเลขแบบพิมพ์ */
-.page .copy-mark { text-decoration: underline; margin: -1.2em 0 .2em; white-space: nowrap; }
+/* สำเนาชุดที่ 2 ขึ้นไป: “สำเนาถูกต้อง” ใต้ชื่อเอกสาร (อุทธรณ์ / ท้ายอุทธรณ์) มุมซ้ายบน — ต่อบรรทัดปกติ ไม่ทับตัวหนังสือ */
+.page .copy-mark { text-decoration: underline; margin-top: .15em; white-space: nowrap; }
 .page .subtitle { text-align: center; font-weight: 700; margin: -2mm 0 2mm; }
 .page .court { text-align: center; margin: var(--ct-b, 3mm) 0 var(--ct-a, 6mm); padding: 0 max(0mm, calc(var(--ct-x, 0mm) * -2)) 0 max(0mm, calc(var(--ct-x, 0mm) * 2)); } /* เลื่อนกึ่งกลางไปขวา/ซ้าย ct-x ด้วย padding (ไม่ใช้ transform) → ชื่อศาลยาวมากไม่ล้นขอบขวา */
 .page .between { display: grid; grid-template-columns: 17mm 7mm 1fr; align-items: stretch; margin: var(--bt-b, 4mm) 0 var(--bt-a, 5mm); }

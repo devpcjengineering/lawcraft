@@ -78,13 +78,13 @@ function blockToDocx(b) {
       const img = getEmblem();
       const wpx = Math.round(mmToPx(L['emblem.width']) * FIT);
       const left = [
-        // สำเนาชุดที่ 2 ขึ้นไป: “สำเนาถูกต้อง” มุมซ้ายบน (บรรทัดเหนือเลขแบบ)
-        ...(b.copyMark ? [new Paragraph({ indent: shiftIndent(L['title.dx']), spacing: { before: 0, after: 0, line: lineSp() }, children: [txt(String(b.copyMark), { underline: {} })] })] : []),
-        new Paragraph({ indent: shiftIndent(L['title.dx']), spacing: { before: b.copyMark ? 0 : mmToTwip(Math.max(0, L['title.dy']) * FIT), after: 0, line: lineSp() }, children: [txt(`○  ${b.formNo}`)] }),
+        new Paragraph({ indent: shiftIndent(L['title.dx']), spacing: { before: mmToTwip(Math.max(0, L['title.dy']) * FIT), after: 0, line: lineSp() }, children: [txt(`○  ${b.formNo}`)] }),
         ...(b.kinds ? [para(b.kinds.all.flatMap((k, i) => [...(i ? [txt(' / ')] : []), txt(k, k === b.kinds.on ? {} : { strike: true })]), { after: 0, opts: { alignment: AlignmentType.CENTER, indent: shiftIndent(L['title.dx']) } })] : []),
         ...(b.title ? String(b.title).split('\n') : []).map((l) => (b.kinds
           ? para([txt(l)], { after: 0, opts: { alignment: AlignmentType.CENTER, indent: shiftIndent(L['title.dx']) } })
           : para([txt('      ' + l)], { after: 0, opts: { indent: shiftIndent(L['title.dx']) } }))),
+        // สำเนาชุดที่ 2 ขึ้นไป: “สำเนาถูกต้อง” ใต้ชื่อเอกสาร (บรรทัดถัดจากชื่อ)
+        ...(b.copyMark ? [para([txt('      ' + String(b.copyMark), { underline: {} })], { after: 0, opts: { indent: shiftIndent(L['title.dx']) } })] : []),
       ];
       const mid = [new Paragraph({
         alignment: AlignmentType.CENTER, indent: shiftIndent(L['emblem.dx'], true),
