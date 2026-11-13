@@ -3,7 +3,7 @@
 // ค่าที่แทนในแม่แบบ: @@PX_TITLE@@ @@PX_DESC@@ @@PX_SLUG@@ @@PX_CRUMB@@ (escape ตามบริบท: HTML / JSON-LD) และ @@PX_MAIN@@ (HTML ที่ประกอบและ escape แล้วที่นี่)
 // ทดสอบในเครื่อง: PX_SHELL_FILE=<ไฟล์แม่แบบ> (อ่านไฟล์แทนการดึงจากเว็บ)
 import fs from 'node:fs';
-import { getPool, NOTICE, precedentSlug, docIdFromSlug } from './_aiven.js';
+import { getPool, NOTICE, precedentSlug, docIdFromSlug, isDbDown, STALE_IF_ERROR as SIE } from './_aiven.js';
 
 const SITE = (process.env.SITE_URL || 'https://www.law-craft.co').replace(/\/$/, '');
 const ALLOWED_HOST = /^(www\.law-craft\.co|law-craft\.co|[a-z0-9-]+\.vercel\.app|localhost(:\d+)?|127\.0\.0\.1(:\d+)?)$/i; // กัน Host header ปลอมพา fetch ไปที่อื่น
@@ -88,12 +88,13 @@ export default async function handler(req, res) {
     const it = r.rows[0];
     // ระเบียนซ้ำของศาล (คดีเดียวกันหลายเวอร์ชัน) → เด้งไปหน้าระเบียนหลักของคดีนั้น ; slug ที่ส่วนหน้าไม่ตรง → เด้งไป URL หลักของระเบียนเดียวกัน
     const canonical = precedentSlug(it.case_no, it.year, it.canonical === false && it.canonical_doc_id ? it.canonical_doc_id : it.source_doc_id);
-    if (slug !== canonical) return out(res, 301, '', 'public, s-maxage=86400', { Location: `/precedents/${canonical}/` });
+    if (slug !== canonical) return out(res, 301, '', `public, s-maxage=86400, ${SIE}`, { Location: `/precedents/${canonical}/` });
     const desc = trunc(it.headnote || `คำพิพากษาศาลฎีกาที่ ${it.case_no}/${it.year}`, 155);
     const html = fillShell(shell, { slug: canonical, title: titleOf(it), desc, crumb: `${it.case_no}/${it.year}`, main: renderMain(it) });
-    return out(res, 200, req.method === 'HEAD' ? '' : html, 'public, s-maxage=86400, stale-while-revalidate=604800');
+    return out(res, 200, req.method === 'HEAD' ? '' : html, `public, s-maxage=86400, stale-while-revalidate=604800, ${SIE}`);
   } catch (e) {
     console.error('precedent page:', e.code || '', e.message);
+    if (isDbDown(e)) return out(res, 503, plainPage('ปิดปรับปรุงชั่วคราว', 'ฐานข้อมูลฎีกาปิดปรับปรุงชั่วคราว ลองใหม่ภายหลัง'), 'no-store', { 'Retry-After': '3600' });
     return out(res, e.code === '57014' ? 504 : 500, plainPage('เกิดข้อผิดพลาด', 'โหลดฎีกาไม่สำเร็จ ลองใหม่อีกครั้ง'), 'no-store');
   }
 }

@@ -2,7 +2,7 @@
 // ไม่มี AIVEN_READER_URL = ข้ามส่วนที่ต้องใช้ฐาน (เหลือทดสอบ buildFilter ที่ไม่ใช้เครือข่าย)
 import assert from 'node:assert/strict';
 import { loadEnv } from '../scripts/load-env.mjs';
-import { getPool } from '../api/_aiven.js';
+import { getPool, isDbDown, STALE_IF_ERROR } from '../api/_aiven.js';
 loadEnv();
 const { default: handler, buildFilter } = await import('../api/precedents.js');
 
@@ -15,6 +15,10 @@ f = buildFilter({ q: "'; drop table precedents_full; --", year: '1', type: 'x', 
 assert.ok(!f.where.includes('drop') && !f.params.some((p) => p === 1) && !f.where.includes("type"), 'ค่าผิดปกติถูกทิ้ง/ส่งเป็นพารามิเตอร์เท่านั้น');
 assert.equal(buildFilter({}).where, 'canonical', 'ไม่มีเงื่อนไข = เฉพาะระเบียนหลัก');
 assert.equal(buildFilter({ q: 'a'.repeat(5000) }).params.length <= 1, true);
+// ฐานล่ม (Aiven ปิดบริการ → DNS หาย) แยกจากข้อผิดพลาด SQL ; แคชสำรองใช้ stale-if-error
+assert.ok(isDbDown({ code: 'ENOTFOUND' }) && isDbDown({ code: 'ECONNREFUSED' }) && isDbDown({ code: '57P01' }));
+assert.ok(!isDbDown({ code: '42P01' }) && !isDbDown({ code: '57014' }) && !isDbDown(null));
+assert.match(STALE_IF_ERROR, /^stale-if-error=\d+$/);
 
 if (!process.env.AIVEN_READER_URL) { console.log('precedents-api: ไม่มี AIVEN_READER_URL — ข้ามส่วนที่ใช้ฐาน'); process.exit(0); }
 
@@ -27,6 +31,7 @@ let r = await call('/api/precedents?q=' + encodeURIComponent('มรดก'));
 assert.equal(r.status, 200); assert.ok(r.body.items.length > 0 && r.body.total > 0, 'ค้น "มรดก" ต้องเจอ');
 assert.ok(r.body.notice.includes('ไม่ใช่ข้อความคำพิพากษาฉบับเต็ม'));
 assert.match(r.headers['cache-control'], /s-maxage/);
+assert.ok(r.headers['cache-control'].includes(STALE_IF_ERROR), 'ผลค้นหาที่สำเร็จต้องแคชสำรองไว้ใช้ตอนฐานล่ม');
 const first = r.body.items[0];
 assert.ok(first.id && first.caseNo && first.year && 'snippet' in first);
 assert.ok(r.body.items.length <= 20);

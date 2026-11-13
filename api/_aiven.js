@@ -10,6 +10,12 @@ const CONN_ERR = new Set(['57P01', '57P02', '57P03', '57P05', '08000', '08001', 
 const isConnErr = (e) => CONN_ERR.has(e?.code) || /terminat|Connection (terminated|ended)|timeout exceeded when trying to connect/i.test(e?.message || '');
 const TOO_MANY = '53300'; // too_many_connections — โควตาของบทบาทเต็ม (instance อื่นถือ connection อยู่) → รอให้เซิร์ฟเวอร์ตัด session ว่างแล้วลองใหม่
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// ฐานข้อมูลเข้าไม่ได้เลย (เช่น บริการ Aiven ถูกปิด → DNS ของโฮสต์หายไป = ENOTFOUND) — ใช้แยกข้อความ 503 ออกจากข้อผิดพลาดอื่น
+const DOWN = new Set(['ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH']);
+export const isDbDown = (e) => DOWN.has(e?.code) || isConnErr(e);
+// แคชสำรองตอนฐานล่ม: CDN ของ Vercel ส่งผลลัพธ์ที่เคยแคชไว้ต่อได้สูงสุด 30 วันเมื่อฟังก์ชันตอบผิดพลาด (5xx) — ใส่ต่อท้าย Cache-Control ของคำตอบที่สำเร็จเท่านั้น
+// ข้อผิดพลาดต้องตอบ no-store เสมอ เพื่อไม่ให้ทับของดีในแคช ; แคชของ CDN เริ่มใหม่ทุกครั้งที่ deploy
+export const STALE_IF_ERROR = 'stale-if-error=2592000';
 
 function raw() {
   if (pool) return pool;

@@ -4,7 +4,7 @@
 // ตั้งค่า (Vercel → Environment Variables): AIVEN_READER_URL (จำเป็น) · AIVEN_CA (PEM ของ Aiven; ไม่ตั้ง = ใช้ตัวที่ฝังใน api/_aiven-ca.js)
 // คำค้นตัดคำไทยด้วย tokenize() ตัวเดียวกับตอนโหลดข้อมูล (scripts/deka/precedent-map.mjs) แล้ว plainto_tsquery('simple', …) (ปลอดภัยต่อเครื่องหมายพิเศษ; ทุกค่าส่งเป็นพารามิเตอร์)
 // หมายเหตุ: ข้อมูลเป็น “ย่อสั้น/ย่อยาว” ที่ศาลเผยแพร่ ไม่ใช่คำพิพากษาฉบับเต็ม — ตอบกลับพร้อมข้อสงวนทุกครั้ง
-import { getPool, NOTICE, precedentPath } from './_aiven.js';
+import { getPool, NOTICE, precedentPath, isDbDown, STALE_IF_ERROR as SIE } from './_aiven.js';
 import { tokenize } from '../scripts/deka/precedent-map.mjs';
 
 const PER = 20;
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
   if (!p) return send(res, 503, { error: 'ระบบค้นหาฎีกายังไม่พร้อมใช้งาน (ยังไม่ได้ตั้งค่าฐานข้อมูล)' });
   const query = Object.fromEntries(new URL(req.url, 'http://x').searchParams);
   try {
-    if (query.facets !== undefined) return send(res, 200, await facets(p), 'public, s-maxage=3600, stale-while-revalidate=86400');
+    if (query.facets !== undefined) return send(res, 200, await facets(p), `public, s-maxage=3600, stale-while-revalidate=86400, ${SIE}`);
     if (query.id !== undefined || query.doc !== undefined) {
       const byDoc = query.doc !== undefined;
       const key = byDoc ? (/^[0-9a-z]{1,20}$/i.test(String(query.doc)) ? String(query.doc) : null) : int(query.id, 1, 2 ** 31 - 1);
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       const r = await p.query(`select id, source_doc_id, case_no, year, case_type, title_raw, headnote, full_text, sections, laws, litigants, judges, lower_courts, primary_court_nos, departments, source_url, retrieved_at, canonical, canonical_doc_id from precedents_full where ${byDoc ? 'source_doc_id' : 'id'} = $1`, [key]);
       if (!r.rowCount) return send(res, 404, { error: 'ไม่พบฎีกานี้' });
       const x = r.rows[0];
-      return send(res, 200, { notice: NOTICE, item: { id: x.id, docId: x.source_doc_id, path: precedentPath(x.case_no, x.year, x.canonical === false && x.canonical_doc_id ? x.canonical_doc_id : x.source_doc_id), canonical: x.canonical !== false, caseNo: x.case_no, year: x.year, caseType: x.case_type, title: x.title_raw, headnote: x.headnote, fullText: x.full_text, sections: x.sections, laws: x.laws, litigants: x.litigants, judges: x.judges, lowerCourts: x.lower_courts, primaryCourtNos: x.primary_court_nos, departments: x.departments, sourceUrl: x.source_url, retrievedAt: x.retrieved_at } }, 'public, s-maxage=86400, stale-while-revalidate=604800');
+      return send(res, 200, { notice: NOTICE, item: { id: x.id, docId: x.source_doc_id, path: precedentPath(x.case_no, x.year, x.canonical === false && x.canonical_doc_id ? x.canonical_doc_id : x.source_doc_id), canonical: x.canonical !== false, caseNo: x.case_no, year: x.year, caseType: x.case_type, title: x.title_raw, headnote: x.headnote, fullText: x.full_text, sections: x.sections, laws: x.laws, litigants: x.litigants, judges: x.judges, lowerCourts: x.lower_courts, primaryCourtNos: x.primary_court_nos, departments: x.departments, sourceUrl: x.source_url, retrievedAt: x.retrieved_at } }, `public, s-maxage=86400, stale-while-revalidate=604800, ${SIE}`);
     }
     const f = buildFilter(query); // ไม่มีเงื่อนไขเลย = รายการล่าสุด (ไม่จัดอันดับ)
     const page = int(query.page, 1, 100) || 1;
@@ -70,10 +70,11 @@ export default async function handler(req, res) {
     ]);
     const n = cnt.rows[0].n;
     const items = rows.rows.slice(0, PER).map((x) => ({ id: x.id, docId: x.source_doc_id, path: precedentPath(x.case_no, x.year, x.source_doc_id), caseNo: x.case_no, year: x.year, caseType: x.case_type, snippet: x.snippet, sections: x.sections, hasFull: x.has_full }));
-    return send(res, 200, { notice: NOTICE, page, perPage: PER, total: Math.min(n, COUNT_CAP), totalCapped: n > COUNT_CAP, hasMore: rows.rows.length > PER && page < 100, tokens: f.tokens, items }, 'public, s-maxage=300, stale-while-revalidate=86400');
+    return send(res, 200, { notice: NOTICE, page, perPage: PER, total: Math.min(n, COUNT_CAP), totalCapped: n > COUNT_CAP, hasMore: rows.rows.length > PER && page < 100, tokens: f.tokens, items }, `public, s-maxage=300, stale-while-revalidate=86400, ${SIE}`);
   } catch (e) {
     console.error('precedents api:', e.code || '', e.message);
     const timeout = e.code === '57014';
+    if (isDbDown(e)) return send(res, 503, { error: 'ฐานข้อมูลฎีกาปิดปรับปรุงชั่วคราว ค้นได้เฉพาะคำค้นที่เคยมีคนค้นไว้แล้ว ลองใหม่ภายหลัง' });
     return send(res, timeout ? 504 : 500, { error: timeout ? 'ค้นหาใช้เวลานานเกินไป ลองเพิ่มคำค้นให้เจาะจงขึ้น' : 'ค้นหาฎีกาไม่สำเร็จ ลองใหม่อีกครั้ง' });
   }
 }

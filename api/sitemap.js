@@ -3,11 +3,11 @@
 //   /sitemap-pages.xml           → หน้าสาธารณะ + บทความ /articles/<slug>/ (ตั้งต้น + ที่แอดมินสร้าง/แก้/ซ่อนใน law_data 'content-articles')
 //                                  + ผลงาน /portfolio/<slug>/ (law_data 'content-portfolio' เฉพาะ published && consent) + หน้าข้อมูลกฎหมายสถิต (seo-urls.json)
 //   /sitemap-precedents-N.xml    → หน้าฎีกาแต่ละฉบับ (/precedents/<เลข>-<ปี>-<รหัส>/) จากฐาน Aiven ทีละ PRECEDENTS_PER_FILE รายการ
-// ไม่เคยโยนข้อผิดพลาด — อ่านข้อมูลไม่ได้ = คืนเท่าที่มี (หน้าหลักแบบตายตัว / ไฟล์ฎีกาว่าง)
+// หน้า/บทความอ่านไม่ได้ = คืนเท่าที่มี (หน้าหลักแบบตายตัว) ; ฐานฎีกาล่ม = 503 no-store ให้ CDN ใช้ฉบับเก่าในแคช (stale-if-error) แทน sitemap ที่ไม่มีฎีกา
 // ค่า Supabase ด้านล่างเป็นค่าสาธารณะเดียวกับ public/js/config.js (คีย์ anon อ่านอย่างเดียวผ่าน RLS) — ห้ามใส่ service_role key
 import { mergeIndex } from '../public/articles/merge.js';
 import { publicItems } from '../public/portfolio/model.js';
-import { getPool, precedentPath } from './_aiven.js';
+import { getPool, precedentPath, STALE_IF_ERROR } from './_aiven.js';
 
 const SB_URL = process.env.SUPABASE_URL || 'https://rertcaxuqeuytleaqqft.supabase.co';
 const SB_ANON = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlcnRjYXh1cWV1eXRsZWFxcWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExMTk2NjgsImV4cCI6MjEwNjY5NTY2OH0.CtIOkb9shagUgYXb2X5CkiZkRto-JZJpQz4xpcUpgbM';
@@ -74,26 +74,22 @@ export async function pagesSitemap(host) {
   return urlset(urls);
 }
 
-/** จำนวนฎีกาทั้งหมดในฐาน (0 = ไม่มีฐาน/อ่านไม่ได้) */
+/** จำนวนฎีกาทั้งหมดในฐาน (0 = ยังไม่ได้ตั้งค่าฐาน) — ฐานล่ม/อ่านไม่ได้ = โยนข้อผิดพลาด (handler ตอบ 503 ให้ CDN ใช้ฉบับเก่าในแคช แทนการส่ง sitemap ที่ไม่มีฎีกา) */
 export async function precedentCount() {
-  try {
-    const p = getPool();
-    if (!p) return 0;
-    const r = await p.query('select count(*)::int as n from precedents_full where canonical'); // เฉพาะระเบียนหลัก (คดีเดียวกันหลายเวอร์ชันของศาลไม่ลง sitemap)
-    return r.rows[0]?.n || 0;
-  } catch { return 0; }
+  const p = getPool();
+  if (!p) return 0;
+  const r = await p.query('select count(*)::int as n from precedents_full where canonical'); // เฉพาะระเบียนหลัก (คดีเดียวกันหลายเวอร์ชันของศาลไม่ลง sitemap)
+  return r.rows[0]?.n || 0;
 }
 
-/** ไฟล์ย่อยฎีกาลำดับที่ n (เริ่ม 1): เรียงตาม id คงที่ จึงแบ่งหน้าได้แน่นอน; lastmod = วันที่นำเข้าฐาน */
+/** ไฟล์ย่อยฎีกาลำดับที่ n (เริ่ม 1): เรียงตาม id คงที่ จึงแบ่งหน้าได้แน่นอน; lastmod = วันที่นำเข้าฐาน — ฐานอ่านไม่ได้ = โยนข้อผิดพลาด (เหตุผลเดียวกับ precedentCount) */
 export async function precedentsSitemap(n) {
   const rows = [];
-  try {
-    const p = getPool();
-    if (p && n >= 1) {
-      const r = await p.query('select source_doc_id, case_no, year, created_at::date::text as d from precedents_full where canonical order by id limit $1 offset $2', [PRECEDENTS_PER_FILE, (n - 1) * PRECEDENTS_PER_FILE]);
-      for (const x of r.rows) rows.push([precedentPath(x.case_no, x.year, x.source_doc_id), day(x.d, ''), '', '0.4']);
-    }
-  } catch { /* ไฟล์ว่าง */ }
+  const p = getPool();
+  if (p && n >= 1) {
+    const r = await p.query('select source_doc_id, case_no, year, created_at::date::text as d from precedents_full where canonical order by id limit $1 offset $2', [PRECEDENTS_PER_FILE, (n - 1) * PRECEDENTS_PER_FILE]);
+    for (const x of r.rows) rows.push([precedentPath(x.case_no, x.year, x.source_doc_id), day(x.d, ''), '', '0.4']);
+  }
   return urlset(rows);
 }
 
@@ -120,10 +116,20 @@ export function partOf(req) {
 export default async function handler(req, res) {
   const host = String(req?.headers?.['x-forwarded-host'] || req?.headers?.host || '').split(',')[0].trim();
   const { part, n } = partOf(req);
-  let body, cache = 's-maxage=600, stale-while-revalidate=86400';
-  if (part === 'pages') body = await pagesSitemap(host);
-  else if (part === 'precedents') { body = await precedentsSitemap(n); cache = 's-maxage=86400, stale-while-revalidate=604800'; } // ฎีกาเปลี่ยนไม่บ่อย
-  else { body = await indexSitemap(); cache = 's-maxage=3600, stale-while-revalidate=86400'; }
+  let body, cache = `s-maxage=600, stale-while-revalidate=86400, ${STALE_IF_ERROR}`;
+  try {
+    if (part === 'pages') body = await pagesSitemap(host);
+    else if (part === 'precedents') { body = await precedentsSitemap(n); cache = `s-maxage=86400, stale-while-revalidate=604800, ${STALE_IF_ERROR}`; } // ฎีกาเปลี่ยนไม่บ่อย
+    else { body = await indexSitemap(); cache = `s-maxage=3600, stale-while-revalidate=86400, ${STALE_IF_ERROR}`; }
+  } catch (e) {
+    // ฐานฎีกาล่ม: 503 + no-store → CDN ส่งฉบับเก่าที่แคชไว้ (stale-if-error) ; บอทค้นหาเข้าใจ 503 ว่าชั่วคราว ไม่ลบ URL ออกจากดัชนี
+    console.error('sitemap:', e?.code || '', e?.message);
+    res.statusCode = 503;
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Retry-After', '3600');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    return res.end('sitemap temporarily unavailable');
+  }
   res.statusCode = 200;
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
   res.setHeader('Cache-Control', cache);
