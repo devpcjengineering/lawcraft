@@ -6,6 +6,7 @@ export default {
   // ผู้ดำเนินการเว็บไซต์: ไม่แสดงที่อยู่/เลขทะเบียนนิติบุคคลบนเว็บ (ตั้งจากหลังบ้านได้ภายหลังถ้าต้องการ — ค่าว่าง = ไม่แสดงส่วนนี้)
   office: null,
   contacts: [
+    { label: 'ทนายเพ็ช', value: '096-296-3999', href: 'tel:0962963999' },
     // { label: 'โทรศัพท์', value: '02-xxx-xxxx', href: 'tel:02xxxxxxx' },
     // { label: 'LINE', value: '@yourid', href: 'https://line.me/R/ti/p/@yourid' },
     // { label: 'อีเมล', value: 'contact@example.com', href: 'mailto:contact@example.com' },

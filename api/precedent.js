@@ -3,7 +3,7 @@
 // ค่าที่แทนในแม่แบบ: @@PX_TITLE@@ @@PX_DESC@@ @@PX_SLUG@@ @@PX_CRUMB@@ (escape ตามบริบท: HTML / JSON-LD) และ @@PX_MAIN@@ (HTML ที่ประกอบและ escape แล้วที่นี่)
 // ทดสอบในเครื่อง: PX_SHELL_FILE=<ไฟล์แม่แบบ> (อ่านไฟล์แทนการดึงจากเว็บ)
 import fs from 'node:fs';
-import { getPool, NOTICE, precedentSlug, docIdFromSlug, isDbDown, STALE_IF_ERROR as SIE } from './_aiven.js';
+import { getPool, precedentSlug, docIdFromSlug, isDbDown, STALE_IF_ERROR as SIE } from './_aiven.js';
 
 const SITE = (process.env.SITE_URL || 'https://www.law-craft.co').replace(/\/$/, '');
 const ALLOWED_HOST = /^(www\.law-craft\.co|law-craft\.co|[a-z0-9-]+\.vercel\.app|localhost(:\d+)?|127\.0\.0\.1(:\d+)?)$/i; // กัน Host header ปลอมพา fetch ไปที่อื่น
@@ -41,7 +41,8 @@ export function renderMain(it) {
     <h2>ข้อมูลคดี</h2>
     <dl class="facts">${fact('คู่ความ', list(it.litigants))}${fact('กฎหมายที่อ้าง', laws)}${fact('องค์คณะ', list(it.judges))}${fact('ศาลชั้นต้น/อุทธรณ์', list(it.lower_courts))}${fact('หมายเลขคดี', list(it.primary_court_nos))}${fact('แผนก', list(it.departments))}</dl>
     <div class="note src"><p><b>ที่มาของข้อมูล</b> — ศูนย์เทคโนโลยีสารสนเทศและการสื่อสารในศาลฎีกา<br>ศาลฎีกา เลขที่ 6 ถนนราชดำเนินใน แขวงพระบรมมหาราชวัง เขตพระนคร กรุงเทพมหานคร 10200 <span class="tag ok">✓ ตรวจสอบแล้ว</span></p>
-    <p class="fine">${esc(NOTICE)} · <a href="https://deka.supremecourt.or.th/" rel="noopener noreferrer" target="_blank">ระบบสืบค้นคำพิพากษาศาลฎีกา</a></p></div>
+    <p class="fine"><a href="https://deka.supremecourt.or.th/" rel="noopener noreferrer" target="_blank">ระบบสืบค้นคำพิพากษาศาลฎีกา</a></p></div>
+    <div class="note contact"><p><b>ปรึกษาทนายเพ็ช</b> — มีคำถามเกี่ยวกับเรื่องของคุณ ปรึกษาทนายความได้โดยตรง โทร <a href="tel:0962963999">096-296-3999</a></p></div>
     <p class="sp-bar"><a class="link-arrow" href="/precedents/">ค้นหาฎีกาอื่น</a><a class="link-arrow" href="/laws/">ข้อกฎหมายและมาตรา</a></p>`;
 }
 

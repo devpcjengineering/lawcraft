@@ -300,7 +300,7 @@ const SITUATIONS = [
           <a class="btn-pill primary sm" href="/articles/${esc(s.slug)}/">อ่านบทความที่เกี่ยวข้อง</a>
           <a class="btn-pill ghost sm" href="/contact/?topic=${esc(s.topic)}">ปรึกษาเรื่องนี้</a>
         </div>
-      </div><p class="fine pk-note">ข้อมูลทั่วไปเพื่อประกอบการตัดสินใจเบื้องต้น ไม่ใช่คำปรึกษาทางกฎหมายและไม่รับประกันผลของคดี ข้อเท็จจริงแต่ละเรื่องต่างกัน ควรปรึกษาทนายความก่อนดำเนินการ</p>`;
+      </div><p class="fine pk-note">ปรึกษาทนายเพ็ชได้โดยตรง โทร <a href="tel:0962963999">096-296-3999</a></p>`;
       if (scroll) {
         const r = out.getBoundingClientRect();
         if (r.top > innerHeight * 0.62) out.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth', block: 'start' });

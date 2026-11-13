@@ -228,7 +228,7 @@ export function renderArticleMain(a, opts = {}) {
         ${relatedHtml(a)}
         ${arr(a.faq).length ? `<section id="r-faq" class="ar-sec"><h2>คำถามที่พบบ่อย</h2>${a.faq.map((f) => `<details class="ar-faq"><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}</section>` : ''}
         ${arr(a.sources).length ? `<section id="r-src" class="ar-sec"><h2>แหล่งอ้างอิง</h2><ul class="ar-sources">${a.sources.map((s) => `<li><a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">${esc(s.label)} ↗</a>${s.verified ? '' : ' <span class="ar-flag warn inline">ยังไม่ได้ตรวจเปิดอ่าน</span>'}</li>`).join('')}</ul></section>` : ''}
-        <aside class="ar-disclaimer" role="note"><b>ข้อมูลทั่วไป ไม่ใช่คำปรึกษากฎหมาย</b><p>บทความนี้เขียนเพื่อให้ความรู้เบื้องต้น แต่ละคดีมีข้อเท็จจริงและกำหนดเวลาแตกต่างกัน กฎหมายและแนวคำพิพากษาอาจเปลี่ยนแปลง ควรตรวจสอบตัวบทฉบับปัจจุบันและปรึกษาทนายความหรือพนักงานสอบสวนก่อนตัดสินใจดำเนินการ</p></aside>
+        <aside class="ar-disclaimer" role="note"><b>ปรึกษาทนายเพ็ช</b><p>มีคำถามเกี่ยวกับเรื่องของคุณ ปรึกษาทนายความได้โดยตรง โทร <a href="tel:0962963999">096-296-3999</a></p></aside>
         <div class="ar-cta"><div><b>ปรึกษาทีมทนาย LawCraft ฟรี</b><p>เล่าเหตุการณ์ให้ทีมทนายประเมินเบื้องต้น ฟ้องคดี รับว่าความ หรือใช้ระบบร่างคำฟ้องตามแบบพิมพ์ศาล</p></div><a class="btn-pill primary" href="/contact/">ปรึกษาฟรี</a></div>
         ${prev || next ? `<nav class="ar-pn" aria-label="บทความอื่น">
           ${prev ? `<a href="${articlePath(prev.slug)}"><small>← ก่อนหน้า</small>${esc(prev.title)}</a>` : '<span></span>'}

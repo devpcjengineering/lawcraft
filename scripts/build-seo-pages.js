@@ -15,7 +15,9 @@ import { applyProcedureEdits } from '../shared/procedure-merge.js';
 const BRAND = ' | LawCraft by PKT';
 const MIN_MAIN_TEXT = 300; // หน้าที่ข้อความหลักสั้นกว่านี้ถือว่าบาง → ไม่เผยแพร่
 const MIN_DATA = { item: 120, proc: 90 }; // ข้อความจากข้อมูลจริงขั้นต่ำ (ไม่นับข้อความแม่แบบ)
-const DISCLAIMER = 'ข้อมูลเพื่อการศึกษา ไม่ใช่คำปรึกษาทางกฎหมาย และไม่รับประกันผลของคดี กฎหมายอาจถูกแก้ไขภายหลัง ควรตรวจกับตัวบทฉบับปัจจุบันและปรึกษาทนายความก่อนดำเนินคดี';
+// กล่องท้ายหน้า (แทนคำเตือน "ข้อมูลเพื่อการศึกษา") — ติดต่อทนายเพ็ชโดยตรง
+const LAWYER_TEL = '0962963999', LAWYER_TEL_TEXT = '096-296-3999';
+const CONTACT_TEXT = 'มีคำถามเกี่ยวกับเรื่องของคุณ ปรึกษาทนายความได้โดยตรง โทร';
 
 // ชื่อจังหวัด → slug ภาษาอังกฤษ (ราชบัณฑิตยสภา/ชื่อที่ใช้ทั่วไป) ใช้ใน URL แทนอักษรไทยที่ถูก percent-encode
 const PROV_SLUG = {
@@ -176,7 +178,7 @@ export async function buildSeoPages({ root, dist, site }) {
   // ---------- ตัวช่วยประกอบหน้า ----------
   const badgeV = (v) => (v === false ? '<span class="badge pending">ยังไม่ผ่านการตรวจกับแหล่งทางการ</span>' : '<span class="badge ok">✓ ตรวจกับแหล่งอ้างอิงแล้ว</span>');
   const srcHtml = (s) => (!s ? '' : isHttp(s) ? `<a href="${esc(s)}" target="_blank" rel="noopener nofollow">${esc(host(s))}</a>` : esc(trunc(s, 400)));
-  const noteEdu = `<div class="note"><p><b>ข้อมูลเพื่อการศึกษา ไม่ใช่คำปรึกษา</b> — ${esc(DISCLAIMER)}</p></div>`;
+  const noteEdu = `<div class="note contact"><p><b>ปรึกษาทนายเพ็ช</b> — ${esc(CONTACT_TEXT)} <a href="tel:${LAWYER_TEL}">${LAWYER_TEL_TEXT}</a></p></div>`;
   const ctaBox = (title, text, buttons) => `<aside class="sp-cta" aria-label="${esc(title)}"><div><h2>${esc(title)}</h2><p>${esc(text)}</p></div><div class="btns">${buttons}</div></aside>`;
   const btn = (href, label, cls = 'light') => `<a class="btn-pill ${cls} sm" href="${href}">${esc(label)}</a>`;
   const qaHtml = (faq) => `<div class="qa">${faq.map(([q, a]) => `<div><h3>${esc(q)}</h3><p>${esc(a)}</p></div>`).join('')}</div>`;

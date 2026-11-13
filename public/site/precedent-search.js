@@ -64,7 +64,7 @@ function init() {
         <button type="button" class="btn-pill sm ghost" data-p="${d.page - 1}" ${d.page <= 1 ? 'disabled' : ''}>‹ ก่อนหน้า</button>
         <span class="fine">หน้า ${num(d.page)}</span>
         <button type="button" class="btn-pill sm ghost" data-p="${d.page + 1}" ${lastPage ? '' : 'disabled'}>ถัดไป ›</button></nav>
-      <p class="fine px-note">${esc(d.notice)}</p>`;
+      <div class="note contact"><p><b>ปรึกษาทนายเพ็ช</b> — มีคำถามเกี่ยวกับเรื่องของคุณ ปรึกษาทนายความได้โดยตรง โทร <a href="tel:0962963999">096-296-3999</a></p></div>`;
     out.dataset.tokens = JSON.stringify(d.tokens || []);
     out.removeAttribute('aria-busy');
   }
@@ -85,12 +85,11 @@ function init() {
         ${it.fullText ? `<details class="px-full"><summary>อ่านย่อยาว (${num(it.fullText.length)} ตัวอักษร)</summary><div class="px-text">${para(it.fullText)}</div></details>` : ''}
         <dl class="facts">${fact('คู่ความ', it.litigants)}${fact('กฎหมายที่อ้าง', laws)}${fact('องค์คณะ', it.judges)}${fact('ศาลชั้นต้น/อุทธรณ์', it.lowerCourts)}${fact('หมายเลขคดี', it.primaryCourtNos)}${fact('แผนก', it.departments)}</dl>
         <p class="px-own"><a class="link-arrow" href="${esc(it.path)}">เปิดหน้าของฎีกานี้</a> <span class="fine">(ลิงก์ตรงสำหรับแชร์/อ้างอิง)</span></p>
-        <p class="fine">แหล่งที่มา: <a href="https://deka.supremecourt.or.th/" rel="noopener noreferrer" target="_blank">ระบบสืบค้นคำพิพากษาศาลฎีกา</a> · ${esc(d_notice())}</p>`;
+        <p class="fine">แหล่งที่มา: <a href="https://deka.supremecourt.or.th/" rel="noopener noreferrer" target="_blank">ระบบสืบค้นคำพิพากษาศาลฎีกา</a></p>`;
       box.dataset.loaded = '1';
       push({ ...state(), id: it.id });
     } catch (e) { box.innerHTML = `<p class="note warn">${esc(e.message)}</p>`; }
   }
-  const d_notice = () => out.querySelector('.px-note')?.textContent || 'ข้อมูลเป็นคำพิพากษาย่อที่ศาลเผยแพร่ ไม่ใช่ฉบับเต็ม';
 
   form.addEventListener('submit', (e) => { e.preventDefault(); search(state()); });
   for (const el of [yearSel, typeSel, lawSel]) el.addEventListener('change', () => search(state()));

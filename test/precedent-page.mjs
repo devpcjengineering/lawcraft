@@ -33,7 +33,7 @@ const sample = { source_doc_id: '45962', case_no: '2942', year: 2519, case_type:
 const main = renderMain(sample);
 assert.ok(main.includes('ฎีกาที่ 2942/2519') && main.includes('ป.อ.') === false && main.includes('ประมวลกฎหมายอาญา — ม. 288'));
 assert.ok(!main.includes('<b>x</b>') && !main.includes('<i>อัยการ</i>') && main.includes('&lt;b&gt;x&lt;/b&gt;'), 'เนื้อหาจากฐานต้อง escape');
-assert.ok(main.includes('ที่มาของข้อมูล') && main.includes('ศูนย์เทคโนโลยีสารสนเทศและการสื่อสารในศาลฎีกา') && main.includes('ไม่ใช่ข้อความคำพิพากษาฉบับเต็ม'));
+assert.ok(main.includes('ที่มาของข้อมูล') && main.includes('ศูนย์เทคโนโลยีสารสนเทศและการสื่อสารในศาลฎีกา') && main.includes('tel:0962963999') && !main.includes('ไม่ใช่ข้อความคำพิพากษาฉบับเต็ม'), 'หน้าฎีกา: กล่องติดต่อทนายแทนคำเตือน');
 assert.match(titleOf(sample), /^ฎีกาที่ 2942\/2519 จำเลย/);
 
 if (!process.env.AIVEN_READER_URL) { console.log('precedent-page: ไม่มี AIVEN_READER_URL — ข้ามส่วนที่ใช้ฐาน'); console.log('precedent-page OK (offline)'); process.exit(0); }
