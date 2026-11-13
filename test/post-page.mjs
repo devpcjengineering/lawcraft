@@ -6,6 +6,18 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+// กล่องคำเตือน "ไม่ใช่คำปรึกษากฎหมาย" ในบทความ (รวมฉบับที่แอดมินแก้) ไม่แสดง ; คำแนะนำเฉพาะเรื่องที่นำหน้าเก็บไว้เป็น tip
+{
+  const { noDisclaimer, normArticle } = await import('../public/articles/merge.js');
+  assert.equal(noDisclaimer({ type: 'warn', text: 'บทความนี้เป็นข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษากฎหมาย ควรปรึกษาทนายความ' }), null);
+  assert.equal(noDisclaimer({ type: 'warn', text: 'ข้อมูลทั่วไป ไม่ใช่คำปรึกษากฎหมาย: บทความนี้ยังเป็นฉบับร่าง' }), null);
+  assert.deepEqual(noDisclaimer({ type: 'warn', text: 'ร่างข้างต้นเป็นตัวอย่างประกอบการเรียนรู้ ไม่ใช่คำฟ้องที่พร้อมยื่น บทความนี้เป็นข้อมูลทั่วไปเพื่อการศึกษา ไม่ใช่คำปรึกษากฎหมาย' }), { type: 'tip', text: 'ร่างข้างต้นเป็นตัวอย่างประกอบการเรียนรู้ ไม่ใช่คำฟ้องที่พร้อมยื่น' });
+  const keep = { type: 'warn', text: 'อายุความร้องทุกข์ 3 เดือนนับแต่รู้เรื่องและรู้ตัวผู้กระทำ' };
+  assert.equal(noDisclaimer(keep), keep, 'ข้อควรระวังเนื้อหาจริงต้องคงไว้');
+  const a = normArticle({ sections: [{ heading: 'x', callout: { type: 'warn', text: 'บทความนี้เป็นข้อมูลทั่วไป ไม่ใช่คำปรึกษากฎหมาย' } }] });
+  assert.ok(!('callout' in a.sections[0]));
+}
+
 const dist = path.resolve('dist');
 if (!fs.existsSync(path.join(dist, '_px', 'article.html')) || !fs.existsSync(path.join(dist, '_px', 'portfolio.html'))) { console.log('post-page: ไม่พบ dist/_px/article.html|portfolio.html (ยังไม่ build) — ข้าม'); process.exit(0); }
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lc-post-'));

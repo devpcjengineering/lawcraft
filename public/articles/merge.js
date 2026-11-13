@@ -85,10 +85,24 @@ export function pickArticle(staticArticle, liveRaw, slug) {
   return staticArticle ? normArticle(staticArticle) : null;
 }
 
+/** คำเตือนทั่วไป "ข้อมูลทั่วไป ไม่ใช่คำปรึกษากฎหมาย" ในกล่องเนื้อหาบทความไม่แสดงบนเว็บ (ท้ายบทความมีกล่องติดต่อทนายเพ็ชแทน)
+ *  ใช้ตอนแสดงผลเท่านั้น — ข้อมูลในหลังบ้านไม่ถูกแก้ ; ถ้ามีคำแนะนำเฉพาะเรื่องนำหน้าประโยคคำเตือน เก็บส่วนนั้นไว้เป็น "คำแนะนำ" */
+const DISCLAIMER_RE = /ไม่ใช่คำปรึกษา(?:ทาง)?กฎหมาย/;
+export function noDisclaimer(c) {
+  if (!isObj(c) || typeof c.text !== 'string' || !DISCLAIMER_RE.test(c.text)) return c;
+  const lead = c.text.split(/\s*(?:บทความนี้เป็นข้อมูลทั่วไป|ข้อมูลทั่วไป ไม่ใช่คำปรึกษา)/)[0].trim();
+  return lead.length >= 20 && !DISCLAIMER_RE.test(lead) ? { ...c, type: 'tip', text: lead } : null;
+}
+
 /** เติมค่าที่ขาดให้ครบ เพื่อให้หน้าอ่านไม่พัง */
 export function normArticle(a) {
   const arr = (x) => (Array.isArray(x) ? x : []);
-  const sections = arr(a.sections).filter(isObj).map((s, i) => ({ ...s, id: s.id || `sec-${i + 1}`, heading: s.heading || '', paragraphs: arr(s.paragraphs) }));
+  const sections = arr(a.sections).filter(isObj).map((s, i) => {
+    const out = { ...s, id: s.id || `sec-${i + 1}`, heading: s.heading || '', paragraphs: arr(s.paragraphs) };
+    const c = noDisclaimer(s.callout);
+    if (c) out.callout = c; else delete out.callout;
+    return out;
+  });
   const cl = isObj(a.checklist) && arr(a.checklist.items).length ? { title: a.checklist.title || 'รายการที่ควรเตรียม', items: a.checklist.items } : null;
   return {
     ...a, title: a.title || '', subtitle: a.subtitle || '', category: a.category || '', summary: a.summary || '', readMinutes: a.readMinutes || 1,
